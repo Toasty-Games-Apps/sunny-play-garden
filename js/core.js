@@ -253,6 +253,7 @@
     // Coloring Book
     fill(i = 0) { tone(280 + (i % 7) * 34, .2, { slide: 1.9, vol: .2 }); noise(.14, { freq: 1300, sweep: .45, q: .7, vol: .07 }); },
     brush() { noise(.09, { freq: 2200 + Math.random() * 900, q: 1.1, vol: .03 }); },
+    snip() { noise(.045, { freq: 5600 + Math.random() * 600, q: 2.2, vol: .07 }); noise(.03, { freq: 8200, q: 3, vol: .045, at: .03 }); tone(1900, .03, { type: 'triangle', slide: .7, vol: .02, at: .01 }); },
     erase() { noise(.08, { freq: 800 + Math.random() * 300, q: .7, vol: .035 }); },
     undo() { tone(540, .09, { slide: .6, vol: .13 }); tone(400, .11, { slide: .6, vol: .11, at: .07 }); },
     cheer() { [0, 2, 4, 5, 7, 5, 7].forEach((n, k) => tone(NOTES[n], .34, { at: k * .1, vol: .17 })); [5, 6, 7].forEach((n, k) => tone(NOTES[n] * 2, .3, { at: .55 + k * .09, vol: .07 })); tone(NOTES[0] / 2, .9, { type: 'triangle', vol: .1 }); },

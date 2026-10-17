@@ -1170,3 +1170,7 @@ body:not(.night) .backdrop[data-bg="candy"] .bg-sun circle { fill: #ffe27a; }
 body:not(.night) .backdrop[data-bg="candy"] .bg-h1 { fill: #bff0d9; } body:not(.night) .backdrop[data-bg="candy"] .bg-h2 { fill: #ffc9e0; } body:not(.night) .backdrop[data-bg="candy"] .bg-h3 { fill: #d9c9ff; }
 @media (prefers-reduced-motion: reduce) { .backdrop.bg-swap svg, body:not(.night) .backdrop[data-bg="snow"]::after { animation: none; } }
 body:not(.night)[data-screen="hub"] .backdrop[data-bg="space"] ~ .hub .pg-dot:not(.on) { background: rgba(255, 255, 255, .55); }
+
+/* Hair salon (Style Studio): one full-screen canvas; every button is a picture drawn on it */
+.salon { position: absolute; inset: 0; z-index: 70; }
+.salon-cv { display: block; width: 100%; height: 100%; touch-action: none; }

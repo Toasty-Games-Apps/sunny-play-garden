@@ -159,7 +159,7 @@ Say the sound the letter makes: "buh", "kuh", "sss". Not the name.
 | `sound-y.mp3` | yuh |
 | `sound-z.mp3` | zzz |
 
-# Part 2: optional lines (548, nobody has to record these)
+# Part 2: optional lines (551, nobody has to record these)
 
 ## Prompts and instructions (110)
 
@@ -345,7 +345,7 @@ Said when a name button is touched (player nicknames and pet names) and in "Welc
 | `name-Bean.mp3` | Bean |
 | `name-Noodle.mp3` | Noodle |
 
-## Style Studio names (165)
+## Style Studio names (168)
 
 Only said when "Extra audio help" is on in Grown-ups. Said when a friend, a hairstyle or a piece of clothing is touched in the dress-up game, like "A ball gown!" or "Fairy wings!".
 
@@ -383,6 +383,9 @@ Only said when "Extra audio help" is on in Grown-ups. Said when a friend, a hair
 | `style-hair-topknot.mp3` | A top knot |
 | `style-hair-none.mp3` | No hair |
 | `style-tool-comb.mp3` | A comb! |
+| `style-tool-scissors.mp3` | Scissors! Snip snip! |
+| `style-hair-salon.mp3` | The hair salon! Fix the messy hair! |
+| `style-hair-mine.mp3` | Your own hairstyle! |
 | `style-tool-dryer.mp3` | A hair dryer! |
 | `style-tool-spray.mp3` | Sparkle spray! |
 | `style-tool-bubbles.mp3` | Bubbles! Wash the hair! |

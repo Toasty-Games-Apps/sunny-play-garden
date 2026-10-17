@@ -3,8 +3,8 @@
 const CACHE = 'spg-v25';
 const SHELL = [
   './', 'styles.css', 'manifest.webmanifest',
-  'js/native.js', 'js/glyphs.js', 'js/core.js', 'js/photos.js', 'js/level.js', 'js/sync.js', 'js/voice.js', 'js/art.js', 'js/art-garden.js', 'js/art-pets.js', 'js/scenery.js', 'js/pets.js', 'js/people.js', 'js/people-wear.js', 'js/studio.js', 'js/app.js',
-  'games/letters.js', 'games/fruit.js', 'games/rain.js', 'games/firerescue.js', 'games/band.js', 'games/train.js', 'games/puzzle.js', 'games/aquarium.js', 'games/petcare-rooms.js', 'games/petcare-groom.js', 'games/petcare.js', 'games/hide.js', 'games/cook-art.js', 'games/cook.js', 'games/clay.js', 'games/fishing.js', 'games/garden.js', 'games/color-pictures.js', 'games/color-seasons.js', 'games/color-dinos.js', 'games/color.js', 'games/petshop.js', 'games/style.js',
+  'js/native.js', 'js/glyphs.js', 'js/core.js', 'js/photos.js', 'js/level.js', 'js/sync.js', 'js/voice.js', 'js/art.js', 'js/art-garden.js', 'js/art-pets.js', 'js/scenery.js', 'js/pets.js', 'js/hair.js', 'js/people.js', 'js/people-wear.js', 'js/studio.js', 'js/app.js',
+  'games/letters.js', 'games/fruit.js', 'games/rain.js', 'games/firerescue.js', 'games/band.js', 'games/train.js', 'games/puzzle.js', 'games/aquarium.js', 'games/petcare-rooms.js', 'games/petcare-groom.js', 'games/petcare.js', 'games/hide.js', 'games/cook-art.js', 'games/cook.js', 'games/clay.js', 'games/fishing.js', 'games/garden.js', 'games/color-pictures.js', 'games/color-seasons.js', 'games/color-dinos.js', 'games/color.js', 'games/petshop.js', 'games/salon.js', 'games/style.js',
   'fonts/fredoka-latin-400-normal.woff2', 'fonts/fredoka-latin-600-normal.woff2', 'fonts/fredoka-latin-700-normal.woff2',
   'icons/icon.svg', 'icons/icon-192.png', 'icons/icon-512.png'
 ];

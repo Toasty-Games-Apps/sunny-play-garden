@@ -105,6 +105,13 @@
   STYLES.locs = { back(c, R, f) { c.fillStyle = f; for (let i = -5; i <= 5; i++) { const x = i * R * .2, len = R * (2.0 + Math.abs(Math.sin(i * 2.1)) * .6) - Math.abs(i) * R * .05; rrp(c, x - R * .09, -R * .1, R * .18, len, R * .09); } c.beginPath(); c.ellipse(0, -R * .2, R * 1.18, R * 1.1, 0, Math.PI, TAU); c.fill(); }, front(c, R, f) { c.fillStyle = f; cap(c, R, 'part'); c.fill(); for (const sd of [-1, 1]) for (let i = 0; i < 2; i++) rrp(c, sd * (R * .95 + i * R * .16) - R * .08, -R * .05, R * .16, R * (1.5 + i * .5), R * .08); shine(c, R); c.fillStyle = '#ffd54a'; for (const sd of [-1, 1]) blob(c, sd * R * 1.03, R * 1.4, R * .1); } };
   STYLES.crownbraid = { back: STYLES.long.back, front(c, R, f) { c.fillStyle = f; cap(c, R, 'part'); c.fill(); for (let i = 0; i < 9; i++) { const a = Math.PI * (1.08 + i * .105); c.fillStyle = f; c.beginPath(); c.ellipse(Math.cos(a) * R * 1.02, Math.sin(a) * R * 1.02 - R * .02, R * .22, R * .16, a + Math.PI / 2, 0, TAU); c.fill(); c.strokeStyle = 'rgba(0,0,0,.14)'; c.lineWidth = R * .05; c.stroke(); } for (const sd of [-1, 1]) lock(c, sd * R * .98, R * .16, -R * .05, R * 1.3, sd * R * .05); shine(c, R); } };
   P.STYLES = STYLES;
+  // hair that was cut and styled in the salon (js/hair.js) is kept as strands: look.hair = 'cut:<id>', its strands are in P.cuts[id]
+  P.cuts = {};
+  const cutStyle = id => ({
+    back(c, R, f, col) { const h = P.cuts[id]; if (h) SPG.hair.draw(c, R, h, col, { layer: 'back' }); },
+    front(c, R, f, col) { const h = P.cuts[id]; if (h) SPG.hair.draw(c, R, h, col, { layer: 'front' }); }
+  });
+  const styleOf = k => typeof k === 'string' && k.startsWith('cut:') ? cutStyle(k.slice(4)) : (STYLES[k] || STYLES.none);
 
   // The child. look: { skin, eyes, hair, hairCol, lashes, lips, shadow, blush, freckles, gems, ... } (see people-wear.js for the rest)
   const HEAD = { x: 0, y: -73, R: 21 };
@@ -165,11 +172,11 @@
     c.save(); c.scale(U, U); c.lineJoin = c.lineCap = 'round';
     c.fillStyle = 'rgba(90,63,94,.14)'; c.beginPath(); c.ellipse(0, 1, 20, 3, 0, 0, TAU); c.fill();   // shadow
     const W = P.wear;
-    const hairCol = P.HAIRC[look.hairCol % P.HAIRC.length], style = STYLES[look.hair] || STYLES.none;
+    const hairCol = P.HAIRC[look.hairCol % P.HAIRC.length], style = styleOf(look.hair);
     W.back && W.back(c, look, t);
     // hair behind the body
     const hsw = (o.sway || 0) + Math.sin(t * 1.7) * .012;
-    c.save(); c.translate(HEAD.x + sway * .3, HEAD.y + breathe * .2); c.translate(0, -R); c.transform(1, 0, hsw * 2.2, 1, 0, 0); c.translate(0, R); style.back(c, R, hairFill(c, hairCol, R)); c.restore();
+    c.save(); c.translate(HEAD.x + sway * .3, HEAD.y + breathe * .2); c.translate(0, -R); c.transform(1, 0, hsw * 2.2, 1, 0, 0); c.translate(0, R); style.back(c, R, hairFill(c, hairCol, R), hairCol); c.restore();
     // legs
     c.fillStyle = skin; for (const sd of [-1, 1]) { rr(c, sd * 5.5 - 3.8, -34, 7.6, 31.5, 3.4); c.fill(); }
     W.bottoms && W.bottoms(c, look, t);
@@ -194,7 +201,7 @@
     c.save(); c.translate(HEAD.x + sway * .3, HEAD.y + breathe * .2); c.rotate(Math.sin(t * .9) * .02);
     face(c, look, R, t, blink);
     W.faceAcc && W.faceAcc(c, look, R, t);
-    c.save(); c.translate(0, -R); c.transform(1, 0, hsw * .5, 1, 0, 0); c.translate(0, R); style.front(c, R, hairFill(c, hairCol, R)); c.restore();
+    c.save(); c.translate(0, -R); c.transform(1, 0, hsw * .5, 1, 0, 0); c.translate(0, R); style.front(c, R, hairFill(c, hairCol, R), hairCol); c.restore();
     W.hat && W.hat(c, look, R, t);
     c.restore();
     hand(-1, false); hand(1, o.wave);   // hands (and their polish) are drawn last, in front of every hairstyle and hat

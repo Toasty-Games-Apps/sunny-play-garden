@@ -62,7 +62,7 @@
     'tab-who': 'Pick a friend!', 'tab-hair': 'Hair salon!', 'tab-makeup': 'Make-up!', 'tab-dress': 'Princess dresses!', 'tab-top': 'Tops!', 'tab-bottom': 'Skirts and pants!', 'tab-shoes': 'Shoes!', 'tab-hat': 'Crowns and hats!', 'tab-extras': 'Sparkly extras!', 'tab-nails': 'Nail salon!', 'tab-places': 'Places to go!',
     'who-0': 'Poppy', 'who-1': 'Maya', 'who-2': 'Zoe', 'who-3': 'Ivy', 'who-4': 'Leo', 'who-5': 'Sam', 'who-6': 'Kai', 'who-7': 'Theo',
     'hair-long': 'Long hair', 'hair-wavy': 'Wavy hair', 'hair-ponytail': 'A ponytail', 'hair-pigtails': 'Pigtails', 'hair-buns': 'Two buns', 'hair-braid': 'A braid', 'hair-bob': 'A bob', 'hair-short': 'Short hair', 'hair-spiky': 'Spiky hair', 'hair-curly': 'Curly hair', 'hair-topknot': 'A top knot', 'hair-none': 'No hair',
-    'tool-comb': 'A comb!', 'tool-dryer': 'A hair dryer!', 'tool-spray': 'Sparkle spray!', 'tool-bubbles': 'Bubbles! Wash the hair!',
+    'tool-comb': 'A comb!', 'tool-scissors': 'Scissors! Snip snip!', 'hair-salon': 'The hair salon! Fix the messy hair!', 'hair-mine': 'Your own hairstyle!', 'tool-dryer': 'A hair dryer!', 'tool-spray': 'Sparkle spray!', 'tool-bubbles': 'Bubbles! Wash the hair!',
     'dress-ball': 'A ball gown!', 'dress-aline': 'A party dress!', 'dress-tutu': 'A ballet tutu!', 'dress-mermaid': 'A mermaid gown!', 'dress-petal': 'A flower fairy dress!', 'dress-sun': 'A sundress!',
     'top-tee': 'A t-shirt', 'top-tank': 'A tank top', 'top-stripes': 'A stripy shirt', 'top-hoodie': 'A hoodie', 'top-sweater': 'A cozy sweater', 'top-star': 'A star shirt', 'top-vest': 'A fancy vest',
     'bottom-skirt': 'A skirt', 'bottom-shorts': 'Shorts', 'bottom-jeans': 'Jeans', 'bottom-leggings': 'Leggings', 'bottom-tutuskirt': 'A tutu skirt',
