@@ -56,40 +56,7 @@
     c.restore();
   }
 
-  // Mud: wet, dark, irregular splotches with a glossy shine, lighter dried flecks, little splatters and the odd drip.
-  // They shrink and vanish one by one as the pet is washed. (0, 0) is the pet's feet, s its height.
-  const mrnd = i => { const x = Math.sin(i * 127.1 + 311.7) * 43758.5453; return x - Math.floor(x); };
-  function mudBlob(c, x, y, r, seed, k) {
-    const n = 10, pts = [];
-    for (let i = 0; i < n; i++) { const a = i / n * TAU, rr = r * (.82 + mrnd(seed + i) * .3); pts.push([x + Math.cos(a) * rr * (1 + mrnd(seed + 50) * .2), y + Math.sin(a) * rr * .9]); }
-    const path = () => { c.beginPath(); const m0 = [(pts[n - 1][0] + pts[0][0]) / 2, (pts[n - 1][1] + pts[0][1]) / 2]; c.moveTo(m0[0], m0[1]); for (let i = 0; i < n; i++) { const p1 = pts[i], p2 = pts[(i + 1) % n]; c.quadraticCurveTo(p1[0], p1[1], (p1[0] + p2[0]) / 2, (p1[1] + p2[1]) / 2); } c.closePath(); };
-    c.save(); c.globalAlpha = Math.min(1, k * 1.6);
-    path(); const g = c.createRadialGradient(x - r * .2, y - r * .25, r * .1, x, y, r * 1.1); g.addColorStop(0, '#7b5230'); g.addColorStop(.6, '#5d3b20'); g.addColorStop(1, '#3f2713'); c.fillStyle = g; c.fill();
-    c.strokeStyle = 'rgba(30,18,8,.35)'; c.lineWidth = Math.max(1, r * .08); c.stroke();
-    c.save(); path(); c.clip();
-    c.fillStyle = 'rgba(190,150,100,.5)'; for (let i = 0; i < 4; i++) { c.beginPath(); c.arc(x + (mrnd(seed + 70 + i) - .5) * r * 1.1, y + (mrnd(seed + 80 + i) - .3) * r * .8, r * (.05 + mrnd(seed + 90 + i) * .06), 0, TAU); c.fill(); }   // dried bits
-    c.restore();
-    c.fillStyle = 'rgba(255,255,255,.4)'; c.beginPath(); c.ellipse(x - r * .3, y - r * .32, r * .26, r * .11, -.5, 0, TAU); c.fill();   // wet shine
-    c.restore();
-  }
-  function drawMud(c, s, dirt, who, t) {
-    const R = s * .27, hy = (who && /^bronto$/.test((who && who.id) || '') ? -s * .8 : -s * .6);
-    // [x, y, radius, appears at]; body first, then paws and cheeks, then the face
-    const spots = [[-.13, -.27, .06], [.15, -.19, .05], [.0, -.12, .04], [-.19, -.13, .035], [.11, -.36, .04], [-.07, -.38, .035], [-.14, -.03, .045], [.14, -.03, .045], [.2, -.3, .03], [-.21, -.28, .03]].map(a => ({ x: a[0] * s, y: a[1] * s, r: a[2] * s }));
-    spots.push({ x: -R * .55, y: hy + R * .28, r: R * .16 }, { x: R * .38, y: hy - R * .5, r: R * .12 }, { x: R * .62, y: hy + R * .3, r: R * .1 }, { x: -R * .1, y: hy + R * .12, r: R * .07 });
-    const n = Math.max(1, Math.ceil(dirt * spots.length));
-    c.save();
-    for (let i = 0; i < n; i++) {
-      const sp = spots[i], k = Math.min(1, dirt * spots.length - i);   // the last one fades in
-      mudBlob(c, sp.x, sp.y, sp.r * (.7 + dirt * .4), i * 17 + 3, k);
-      // little splatters around the bigger splotches
-      c.fillStyle = 'rgba(80,52,30,.8)'; c.globalAlpha = Math.min(1, k * 1.4);
-      for (let j = 0; j < 3; j++) { const a = mrnd(i * 9 + j) * TAU, d = sp.r * (1.3 + mrnd(i * 7 + j) * .7); c.beginPath(); c.arc(sp.x + Math.cos(a) * d, sp.y + Math.sin(a) * d * .8, sp.r * (.07 + mrnd(i + j * 5) * .08), 0, TAU); c.fill(); }
-      if (sp.r > s * .035 && i % 2 === 0) { c.beginPath(); c.ellipse(sp.x + sp.r * .2, sp.y + sp.r * 1.1 + Math.sin(t * .8 + i) * sp.r * .06, sp.r * .13, sp.r * .3, 0, 0, TAU); c.fill(); }   // a slow drip
-      c.globalAlpha = 1;
-    }
-    c.restore();
-  }
+  const G = SPG.careGroom;   // dirt, suds, wet fur, tangles and burrs: games/petcare-groom.js
 
   class CareGame {
     constructor(host) {
@@ -101,6 +68,7 @@
       const mins = clamp((Date.now() - (b.t || Date.now())) / 60000, 0, 60);
       b.hunger = Math.min(.85, Math.max(b.hunger || 0, .35) + mins * .03); b.dirt = Math.min(.85, Math.max(b.dirt || 0, .3) + mins * .02); b.tired = Math.min(.85, Math.max(b.tired || 0, .3) + mins * .02);
       b.flags = b.flags || {}; b.cares = b.cares || 0; b.t = Date.now();
+      const pid = this.who().id; G.seed(b, pid, b.dirt); G.furTick(b, pid, mins);   // dirt becomes real stains; matted fur and burrs come back over time
       b.wall = b.wall || 0; b.floor = b.floor || 0; b.rug = b.rug || 0; b.lamp = b.lamp || 0; b.deco = b.deco || [];
       b.room = b.room || 'home'; b.rooms = b.rooms || {}; if (!ROOMS.some(r => r.id === b.room)) b.room = 'home';
       this.picking = false;
@@ -110,13 +78,18 @@
       this.foods = []; this.foam = []; this.zz = []; this.wantFruit = FOODS[Math.floor(Math.random() * FOODS.length)]; this.shake = 0; this.hintT = 0;
       this.pet = { x: 0, y: 0, dir: 1, hop: 0, cheer: 0, eat: 0, moving: false };
       // close-up petting: the pet zooms up, and she can stroke it, brush it or spritz it
-      this.zoom = 0; this.zoomOn = false; this.ztool = 'hand'; this.trail = []; this.mist = []; this.love = 0; this.shine = 0; this.wet = 0;
+      this.zoom = 0; this.zoomOn = false; this.ztool = 'hand'; this.trail = []; this.mist = []; this.love = 0; this.shine = 0; this.wet = 0; this.suds = []; this.drips = []; this.scrubT = 0; this.towelT = 0;
       this.purrLevel = 0; this.purrCtl = null; this.purrMode = null; this.clipEnd = 0; this.brushT = 0; this.sprayT = 0; this.lean = { x: 0, y: 0 };
       this.idle = 0; this.tick = this.tick.bind(this);
+      SPG.careGame = { probe: () => this.probe(), game: this };   // for tests
       const cv = this.canvas, at = e => { const r = cv.getBoundingClientRect(); return { x: (e.clientX - r.left) * this.w / r.width, y: (e.clientY - r.top) * this.h / r.height }; };
       cv.addEventListener('pointerdown', e => { e.preventDefault(); try { cv.setPointerCapture(e.pointerId); } catch (_) { /* optional */ } SPG.audio.unlock(); const p = at(e); this.press(p.x, p.y, e.pointerId); });
       cv.addEventListener('pointermove', e => { if (this.hold && this.hold.id === e.pointerId) { e.preventDefault(); const p = at(e); this.hold.x = p.x; this.hold.y = p.y; } });
       for (const n of ['pointerup', 'pointercancel']) cv.addEventListener(n, e => { if (this.hold && this.hold.id === e.pointerId) this.letGo(); });
+    }
+    probe() {
+      const X = this.petXform(), b = this.bag;
+      return { w: this.w, h: this.h, zoomOn: this.zoomOn, zoom: this.zoom, tools: this.tools.map(t => ({ id: t.id, x: t.x, y: t.y })), ztools: this.ztools.map(t => ({ id: t.id, x: t.x, y: t.y })), zr: this.zr, X, box: this.petBox(), dirt: b.dirt, grime: (b.grime || []).map(g => ({ ...g })), knots: (b.knots || []).map(k => ({ ...k })), burrs: (b.burrs || []).map(q => ({ ...q })), wet: this.wet, suds: this.suds.length, cares: b.cares, flags: b.flags };
     }
     who() { const a = SPG.pets.active(); return a ? { id: a.id, name: a.name, hat: a.hat, face: a.face, neck: a.neck } : { id: 'bunny', name: 'Pip', hat: null }; }
     wallsOpen() { return clamp(3 + Math.floor(this.bag.cares / UNLOCK_EVERY), 3, WALLS.length); }
@@ -168,8 +141,9 @@
       if (!this.pet.x) { this.pet.x = this.homeX; this.pet.y = this.feetY; }
       // close-up: the pet's feet near the bottom, big; a row of little tools along the bottom edge
       this.S2 = Math.min(this.h * .92, this.w * 1.3); this.zx = this.w / 2; this.zy = this.h * .97;
-      this.ztools = ['hand', 'brush', 'spray', 'back'].map((id, i) => ({ id, x: this.w - this.bs * 1.0 - (3 - i) * this.bs * 1.8 + (wide ? 0 : 0), y: this.h - this.bs * .95 }));
-      if (!wide) this.ztools.forEach((t, i) => { t.x = this.w / 2 + (i - 1.5) * this.bs * 1.9; });
+      const zids = ['hand', 'brush', 'spray', 'sponge', 'towel', 'back'], zs = Math.min(this.bs * 1.85, (this.w - 12) / zids.length);
+      this.zr = Math.min(this.bs * .72, zs * .47);   // six little tools along the bottom edge
+      this.ztools = zids.map((id, i) => ({ id, x: wide ? this.w - zs * .6 - (zids.length - 1 - i) * zs : this.w / 2 + (i - (zids.length - 1) / 2) * zs, y: this.h - this.bs * .95 }));
       this.fillFoods();
       this.draw();
     }
@@ -228,8 +202,9 @@
       }
     }
     pressZoom(x, y, id, near) {
-      for (const t of this.ztools) if (near(t, this.bs * .85)) { if (t.id === 'back') this.leaveZoom(); else { this.ztool = t.id; sfx.tap(); this.stopPurrSoon = 0; } return; }
+      for (const t of this.ztools) if (near(t, this.zr * 1.2)) { if (t.id === 'back') this.leaveZoom(); else { this.ztool = t.id; sfx.tap(); this.stopPurrSoon = 0; } return; }
       this.hold = { kind: 'stroke', id, x, y, last: { x, y }, down: this.t };
+      if (this.ztool === 'hand') this.doGroom('hand', x, y, 0, 0, true, true);
       if (this.ztool === 'spray') sfx.spray();
     }
     chooseTool(id) {
@@ -328,19 +303,15 @@
       // night falls slowly and lifts in the morning
       this.night = clamp(this.night + (this.sleeping ? dt * .7 : -dt * 1.1), 0, 1);
       this.morning = Math.max(0, this.morning - dt * .45);
-      // bath
+      // bath: the sponge scrubs what it touches, leaves soap suds, and the pet gets wet
       const h = this.hold;
       if (h && h.kind === 'sponge') {
-        const over = Math.abs(h.x - p.x) < this.s * .42 && h.y > p.y - this.s * .95 && h.y < p.y + 6, moved = Math.hypot(h.x - h.last.x, h.y - h.last.y);
-        if (over && moved > 3 && this.bag.dirt > 0) {
-          this.bag.dirt = Math.max(0, this.bag.dirt - moved * .0016);
-          if (Math.random() < .5) { this.foam.push({ x: h.x + (Math.random() - .5) * 30, y: h.y + (Math.random() - .5) * 30, r: (6 + Math.random() * 10) * this.ui, life: 1.6 + Math.random() }); sfx.bubble(); }
-          if (this.bag.dirt <= 0) { this.foam.forEach(f => { f.life = Math.min(f.life, .5); }); sfx.chime(); voice.say('care-clean'); this.fx.burst(p.x, p.y - this.s * .5, 16, { colors: ['#fff', '#bfe9ff', '#ffd54a'], speed: 200, g: -20, life: 1, size: 6 * this.ui, shape: 'star', up: 60 }); p.cheer = 2; p.hop = 1; this.cared('washed'); }
-        }
+        const X = this.petXform(), over = Math.abs(h.x - p.x) < this.s * .42 && h.y > p.y - this.s * .95 && h.y < p.y + 6, moved = Math.hypot(h.x - h.last.x, h.y - h.last.y);
+        if (over && moved > 3) { this.doGroom('sponge', h.x, h.y, moved, dt, true, false, h.last.x, h.last.y); if ((this.scrubT -= dt) <= 0) { this.scrubT = .14; sfx.bubble(); } }
         h.last = { x: h.x, y: h.y };
       }
-      for (const f of this.foam) { f.life -= dt; f.y -= dt * 8; }
-      this.foam = this.foam.filter(f => f.life > 0);
+      if (G.update(this.bag, this, dt) && Math.random() < .25) sfx.bubble();   // wet fur dries slowly; suds pop by themselves
+      this.updateDrips(dt);
       // sleep: it keeps sleeping (deeper and deeper) until she wakes it
       if (this.sleeping && !p.moving) {
         this.sleepT += dt;
@@ -356,10 +327,51 @@
       this.draw(); this.raf = requestAnimationFrame(this.tick);
     }
 
+    /* ---- grooming: where a tool touches the pet, what comes off, and the fuss that goes with it */
+    petXform() {
+      const e = this.zoom * this.zoom * (3 - 2 * this.zoom);
+      return { px: lerp(this.pet.x, this.zx + this.lean.x, e), py: lerp(this.pet.y, this.zy, e), s: lerp(this.s, this.S2, e) };
+    }
+    doGroom(tool, x, y, moved, dt, on, tap, lx, ly) {
+      const X = this.petXform(), b = this.bag, had = [(b.grime || []).length, (b.knots || []).length + (b.burrs || []).length];
+      const ev = G.groom(b, tool, { u: (x - X.px) / X.s, v: (y - X.py) / X.s, lu: lx == null ? null : (lx - X.px) / X.s, lv: ly == null ? null : (ly - X.py) / X.s, moved: moved / X.s, dt, on, tap }, this);
+      this.groomEvents(ev, X);
+      if (had[0] > 0 && !b.grime.length) this.cleanDone(X);
+      if (had[1] > 0 && !b.knots.length && !b.burrs.length) this.furDone(X);
+    }
+    groomEvents(ev, X) {
+      const COL = { mud: ['#7b5230', '#a9815a', '#fff'], dust: ['#d8c7a8', '#b9a58a'], grass: ['#7dbf5a', '#4d8a3a'], jam: ['#e24b6c', '#b3203f'] }, body = (SPG.pets.SPECIES[this.who().id] || {}).body || '#fff', ui = this.ui;
+      for (const e of ev) {
+        const sx = X.px + e.x * X.s, sy = X.py + e.y * X.s;
+        if (e.t === 'scrub') { if (Math.random() < .14) this.fx.burst(sx, sy, 1, { colors: COL[e.k], speed: 60, g: 280, life: .6, size: 3 * ui + 2 }); }
+        else if (e.t === 'grime') { sfx.pop(); this.fx.burst(sx, sy, 8, { colors: COL[e.k].concat('#fff'), speed: 140, g: 300, life: .8, size: 4 * ui + 2 }); this.fx.burst(sx, sy, 3, { colors: ['#fff', '#bfe9ff'], speed: 90, g: -20, life: .8, size: 5 * ui, shape: 'star', up: 40 }); this.love += .08; }
+        else if (e.t === 'hair') { if (Math.random() < .2) this.fx.burst(sx, sy, 1, { colors: [body, '#fff'], speed: 50, g: 20, life: 1, size: 3 * ui + 2 }); }
+        else if (e.t === 'knot') { sfx.pop(); sfx.chime(); this.fx.burst(sx, sy, 10, { colors: [body, '#fff'], speed: 130, g: 40, life: 1, size: 4 * ui + 2 }); this.fx.burst(sx, sy, 3, { colors: ['#fff7c2', '#fff'], speed: 90, g: -20, life: .9, size: 6 * ui, shape: 'star', up: 40 }); this.love += .3; this.shine = Math.min(1, this.shine + .3); this.pet.hop = Math.max(this.pet.hop, .5); }
+        else if (e.t === 'burr') { sfx.pop(); this.fx.burst(sx, sy, 7, { colors: ['#9a7a45', '#6e5128'], speed: 200, g: 520, life: .9, size: 4 * ui + 2, up: 160 }); this.love += .25; this.pet.cheer = Math.max(this.pet.cheer, 1); }
+      }
+    }
+    cleanDone(X) {   // every last stain is gone
+      const p = this.pet;
+      this.suds.forEach(q => { q.life = Math.min(q.life, 3); });
+      sfx.chime(); voice.say('care-clean');
+      this.fx.burst(X.px, X.py - X.s * .5, 16, { colors: ['#fff', '#bfe9ff', '#ffd54a'], speed: 200, g: -20, life: 1, size: 6 * this.ui, shape: 'star', up: 60 });
+      p.cheer = 2; p.hop = 1; this.cared('washed');
+    }
+    furDone(X) {   // all the tangles and burrs are out: soft, shiny fur
+      sfx.chime(); this.shine = 1; this.love += .3; this.pet.cheer = 2;
+      this.fx.burst(X.px, X.py - X.s * .45, 12, { colors: ['#ff8aa3', '#fff7c2', '#fff'], speed: 220, g: 60, life: 1.1, size: 8 * this.ui, shape: 'heart', up: 90 });
+    }
+    updateDrips(dt) {   // wet fur drips
+      const X = this.petXform();
+      if (this.wet > .45 && !this.sleeping && Math.random() < dt * this.wet * 3) this.drips.push({ x: X.px + (Math.random() - .5) * X.s * .36, y: X.py - Math.random() * X.s * .1, vy: 0, life: 1 });
+      for (const d of this.drips) { d.vy += 900 * this.ui * dt; d.y += d.vy * dt; d.life -= dt * .9; }
+      this.drips = this.drips.filter(d => d.life > 0 && d.y < this.h);
+    }
+
     // Stroking, brushing and spritzing in the close-up view. The pet leans into her finger and purrs more the more she strokes.
     updateZoom(dt) {
       this.zoom = clamp(this.zoom + (this.zoomOn ? dt / .45 : -dt / .4), 0, 1);
-      this.wet = Math.max(0, this.wet - dt * .12); this.shine = Math.max(0, this.shine - dt * .015);
+      this.shine = Math.max(0, this.shine - dt * .015);
       const hs = this.hold && this.hold.kind === 'stroke' ? this.hold : null, id = this.who().id, body = (SPG.pets.SPECIES[id] || {}).body || '#fff';
       let target = 0;
       if (this.zoomOn && hs) {
@@ -369,14 +381,18 @@
         if (this.ztool === 'spray') {
           const dx = B.cx - hs.x, dy = B.cy - hs.y, d = Math.hypot(dx, dy) || 1;
           for (let k = 0; k < 4; k++) this.mist.push({ x: hs.x, y: hs.y, vx: dx / d * (300 + Math.random() * 260) + (Math.random() - .5) * 170, vy: dy / d * (300 + Math.random() * 260) + (Math.random() - .5) * 170, life: .7 + Math.random() * .4, r: 5 + Math.random() * 6 });
-          if (inside) { this.wet = 1; this.shine = Math.min(1, this.shine + dt * .25); }
+          if (inside) this.shine = Math.min(1, this.shine + dt * .25);
+          this.doGroom('spray', hs.x, hs.y, 0, dt, inside);
           if ((this.sprayT -= dt) <= 0) { this.sprayT = .32; sfx.spray(); }
           target = inside ? .5 : 0;
         } else if (inside) {
-          const speed = moved / Math.max(dt, .001), brush = this.ztool === 'brush';
+          const speed = moved / Math.max(dt, .001), tl = this.ztool, brush = tl === 'brush';
           target = clamp((brush ? .55 : .4) + speed / 600, 0, 1);
           if (moved > 2) {
-            this.trail.push({ x1: hs.last.x, y1: hs.last.y, x2: hs.x, y2: hs.y, life: 1, brush });
+            if (tl === 'hand' || brush) this.trail.push({ x1: hs.last.x, y1: hs.last.y, x2: hs.x, y2: hs.y, life: 1, brush });
+            if (tl === 'sponge' || tl === 'towel' || brush) this.doGroom(tl, hs.x, hs.y, moved, dt, true, false, hs.last.x, hs.last.y);
+            if (tl === 'sponge' && (this.scrubT -= dt) <= 0) { this.scrubT = .14; sfx.bubble(); }
+            if (tl === 'towel' && (this.towelT -= dt) <= 0) { this.towelT = .2; sfx.brush(); }
             this.love += moved * .0012;
             if (brush) { this.shine = Math.min(1, this.shine + moved * .0012); if (Math.random() < .5) this.fx.burst(hs.x, hs.y, 1, { colors: [body, '#fff'], speed: 60, g: 30, life: .9, size: 3 * this.ui + 2 }); }
             if ((this.brushT -= dt) <= 0) { this.brushT = brush ? .1 : .5; if (brush) sfx.brush(); }
@@ -497,10 +513,12 @@
       c.rotate(this.lean.x * .0012 * e + Math.sin(this.t * 34) * .09 * this.shake);
       c.fillStyle = 'rgba(90,63,94,.14)'; c.beginPath(); c.ellipse(0, 3, s * .32, s * .05, 0, 0, TAU); c.fill();
       const mood = sleepAtBed ? 'sleep' : p.cheer > 0 || p.eat > 0 || this.purrLevel > .18 ? 'cheer' : 'happy';
-      SPG.pets.draw(c, who.id, s, this.t, { mood, hop: p.hop > 0 ? 1 - p.hop : 0, hat: who.hat, face: who.face, neck: who.neck, detail: 1 + e * 1.3 });
-      // mud on a dirty pet, foam while it is being washed
-      if (this.bag.dirt > 0.02) drawMud(c, s, this.bag.dirt, who, this.t);
+      const popts = { mood, hop: p.hop > 0 ? 1 - p.hop : 0, hat: who.hat, face: who.face, neck: who.neck, detail: 1 + e * 1.3 };
+      // stains, suds, wet fur, tangles and burrs sit on the pet itself
+      if (G.busy(this.bag, this)) this.drawGroomed(c, who, s, popts); else SPG.pets.draw(c, who.id, s, this.t, popts);
       c.restore();
+      for (const d of this.drips) { c.globalAlpha = clamp(d.life * 1.5, 0, 1) * .85; c.fillStyle = '#9fd4ff'; c.beginPath(); c.ellipse(d.x, d.y, 2.6 * this.ui + 1, 4.2 * this.ui + 1.5, 0, 0, TAU); c.fill(); c.fillStyle = 'rgba(255,255,255,.8)'; c.beginPath(); c.arc(d.x - this.ui, d.y - this.ui, this.ui + .5, 0, TAU); c.fill(); }
+      c.globalAlpha = 1;
       if (e > .02) this.drawZoomFx(c, e);
       if (e < .5) this.drawDecos(c, false);   // floor things in front of the pet
       if (sleepAtBed) { c.fillStyle = '#7fd4f5'; art.rr(c, this.bedX - s * .42, p.y - s * .42, s * .84, s * .22, 12); c.fill(); c.fillStyle = 'rgba(255,255,255,.4)'; for (let i = 0; i < 4; i++) c.fillRect(this.bedX - s * .36 + i * s * .2, p.y - s * .4, s * .05, s * .18); }
@@ -548,6 +566,26 @@
         }
       }
     }
+    // the pet and everything on it: drawn on a spare canvas so stains, suds and wet fur stay inside its outline
+    drawGroomed(c, who, s, popts) {
+      const k = Math.min(SPG.ui.dpr(), 1.25), full = Math.max(this.S2, s), W = 1.24, H = 1.72, X0 = -.62, Y0 = -1.55;
+      if (!this.lay) { this.lay = document.createElement('canvas'); this.lc = this.lay.getContext('2d'); }
+      const lw = Math.ceil(W * full * k) + 2, lh = Math.ceil(H * full * k) + 2, bw = Math.ceil(W * s * k), bh = Math.ceil(H * s * k), lc = this.lc;
+      if (this.lay.width !== lw || this.lay.height !== lh) { this.lay.width = lw; this.lay.height = lh; }
+      lc.setTransform(1, 0, 0, 1, 0, 0); lc.clearRect(0, 0, bw + 2, bh + 2);
+      lc.setTransform(k, 0, 0, k, -X0 * s * k, -Y0 * s * k);
+      SPG.pets.draw(lc, who.id, s, this.t, popts);
+      lc.globalCompositeOperation = 'source-atop'; G.drawLayer(lc, s, this.t, who.id, this.bag, this); lc.globalCompositeOperation = 'source-over';
+      c.drawImage(this.lay, 0, 0, bw, bh, X0 * s, Y0 * s, bw / k, bh / k);
+    }
+    towelSprite(c, r) {   // a fluffy towel; the middle is at (0, 0)
+      c.save(); c.lineCap = c.lineJoin = 'round'; c.rotate(-.25);
+      c.fillStyle = '#7fd4f5'; art.rr(c, -r * .95, -r * .6, r * 1.9, r * 1.2, r * .22); c.fill();
+      c.fillStyle = '#fff'; c.fillRect(-r * .95, -r * .22, r * 1.9, r * .16); c.fillRect(-r * .95, r * .08, r * 1.9, r * .16);
+      c.fillStyle = 'rgba(255,255,255,.35)'; art.rr(c, -r * .85, -r * .55, r * 1.2, r * .16, r * .08); c.fill();
+      c.strokeStyle = '#5bb8e0'; c.lineWidth = Math.max(1, r * .06); for (let i = -4; i <= 4; i++) { c.beginPath(); c.moveTo(i * r * .2, r * .6); c.lineTo(i * r * .2, r * .78); c.stroke(); }   // fringe
+      c.restore();
+    }
     // little tools for the close-up: a hand, a brush and a spray bottle
     brushSprite(c, r) {   // the tip of the bristles is at (0, 0)
       c.save(); c.lineCap = c.lineJoin = 'round'; c.rotate(-.5);
@@ -572,13 +610,15 @@
       for (const t of this.ztools) {
         const on = this.ztool === t.id && t.id !== 'back';
         c.save(); c.globalAlpha = k;
-        c.fillStyle = 'rgba(90,63,94,.18)'; c.beginPath(); c.arc(t.x, t.y + 6, this.bs * .72, 0, TAU); c.fill();
-        c.fillStyle = on ? '#fff3c4' : '#fff'; c.beginPath(); c.arc(t.x, t.y, this.bs * .72, 0, TAU); c.fill();
+        c.fillStyle = 'rgba(90,63,94,.18)'; c.beginPath(); c.arc(t.x, t.y + 6, this.zr, 0, TAU); c.fill();
+        c.fillStyle = on ? '#fff3c4' : '#fff'; c.beginPath(); c.arc(t.x, t.y, this.zr, 0, TAU); c.fill();
         if (on) { c.strokeStyle = '#59b96e'; c.lineWidth = 6; c.stroke(); }
-        c.translate(t.x, t.y); const r = this.bs * .42;
+        c.translate(t.x, t.y); const r = this.zr * .58;
         if (t.id === 'hand') art.hand(c, 0, 0, r * 1.5, 0);
         else if (t.id === 'brush') { c.translate(-r * .3, r * .6); this.brushSprite(c, r * .9); }
         else if (t.id === 'spray') { c.translate(-r * .5, r * .05); this.sprayBottle(c, r * .8, false); }
+        else if (t.id === 'sponge') this.icon(c, 'bath', r * 1.15);
+        else if (t.id === 'towel') this.towelSprite(c, r * .95);
         else { c.strokeStyle = '#59b96e'; c.lineWidth = r * .32; c.lineCap = c.lineJoin = 'round'; c.beginPath(); c.moveTo(r * .35, -r * .6); c.lineTo(-r * .45, 0); c.lineTo(r * .35, r * .6); c.stroke(); }
         c.restore();
       }
@@ -587,11 +627,6 @@
     drawZoomFx(c, e) {
       const hs = this.hold && this.hold.kind === 'stroke' ? this.hold : null, B = this.petBox(), ui = this.ui;
       c.save(); c.globalAlpha = e;
-      if (this.wet > .02) {   // droplets on the fur
-        c.fillStyle = `rgba(190,228,255,${(this.wet * .22).toFixed(3)})`; c.beginPath(); c.ellipse(B.cx, B.cy, B.rx * 1.05, B.ry * 1.05, 0, 0, TAU); c.fill();
-        for (let i = 0; i < 34; i++) { const a = i * 2.4, x = B.cx + Math.cos(a) * B.rx * .95 * Math.sqrt(((i * 37) % 100) / 100), y = B.cy + Math.sin(a) * B.ry * .95 * Math.sqrt(((i * 53) % 100) / 100), r = (2.5 + (i % 4)) * ui; c.globalAlpha = e * this.wet * .85; c.fillStyle = 'rgba(255,255,255,.75)'; c.strokeStyle = 'rgba(120,180,235,.8)'; c.lineWidth = 1.2; c.beginPath(); c.arc(x, y, r, 0, TAU); c.fill(); c.stroke(); c.fillStyle = '#fff'; c.beginPath(); c.arc(x - r * .3, y - r * .3, r * .3, 0, TAU); c.fill(); }
-        c.globalAlpha = e;
-      }
       if (this.shine > .03) {   // brushed fur glows
         const g = c.createRadialGradient(B.cx - B.rx * .3, B.cy - B.ry * .4, 0, B.cx - B.rx * .3, B.cy - B.ry * .4, B.rx * 1.3); g.addColorStop(0, `rgba(255,255,255,${(this.shine * .35).toFixed(3)})`); g.addColorStop(1, 'rgba(255,255,255,0)');
         c.fillStyle = g; c.beginPath(); c.ellipse(B.cx, B.cy, B.rx * 1.1, B.ry * 1.1, 0, 0, TAU); c.fill();
@@ -611,6 +646,8 @@
       const rest = { x: this.w * .84, y: this.h * .42 + Math.sin(this.t * 2.5) * 6 }, pos = hs ? { x: hs.x, y: hs.y } : rest, r = this.S2 * .07;
       if (this.ztool === 'brush') { c.save(); c.translate(pos.x, pos.y); this.brushSprite(c, r); c.restore(); }
       else if (this.ztool === 'spray') { c.save(); c.translate(pos.x + r * .75, pos.y + r * .5); c.translate(-r * .75, -r * .5); this.sprayBottle(c, r, !!hs); c.restore(); }
+      else if (this.ztool === 'sponge') { c.save(); c.translate(pos.x, pos.y); this.icon(c, 'bath', r * 1.7); c.restore(); }
+      else if (this.ztool === 'towel') { c.save(); c.translate(pos.x, pos.y); this.towelSprite(c, r * 1.5); c.restore(); }
       else if (!hs) { c.save(); c.globalAlpha = e * .9; art.hand(c, this.zx + Math.sin(this.t * 2) * this.S2 * .12, this.zy - this.S2 * .5 + Math.cos(this.t * 2) * 6, r * 2.2, 0); c.restore(); }
       c.restore();
     }
