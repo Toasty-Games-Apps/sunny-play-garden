@@ -57,7 +57,7 @@ Short lines that tell {her} what to do.
 | `fire-start.mp3` | Some little fires! Spray them with water! |
 | `band-start.mp3` | Touch the friends to make music! |
 | `band-copy.mp3` | Listen... now you play! |
-| `train-start.mp3` | All aboard! Fill up the train! |
+| `shapes-start.mp3` | Build the picture! Put each shape in its hole! |
 | `puzzle-start.mp3` | Put the picture together! |
 | `care-start.mp3` | Take care of your friend! |
 | `care-sleep.mp3` | Shhh... sleepy time. |
@@ -159,9 +159,9 @@ Say the sound the letter makes: "buh", "kuh", "sss". Not the name.
 | `sound-y.mp3` | yuh |
 | `sound-z.mp3` | zzz |
 
-# Part 2: optional lines (548, nobody has to record these)
+# Part 2: optional lines (562, nobody has to record these)
 
-## Prompts and instructions (110)
+## Prompts and instructions (121)
 
 Short lines that tell {her} what to do.
 
@@ -174,8 +174,8 @@ Short lines that tell {her} what to do.
 | `fire-pet.mp3` | Tap the pet to help them down! |
 | `fire-done.mp3` | Everyone is safe! Hooray! |
 | `band-song.mp3` | Play some notes, then touch the red button! |
-| `train-go.mp3` | Choo choo! Off we go! |
-| `train-wrong.mp3` | Try another one! |
+| `shapes-done.mp3` | You built it! |
+| `shapes-wrong.mp3` | Try another one! |
 | `puzzle-done.mp3` | You made the picture! |
 | `puzzle-next.mp3` | Tap the green arrow for another puzzle! |
 | `care-food.mp3` | Yum! Thank you! |
@@ -230,6 +230,17 @@ Short lines that tell {her} what to do.
 | `shape-square.mp3` | Square! |
 | `shape-triangle.mp3` | Triangle! |
 | `shape-star.mp3` | Star! |
+| `shape-rectangle.mp3` | Rectangle! |
+| `shape-oval.mp3` | Oval! |
+| `shape-semicircle.mp3` | Half circle! |
+| `shape-trapezoid.mp3` | Trapezoid! |
+| `shape-diamond.mp3` | Diamond! |
+| `color-orange.mp3` | Orange! |
+| `color-purple.mp3` | Purple! |
+| `color-pink.mp3` | Pink! |
+| `color-brown.mp3` | Brown! |
+| `color-gray.mp3` | Gray! |
+| `color-white.mp3` | White! |
 | `aq-fresh.mp3` | A fresh new fish tank! Here are some coins to buy new fish! |
 | `aq-coin.mp3` | A shiny coin! Touch it! |
 | `aq-grow.mp3` | Your fish is growing! |
@@ -345,7 +356,7 @@ Said when a name button is touched (player nicknames and pet names) and in "Welc
 | `name-Bean.mp3` | Bean |
 | `name-Noodle.mp3` | Noodle |
 
-## Style Studio names (165)
+## Style Studio names (168)
 
 Only said when "Extra audio help" is on in Grown-ups. Said when a friend, a hairstyle or a piece of clothing is touched in the dress-up game, like "A ball gown!" or "Fairy wings!".
 
@@ -383,6 +394,9 @@ Only said when "Extra audio help" is on in Grown-ups. Said when a friend, a hair
 | `style-hair-topknot.mp3` | A top knot |
 | `style-hair-none.mp3` | No hair |
 | `style-tool-comb.mp3` | A comb! |
+| `style-tool-scissors.mp3` | Scissors! Snip snip! |
+| `style-hair-salon.mp3` | The hair salon! Fix the messy hair! |
+| `style-hair-mine.mp3` | Your own hairstyle! |
 | `style-tool-dryer.mp3` | A hair dryer! |
 | `style-tool-spray.mp3` | Sparkle spray! |
 | `style-tool-bubbles.mp3` | Bubbles! Wash the hair! |

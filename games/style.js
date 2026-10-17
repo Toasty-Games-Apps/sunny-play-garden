@@ -148,6 +148,8 @@
       this.host = host; this.root = el('div', 'st'); host.append(this.root);
       const b = this.bag = store.bag('style', () => ({ v: 1, kids: {}, cur: 0, place: 0, shows: 0, last: '' }));
       if (!b.kids) b.kids = {};
+      b.cuts = Array.isArray(b.cuts) ? b.cuts : [];   // hairstyles cut in the salon (strands, see js/hair.js); P.cuts holds them ready to draw
+      for (const q of b.cuts) { const h = SPG.hair.unpack(q.d); if (h) P.cuts[q.id] = h; }
       this.fx = new art.Fx(); this.t = 0; this.running = false; this.tab = 'dress'; this.tool = null; this.sway = 0; this.hop = 0; this.wave = 0; this.foam = 0; this.show = null;
       this.nailColor = 3; this.nailArt = 0; this.glitter = false; this.ptr = null; this.down = false; this.lastNail = -1; this.lastMove = null; this.travel = 0; this.blowT = 0;
       this.build(); this.loadKid(b.cur | 0); this.renderPanel();
@@ -157,9 +159,9 @@
     later(fn, ms) { const id = setTimeout(() => { this.timers.delete(id); fn(); }, ms); (this.timers || (this.timers = new Set())).add(id); }
     start() { this.running = true; this.last = performance.now(); this.raf = requestAnimationFrame(this.tick = this.tick.bind(this)); this.fit(); }
     pause() { this.running = false; cancelAnimationFrame(this.raf); }
-    resume() { if (!this.running) this.start(); }
+    resume() { if (!this.running && !this.salon) this.start(); }
     resize() { this.fit(); this.renderPanel(); }
-    destroy() { this.pause(); this.ro && this.ro.disconnect(); (this.timers || []).forEach(clearTimeout); this.saveNow(); document.body.classList.remove('st-open'); this.root.remove(); }
+    destroy() { this.salon && this.salon.close(); this.pause(); this.ro && this.ro.disconnect(); (this.timers || []).forEach(clearTimeout); this.saveNow(); document.body.classList.remove('st-open'); this.root.remove(); }
 
     /* -------------------------------------------------------------- looks */
     loadKid(i) {
@@ -176,6 +178,23 @@
       Object.assign(this.look, fields); this.saveSoon();
       if (!quiet) { const p = this.headPos(); this.fx.burst(p.x, p.y + p.U * 12, 8, { colors: ['#ffe066', '#ff9fc8', '#fff', '#bfe6ff'], speed: 140, g: 40, life: .7, size: 6, shape: 'star', up: 40 }); this.hop = Math.max(this.hop, .5); }
       this.renderPanel(true);
+    }
+
+    /* -------------------------------------------------------------- the hair salon */
+    openSalon() {
+      if (this.salon) return; sfx.tap(); this.pause();
+      this.salon = SPG.salon.open(this.host, { look: this.look, onSave: (d, col) => this.saveCut(d, col), onClose: () => { this.salon = null; this.resume(); this.renderPanel(); } });
+    }
+    saveCut(d, col) {
+      const cuts = this.bag.cuts, id = 'c' + Date.now().toString(36);
+      cuts.push({ id, d }); P.cuts[id] = SPG.hair.unpack(d);
+      while (this.bag.cuts.length > 6) this.dropCut(this.bag.cuts[0].id);
+      this.change({ hair: 'cut:' + id, hairCol: col }, true); this.saveNow();
+    }
+    dropCut(id) {   // nobody is left wearing a hairstyle that is thrown away
+      this.bag.cuts = this.bag.cuts.filter(q => q.id !== id); delete P.cuts[id];
+      const same = 'cut:' + id; for (const k of Object.keys(this.bag.kids)) if (this.bag.kids[k] && this.bag.kids[k].hair === same) this.bag.kids[k].hair = 'long';
+      if (this.look.hair === same) this.look.hair = 'long';
     }
 
     /* -------------------------------------------------------------- layout */
@@ -242,6 +261,9 @@
         this.body.append(g, this.section('skin', 'Skin', () => this.swatchRow('skin', P.SKIN, null, { title: 'skin', kind: 'skin', big: true })), this.section('eyes', 'Eyes', () => this.swatchRow('eyes', P.EYES, null, { title: 'eyes', kind: 'eyes', big: true })));
       } else if (T === 'hair') {
         const g = el('div', 'st-grid');
+        // the salon: fix a messy hairstyle with scissors, a brush, a spray bottle and a dryer; what she makes is kept as 'my hairstyles'
+        g.append(this.tile(cv => { const c = cv.getContext('2d'), s = cv.width; c.save(); c.fillStyle = '#ffe3f0'; c.beginPath(); c.arc(s / 2, s / 2, s * .46, 0, TAU); c.fill(); c.translate(s * .5, s * .62); SPG.salon.drawIcon(c, 'scissors', s * .26); c.restore(); }, false, 'hair-salon', () => this.openSalon()));
+        for (const q of this.bag.cuts) g.append(this.tile(cv => drawThumb(cv, Object.assign({}, look, { hair: 'cut:' + q.id, hat: null }), FOCUS.hair), look.hair === 'cut:' + q.id, 'hair-mine', () => { this.change({ hair: 'cut:' + q.id }); sfx.rustle(); }));
         for (const id of P.HAIR) g.append(this.tile(cv => drawThumb(cv, Object.assign({}, look, { hair: id, hat: null }), FOCUS.hair), look.hair === id, 'hair-' + id, () => { this.change({ hair: id }); sfx.rustle(); }));
         this.body.append(g); this.colors.append(this.swatchRow('hairCol', P.HAIRC, null, {}));
       } else if (T === 'makeup') {

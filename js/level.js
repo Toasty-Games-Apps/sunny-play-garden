@@ -15,7 +15,7 @@
   ];
   const AGES = [2, 3, 4, 5, 6, 7];
   // the exact age at which each game steps up to tier 2 and to tier 3 (age 2 is always tier 1)
-  const RULE = { letters: [3, 6], numbers: [3, 5], math: [3, 5], fruit: [3, 6], rain: [3, 5], fire: [3, 5], band: [3, 5], train: [3, 6], puzzle: [3, 5], hide: [3, 6], garden: [3, 6], cook: [3, 5], clay: [3, 5], fishing: [3, 5] };
+  const RULE = { letters: [3, 6], numbers: [3, 5], math: [3, 5], fruit: [3, 6], rain: [3, 5], fire: [3, 5], band: [3, 5], shapes: [3, 5], puzzle: [3, 5], hide: [3, 6], garden: [3, 6], cook: [3, 5], clay: [3, 5], fishing: [3, 5] };
   // what each game does at each tier (shown to grown-ups)
   const GAMES = [
     ['letters', 'Letter Garden', ['Always three choices in the find-it games', 'Three choices, then four with practice', 'Four choices every time, look-alike letters allowed']],
@@ -25,12 +25,12 @@
     ['rain', 'Rain Bucket', ['The bucket fills quickly (6 drops)', 'Rainbow every 8 drops', 'A fuller bucket (14 drops) and faster rain']],
     ['fire', 'Fire Rescue', ['One or two small flames in each building', 'Several flames in each building', 'Nearly every window is on fire, and flames flare back up if they are left alone']],
     ['band', 'Bunny Band', ['Copy tunes of up to 3 notes', 'Copy tunes of up to 5 notes', 'Copy tunes of up to 7 notes']],
-    ['train', 'Choo-Choo Train', ['Colors and shapes, with small counts (up to 3)', 'Counts up to 4', 'Mixed signs from the start, counts up to 6']],
+    ['shapes', 'Shape Builder', ['3 or 4 pieces, and each hole shows its colour', '5 to 7 pieces, and each hole shows its colour', '8 to 11 pieces, plain shadow holes (a small picture shows the colours) and two look-alike pieces in the wrong colour']],
     ['puzzle', 'Puzzle Pond', ['Up to 6 pieces', 'Up to 12 pieces', 'Up to 20 pieces']],
     ['hide', 'Hide and Seek', ['Two friends in each place, the arrow comes sooner', 'Three to five friends in each place', 'At least four friends in each place, the arrow waits longer']],
     ['garden', 'Grow a Garden', ['Plants need less water', 'The usual amount of water', 'Plants need more water']],
     ['cook', 'Sprout Kitchen', ['Ingredients measured out, at most two scoops of each', 'Real recipe amounts (cups, half cups, eggs, butter sticks), counted out loud', 'Real recipe amounts (cups, half cups, eggs, butter sticks), counted out loud']],
-    ['clay', 'Clay Corner', ['Seven big tools: clay, hand, pull, squish, rolling pin, cookie cutters, eyes and beads', 'Adds the knife, stamps, smoothing, pinch and poke', 'Adds colouring (every tool)']],
+    ['clay', 'Clay Corner', ['Seven big tools: clay, hand, pull, squish, rolling pin, cookie cutters, eyes and beads', 'Adds the knife, stamps, smoothing, pinch and poke', 'Adds recolouring (the paint drop)']],
     ['fishing', 'Fishing Pond', ['Three fishing spots, a fish bites quickly and one tap reels it in', 'Five fishing spots (deeper water too), three taps to reel a fish in', 'Five fishing spots, five taps to reel in, and the fish tugs while reeling']],
   ];
 

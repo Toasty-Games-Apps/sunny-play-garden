@@ -1,81 +1,143 @@
-// Clay Corner: play-dough for fingers. The clay is a height map (a height and a colour for every cell of a 320 x 320 board) that is
-// lit like real clay, so a ball, a rope, a flat sheet and a dent all look and feel different. Tools: clay (tap = ball, drag = rope),
-// hand (pick a piece up and move it), pull (drag clay along), squish (press and hold to flatten), rolling pin, pinch (raise a peak),
-// poke (make a dent), knife, cookie cutters, stamps, smoothing, colouring, and eyes and beads. Everything has an undo; the board is
-// kept for each player between visits; the camera saves a picture (and, if a grown-up allows it, to the phone's photos).
+// Clay Corner: play-dough for fingers. Every lump of clay is a smooth outline (see games/clay-kit.js, which also draws it crisply with
+// volume, a rim light and a shadow on the mat), so it can be rolled, pulled, squished, cut and stamped like the real thing.
+// Tools: clay (tap = a ball, drag = a rope), hand (move a piece or a bead; drop it on the bin to throw it away), pull (drag clay along),
+// squish (press and hold to flatten), rolling pin, pinch (pull out a point), poke (a dent; hold on a flat piece for a hole), knife (cuts a
+// piece in two), cookie cutters (cut a shape out; it slides out of the hole), stamps, smoothing, colouring, and eyes and beads.
+// Everything has an undo; the creation is kept for each player between visits; the camera saves a picture (and, if a grown-up allows
+// it, to the phone's photos).
 (() => {
   const SPG = window.SPG;
   const { art, sfx, voice, store } = SPG;
-  const G = 320, N = G * G, TAU = Math.PI * 2, SC = G / 256;   // everything below that is measured in cells is scaled by SC
-  const MAXH = 70 * SC, FLAT = 2.6 * SC;            // tallest clay, and how thick a rolled-out sheet is (in cells)
+  const K = SPG.clayKit, TAU = Math.PI * 2;
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
   const rr = (c, x, y, w, h, r) => art.rr(c, x, y, w, h, r);
 
   /* ---------------------------------------------------------------- colours */
   const COLORS = [
-    { id: 'red', c: [232, 72, 63] }, { id: 'orange', c: [255, 150, 55] }, { id: 'yellow', c: [255, 212, 70] }, { id: 'lime', c: [158, 214, 80] },
-    { id: 'green', c: [64, 172, 92] }, { id: 'teal', c: [54, 185, 176] }, { id: 'sky', c: [96, 196, 240] }, { id: 'blue', c: [66, 122, 224] },
-    { id: 'purple', c: [142, 94, 224] }, { id: 'pink', c: [255, 126, 182] }, { id: 'brown', c: [154, 106, 70] }, { id: 'white', c: [248, 244, 236] },
-    { id: 'black', c: [74, 69, 80] }, { id: 'rainbow', c: [255, 150, 200], rainbow: true }
+    { id: 'red', c: [236, 66, 58] }, { id: 'orange', c: [255, 146, 50] }, { id: 'yellow', c: [255, 208, 60] }, { id: 'lime', c: [150, 214, 72] },
+    { id: 'green', c: [52, 170, 88] }, { id: 'teal', c: [44, 184, 174] }, { id: 'sky', c: [90, 196, 242] }, { id: 'blue', c: [60, 118, 228] },
+    { id: 'purple', c: [140, 90, 226] }, { id: 'pink', c: [255, 118, 178] }, { id: 'brown', c: [160, 106, 68] }, { id: 'white', c: [250, 246, 238] },
+    { id: 'black', c: [78, 72, 86] }, { id: 'rainbow', c: [255, 150, 200], rainbow: true }
   ];
   const BEADS = [[255, 90, 110], [255, 205, 70], [90, 200, 120], [90, 180, 245], [170, 120, 235], [255, 150, 70]];
-  const hsl = (h, s, l) => {
-    h = ((h % 360) + 360) % 360 / 360; const f = n => { const k = (n + h * 12) % 12, a = s * Math.min(l, 1 - l); return l - a * Math.max(-1, Math.min(k - 3, 9 - k, 1)); };
-    return [Math.round(f(0) * 255), Math.round(f(8) * 255), Math.round(f(4) * 255)];
-  };
   const css = (c, k = 1) => `rgb(${Math.round(c[0] * k)},${Math.round(c[1] * k)},${Math.round(c[2] * k)})`;
+  const SHAPE_PATH = (c, kind, r) => { K.shapePath(c, kind, r); };
 
-  /* ---------------------------------------------------------------- shapes (cutters, stamps), drawn around (0, 0) with radius r */
-  const SHAPES = {
-    circle: (c, r) => { c.beginPath(); c.arc(0, 0, r, 0, TAU); },
-    square: (c, r) => { c.beginPath(); rr(c, -r * .85, -r * .85, r * 1.7, r * 1.7, r * .2); },
-    heart: (c, r) => { c.beginPath(); c.moveTo(0, r * .92); c.bezierCurveTo(-r * 1.35, r * .1, -r * 1.05, -r * .95, 0, -r * .38); c.bezierCurveTo(r * 1.05, -r * .95, r * 1.35, r * .1, 0, r * .92); c.closePath(); },
-    star: (c, r) => { c.beginPath(); for (let i = 0; i < 10; i++) { const a = -Math.PI / 2 + i * Math.PI / 5, q = i % 2 ? r * .47 : r * 1.05; c.lineTo(Math.cos(a) * q, Math.sin(a) * q + r * .06); } c.closePath(); },
-    flower: (c, r) => { c.beginPath(); for (let i = 0; i < 6; i++) { const a = i * TAU / 6; c.moveTo(Math.cos(a) * r * .58 + r * .42, Math.sin(a) * r * .58); c.arc(Math.cos(a) * r * .58, Math.sin(a) * r * .58, r * .42, 0, TAU); } c.moveTo(r * .35, 0); c.arc(0, 0, r * .35, 0, TAU); },
-    triangle: (c, r) => { c.beginPath(); c.moveTo(0, -r * .95); c.lineTo(r * .95, r * .7); c.lineTo(-r * .95, r * .7); c.closePath(); },
-    bear: (c, r) => { c.beginPath(); c.arc(0, r * .12, r * .78, 0, TAU); c.moveTo(-r * .38 + r * .34, -r * .62); c.arc(-r * .62, -r * .5, r * .34, 0, TAU); c.moveTo(r * .62 + r * .34, -r * .5); c.arc(r * .62, -r * .5, r * .34, 0, TAU); },
-    cat: (c, r) => { c.beginPath(); c.arc(0, r * .18, r * .76, 0, TAU); c.moveTo(-r * .72, -r * .2); c.lineTo(-r * .62, -r * .95); c.lineTo(-r * .12, -r * .5); c.closePath(); c.moveTo(r * .72, -r * .2); c.lineTo(r * .62, -r * .95); c.lineTo(r * .12, -r * .5); c.closePath(); },
-    // stamps
-    dots: (c, r) => { c.beginPath(); for (const [x, y] of [[-.5, -.35], [.5, -.35], [0, .5]]) { c.moveTo(x * r + r * .26, y * r); c.arc(x * r, y * r, r * .26, 0, TAU); } },
-    paw: (c, r) => { c.beginPath(); c.ellipse(0, r * .38, r * .52, r * .42, 0, 0, TAU); for (const [x, y] of [[-.72, -.05], [-.26, -.52], [.26, -.52], [.72, -.05]]) { c.moveTo(x * r + r * .22, y * r); c.arc(x * r, y * r, r * .22, 0, TAU); } },
-    ridges: (c, r) => { c.beginPath(); for (let i = -2; i <= 2; i++) rr(c, i * r * .36 - r * .09, -r * .8, r * .18, r * 1.6, r * .09); },
-    ring: (c, r) => { c.beginPath(); c.arc(0, 0, r * .85, 0, TAU); c.moveTo(r * .5, 0); c.arc(0, 0, r * .5, 0, TAU, true); },
-    plus: (c, r) => { c.beginPath(); rr(c, -r * .22, -r * .85, r * .44, r * 1.7, r * .12); rr(c, -r * .85, -r * .22, r * 1.7, r * .44, r * .12); },
-    zigzag: (c, r) => { c.beginPath(); const p = [[-.9, -.3], [-.45, .3], [0, -.3], [.45, .3], [.9, -.3]]; for (const [x, y] of p) c.lineTo(x * r, y * r - r * .1); for (let i = p.length - 1; i >= 0; i--) c.lineTo(p[i][0] * r, p[i][1] * r + r * .22); c.closePath(); }
-  };
-  const CUTTERS = ['circle', 'square', 'heart', 'star', 'flower', 'triangle', 'bear', 'cat'];
-  const STAMPS = ['dots', 'star', 'heart', 'flower', 'paw', 'ridges', 'ring', 'zigzag'];
-  const EXTRAS = ['eye', 'bead', 'pearl', 'sprinkles'];
-
+  const CUTTERS = K.CUTTERS, STAMPS = K.STAMPS, EXTRAS = ['eye', 'bead', 'pearl', 'sprinkles'];
   // tools in the order they are shown; the number is the youngest age tier that gets them
   const TOOLS = [['clay', 1], ['hand', 1], ['pull', 1], ['squish', 1], ['roll', 1], ['cutters', 1], ['extras', 1], ['knife', 2], ['stamps', 2], ['smooth', 2], ['pinch', 2], ['poke', 2], ['dye', 3]];
-  const SIZE_R = [6 * SC, 10 * SC, 16 * SC];             // brush radius in cells for small, medium, large
-  const GAP = [1.4 * SC, 1.8 * SC, 2.4 * SC];            // how wide a knife cut or a cutter's edge is
-  const UNDO_MAX = 12;
-  const NB = [-G - 1, -G, -G + 1, -1, 1, G - 1, G, G + 1];   // the eight neighbours of a cell
+  const SIZE_R = [.06, .085, .115];        // the radius of a ball, small / medium / large (in board widths); a rope is a bit thinner
+  const CUT_R = [.075, .105, .15], STAMP_R = [.045, .065, .09], POKE_R = [.02, .028, .04], EYE_R = [.04, .056, .078], BEAD_R = [.022, .032, .045];
+  const FLAT = .2, MAXOBJ = 80, UNDO_MAX = 12;
 
-  /* ---------------------------------------------------------------- keeping the board between visits (IndexedDB) */
+  /* ---------------------------------------------------------------- keeping the creation between visits (IndexedDB) */
   let dbp = null;
   const dbOpen = () => dbp || (dbp = new Promise(res => {
     try { const rq = indexedDB.open('spg-clay', 1); rq.onupgradeneeded = () => rq.result.createObjectStore('clay', { keyPath: 'pid' }); rq.onsuccess = () => res(rq.result); rq.onerror = rq.onblocked = () => res(null); } catch (_) { res(null); }
   }));
-  const dbPut = async rec => { const db = await dbOpen(); if (!db) return; try { db.transaction('clay', 'readwrite').objectStore('clay').put(rec); } catch (_) { /* no room: the board is just not kept */ } };
+  const dbPut = async rec => { const db = await dbOpen(); if (!db) return; try { db.transaction('clay', 'readwrite').objectStore('clay').put(rec); } catch (_) { /* no room: it is just not kept */ } };
   const dbGet = async pid => { const db = await dbOpen(); if (!db) return null; return new Promise(res => { try { const rq = db.transaction('clay').objectStore('clay').get(pid); rq.onsuccess = () => res(rq.result || null); rq.onerror = () => res(null); } catch (_) { res(null); } }); };
+
+
+  /* ---------------------------------------------------------------- tool pictures: each button shows what the tool does to a lump of clay */
+  const INK = '#5a3f5e', PEACH = '#ffcfa4', PEACH_D = '#e7a77a';
+  const lighter = (col, a) => col.map(v => Math.min(255, v + a));
+  const lump = (c, x, y, rx, ry, col, rot = 0) => {   // a soft, shaded lump of clay
+    c.save(); c.translate(x, y); c.rotate(rot);
+    c.fillStyle = 'rgba(70,40,30,.24)'; c.beginPath(); c.ellipse(rx * .08, ry * .22, rx, ry, 0, 0, TAU); c.fill();
+    const g = c.createRadialGradient(-rx * .35, -ry * .4, Math.min(rx, ry) * .1, 0, 0, Math.max(rx, ry) * 1.15); g.addColorStop(0, css(lighter(col, 75))); g.addColorStop(.5, css(col)); g.addColorStop(1, css(col, .7));
+    c.fillStyle = g; c.beginPath(); c.ellipse(0, 0, rx, ry, 0, 0, TAU); c.fill();
+    c.fillStyle = 'rgba(255,255,255,.5)'; c.beginPath(); c.ellipse(-rx * .36, -ry * .46, rx * .28, ry * .15, -.5, 0, TAU); c.fill(); c.restore();
+  };
+  const fingerTip = (c, x, y, w, len, rot) => {   // a fingertip pointing down, its tip at (x, y); rot turns it
+    c.save(); c.translate(x, y); c.rotate(rot);
+    const g = c.createLinearGradient(-w / 2, 0, w / 2, 0); g.addColorStop(0, '#ffd9b8'); g.addColorStop(.55, PEACH); g.addColorStop(1, '#f2b88a');
+    c.fillStyle = g; c.strokeStyle = PEACH_D; c.lineWidth = w * .07; c.beginPath(); c.moveTo(-w * .46, -len); c.lineTo(-w / 2, -w * .5); c.arc(0, -w * .5, w / 2, Math.PI, 0, true); c.lineTo(w * .46, -len); c.closePath(); c.fill(); c.stroke();
+    c.fillStyle = '#fff1e8'; c.beginPath(); c.ellipse(0, -w * .78, w * .27, w * .3, 0, 0, TAU); c.fill(); c.restore();
+  };
+  const arrow = (c, x1, y1, x2, y2, w, col) => {
+    const a = Math.atan2(y2 - y1, x2 - x1), hl = w * 2.6; c.save(); c.strokeStyle = col; c.fillStyle = col; c.lineWidth = w; c.lineCap = 'round';
+    c.beginPath(); c.moveTo(x1, y1); c.lineTo(x2 - Math.cos(a) * hl * .5, y2 - Math.sin(a) * hl * .5); c.stroke();
+    c.beginPath(); c.moveTo(x2, y2); c.lineTo(x2 - Math.cos(a - .5) * hl, y2 - Math.sin(a - .5) * hl); c.lineTo(x2 - Math.cos(a + .5) * hl, y2 - Math.sin(a + .5) * hl); c.closePath(); c.fill(); c.restore();
+  };
+  const sparkle = (c, x, y, r, col = '#fff') => { c.save(); c.fillStyle = col; c.beginPath(); for (let i = 0; i < 8; i++) { const a = i * Math.PI / 4, q = i % 2 ? r * .3 : r; c.lineTo(x + Math.cos(a) * q, y + Math.sin(a) * q); } c.closePath(); c.fill(); c.restore(); };
+  const TOOLPIC = {
+    clay(c, s, cc) { lump(c, -s * .12, s * .2, s * .7, s * .55, cc); c.fillStyle = '#59b96e'; c.beginPath(); c.arc(s * .55, -s * .5, s * .38, 0, TAU); c.fill(); c.strokeStyle = '#fff'; c.lineWidth = s * .13; c.lineCap = 'round'; c.beginPath(); c.moveTo(s * .55, -s * .72); c.lineTo(s * .55, -s * .28); c.moveTo(s * .33, -s * .5); c.lineTo(s * .77, -s * .5); c.stroke(); },
+    hand(c, s, cc) {   // a lump carried in an open hand
+      lump(c, 0, -s * .12, s * .62, s * .46, cc);
+      c.fillStyle = PEACH; c.strokeStyle = PEACH_D; c.lineWidth = s * .06;
+      c.save(); c.translate(-s * .55, s * .5); c.rotate(-1.05); rr(c, -s * .12, -s * .5, s * .26, s * .5, s * .13); c.fill(); c.stroke(); c.restore();   // the thumb
+      rr(c, -s * .55, s * .22, s * 1.1, s * .62, s * .3); c.fill(); c.stroke();
+      for (let i = 0; i < 4; i++) { const x = -s * .38 + i * s * .25; rr(c, x - s * .11, s * (.02 - (i === 1 || i === 2 ? .06 : 0)), s * .22, s * .4, s * .11); c.fill(); c.stroke(); }
+      c.fillStyle = PEACH; rr(c, -s * .5, s * .26, s * 1.0, s * .5, s * .24); c.fill();
+    },
+    pull(c, s, cc) {   // a lump with a stretched tail, a fingertip pinching the end and an arrow
+      c.fillStyle = css(cc); c.beginPath(); c.moveTo(-s * .2, -s * .34); c.quadraticCurveTo(s * .4, -s * .1, s * .95, s * .16); c.quadraticCurveTo(s * .4, s * .3, -s * .2, s * .46); c.closePath(); c.fill();
+      c.fillStyle = 'rgba(255,255,255,.35)'; c.beginPath(); c.ellipse(s * .3, s * .02, s * .35, s * .05, .15, 0, TAU); c.fill();
+      lump(c, -s * .42, s * .1, s * .5, s * .5, cc);
+      fingerTip(c, s * .86, s * .12, s * .3, s * .7, 0); arrow(c, s * .15, -s * .75, s * .85, -s * .75, s * .09, INK);
+    },
+    squish(c, s, cc) {   // a round lump turns into a flat pancake
+      lump(c, -s * .5, s * .12, s * .42, s * .55, cc); arrow(c, -s * .02, -s * .05, s * .34, -s * .05, s * .09, INK); lump(c, s * .45, s * .5, s * .52, s * .2, cc);
+      arrow(c, s * .45, -s * .85, s * .45, -s * .3, s * .09, INK);
+    },
+    roll(c, s, cc) {   // a rolling pin on a sheet of clay
+      lump(c, 0, s * .6, s * .95, s * .2, cc);
+      c.save(); c.rotate(-.18); c.fillStyle = '#d9a060'; rr(c, -s * .62, -s * .32, s * 1.24, s * .6, s * .26); c.fill(); c.fillStyle = '#f3cf98'; rr(c, -s * .6, -s * .27, s * 1.2, s * .2, s * .1); c.fill();
+      c.fillStyle = '#a36a34'; rr(c, -s * 1.0, -s * .1, s * .42, s * .22, s * .11); c.fill(); rr(c, s * .58, -s * .1, s * .42, s * .22, s * .11); c.fill(); c.restore();
+    },
+    cutters(c, s, cc) {   // a sheet with a star cut out and the star cookie beside it
+      lump(c, -s * .2, s * .1, s * .8, s * .62, cc);
+      c.save(); c.translate(-s * .2, s * .08); K.shapePath(c, 'star', s * .36); c.fillStyle = 'rgba(70,40,30,.5)'; c.fill(); c.restore();
+      c.save(); c.translate(s * .62, -s * .42); K.shapePath(c, 'star', s * .36); c.fillStyle = 'rgba(70,40,30,.25)'; c.fill(); c.translate(-s * .03, -s * .04); K.shapePath(c, 'star', s * .36); c.fillStyle = css(lighter(cc, 20)); c.fill(); c.strokeStyle = css(cc, .7); c.lineWidth = s * .05; c.stroke(); c.restore();
+    },
+    extras(c, s, cc) {   // a lump with googly eyes
+      lump(c, 0, s * .2, s * .85, s * .62, cc);
+      for (const x of [-.32, .32]) { c.fillStyle = '#fff'; c.strokeStyle = 'rgba(80,60,70,.45)'; c.lineWidth = s * .05; c.beginPath(); c.arc(x * s, s * .02, s * .27, 0, TAU); c.fill(); c.stroke(); c.fillStyle = '#2a2430'; c.beginPath(); c.arc(x * s + s * .05, s * .08, s * .13, 0, TAU); c.fill(); c.fillStyle = '#fff'; c.beginPath(); c.arc(x * s + s * .01, s * .03, s * .04, 0, TAU); c.fill(); }
+    },
+    knife(c, s, cc) {   // a lump cut in two with a knife in the gap
+      lump(c, -s * .38, s * .3, s * .46, s * .5, cc); lump(c, s * .38, s * .3, s * .46, s * .5, cc);
+      c.save(); c.translate(s * .02, -s * .1); c.rotate(.5); c.fillStyle = '#dfe6ee'; c.strokeStyle = '#9aa6b6'; c.lineWidth = s * .05; c.beginPath(); c.moveTo(-s * .12, -s * .1); c.lineTo(s * .14, -s * .1); c.lineTo(s * .14, s * .55); c.quadraticCurveTo(0, s * .78, -s * .12, s * .55); c.closePath(); c.fill(); c.stroke();
+      c.fillStyle = '#e0a060'; rr(c, -s * .13, -s * .62, s * .28, s * .55, s * .1); c.fill(); c.restore();
+    },
+    stamps(c, s, cc) {   // a stamp and the heart it left in the clay
+      lump(c, 0, s * .6, s * .95, s * .26, cc);
+      c.save(); c.translate(s * .06, s * .6); K.shapePath(c, 'heart', s * .2); c.fillStyle = 'rgba(70,40,30,.5)'; c.fill(); c.restore();
+      c.fillStyle = '#e0a060'; rr(c, -s * .16, -s * .85, s * .32, s * .5, s * .12); c.fill(); c.fillStyle = css(lighter(cc, 10)); rr(c, -s * .5, -s * .4, s * 1.0, s * .36, s * .12); c.fill(); c.strokeStyle = css(cc, .65); c.lineWidth = s * .05; c.stroke();
+    },
+    smooth(c, s, cc) {   // a smooth shiny lump with sparkles
+      lump(c, 0, s * .1, s * .8, s * .62, cc); sparkle(c, -s * .62, -s * .55, s * .3); sparkle(c, s * .62, -s * .35, s * .22); sparkle(c, s * .15, -s * .72, s * .16);
+      c.strokeStyle = 'rgba(255,255,255,.85)'; c.lineWidth = s * .1; c.lineCap = 'round'; c.beginPath(); c.moveTo(-s * .4, s * .05); c.quadraticCurveTo(0, s * .3, s * .42, s * .05); c.stroke();
+    },
+    pinch(c, s, cc) {   // a lump with a point pulled up and two fingers pinching it
+      lump(c, 0, s * .45, s * .85, s * .45, cc);
+      c.fillStyle = css(cc); c.beginPath(); c.moveTo(-s * .26, s * .2); c.quadraticCurveTo(-s * .06, -s * .2, 0, -s * .82); c.quadraticCurveTo(s * .06, -s * .2, s * .26, s * .2); c.closePath(); c.fill();
+      c.fillStyle = 'rgba(255,255,255,.4)'; c.beginPath(); c.ellipse(-s * .06, -s * .15, s * .04, s * .2, .1, 0, TAU); c.fill();
+      fingerTip(c, -s * .07, -s * .5, s * .28, s * .5, -.75); fingerTip(c, s * .07, -s * .5, s * .28, s * .5, .75);
+    },
+    poke(c, s, cc) {   // a finger poking a dent into a lump
+      lump(c, 0, s * .5, s * .9, s * .4, cc);
+      c.fillStyle = 'rgba(70,40,30,.5)'; c.beginPath(); c.ellipse(0, s * .38, s * .22, s * .1, 0, 0, TAU); c.fill();
+      fingerTip(c, 0, s * .22, s * .38, s * .85, 0);
+    },
+    dye(c, s, cc) {   // a lump half painted, a drop of colour falling on it
+      lump(c, 0, s * .5, s * .88, s * .42, [250, 246, 238]); c.save(); c.beginPath(); c.ellipse(0, s * .5, s * .88, s * .42, 0, 0, TAU); c.clip(); c.fillStyle = css(cc); c.beginPath(); c.ellipse(s * .3, s * .5, s * .6, s * .55, 0, 0, TAU); c.fill(); c.restore();
+      c.fillStyle = css(cc); c.beginPath(); c.moveTo(0, -s * .95); c.quadraticCurveTo(s * .55, -s * .2, s * .34, s * .02); c.quadraticCurveTo(0, s * .22, -s * .34, s * .02); c.quadraticCurveTo(-s * .55, -s * .2, 0, -s * .95); c.fill();
+      c.fillStyle = 'rgba(255,255,255,.55)'; c.beginPath(); c.ellipse(-s * .14, -s * .22, s * .07, s * .17, .3, 0, TAU); c.fill();
+    }
+  };
+  K.toolPics = TOOLPIC;
 
   /* ---------------------------------------------------------------- the game */
   class ClayGame {
     constructor(host) {
       this.host = host;
       this.canvas = document.createElement('canvas'); this.canvas.className = 'game-canvas'; host.append(this.canvas); this.ctx = this.canvas.getContext('2d');
-      this.H = new Float32Array(N); this.C = new Uint8Array(N * 3).fill(238);
-      this.H0 = new Float32Array(N); this.C0 = new Uint8Array(N * 3);      // scratch copies for pulling and smoothing
-      this.noise = new Float32Array(N); for (let i = 0; i < N; i++) this.noise[i] = (Math.random() - .5) * .035;
-      this.img = document.createElement('canvas'); this.img.width = this.img.height = G; this.imgc = this.img.getContext('2d'); this.imd = this.imgc.createImageData(G, G);
-      this.layer = document.createElement('canvas'); this.layerc = this.layer.getContext('2d');
+      this.objs = []; this.nid = 1; this.sprites = new WeakMap(); this.anim = new Map();
       this.undo = []; this.tool = 'clay'; this.col = 9; this.size = 1; this.cutter = 'circle'; this.stamp = 'dots'; this.extra = 'eye';
       this.menu = null; this.confirm = false; this.stroke = null; this.ptr = null; this.hover = null;
-      this.dirty = true; this.t = 0; this.running = false; this.touched = false; this.saveAt = 0; this.camUntil = 0; this.flash = 0; this.snapA = null; this.pop = 0;
-      this.fx = new art.Fx(); this.masks = new Map(); this.sndT = 0;
+      this.t = 0; this.running = false; this.touched = false; this.saveAt = 0; this.camUntil = 0; this.flash = 0; this.snapA = null;
+      this.fx = new art.Fx(); this.sndT = 0;
       this.tier = SPG.level.tier('clay');
       this.tools = TOOLS.filter(t => t[1] <= this.tier).map(t => t[0]);
       this.tick = this.tick.bind(this);
@@ -92,7 +154,7 @@
       const r = this.canvas.getBoundingClientRect(); if (!r.width || !r.height) return;
       this.w = r.width; this.h = r.height; const dpr = SPG.ui.dpr(); this.dpr = dpr;
       this.canvas.width = Math.round(this.w * dpr); this.canvas.height = Math.round(this.h * dpr); this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      this.layout(); this.dirty = true; this.draw();
+      this.layout(); this.sprites = new WeakMap(); this.draw();
     }
     layout() {
       const w = this.w, h = this.h, wide = w >= h * 1.1; this.wide = wide;
@@ -127,13 +189,18 @@
         const ab = Math.min(bs, 56);
         ACT.forEach((id, i) => items.push({ kind: 'act', id, x: w / 2 + (i - 1) * ab * 1.18, y: 12 + ab * .5, r: ab * .5 }));
       }
-      this.bs = bs; this.items = items; this.board = board; this.cs = board.s / G;
-      const Ls = Math.round(board.s * this.dpr); if (this.layer.width !== Ls) { this.layer.width = this.layer.height = Ls; }
+      this.bs = bs; this.items = items; this.board = board;
     }
     // geometry and state for the play-tests (tools/playtest)
-    probe() { return { items: this.items.map(i => ({ kind: i.kind, id: i.id, x: i.x, y: i.y, r: i.r })), board: this.board, w: this.w, h: this.h, tool: this.tool, col: this.col, size: this.size, menu: this.menu, undo: this.undo.length, clay: this.H.reduce((a, v) => a + (v > .3 ? 1 : 0), 0), maxH: this.H.reduce((a, v) => Math.max(a, v), 0), confirm: this.confirm, tools: this.tools, album: this.album ? { n: this.album.list.length, view: this.album.view, busy: this.album.busy } : null }; }
+    probe() {
+      const ps = this.objs.filter(o => o.t === 'p'), its = this.objs.filter(o => o.t === 'i');
+      return { items: this.items.map(i => ({ kind: i.kind, id: i.id, x: i.x, y: i.y, r: i.r })), board: this.board, w: this.w, h: this.h, tool: this.tool, col: this.col, size: this.size, menu: this.menu, undo: this.undo.length, pieces: ps.length, beads: its.length,
+        holes: ps.reduce((a, p) => a + p.cont.length - 1, 0), dents: ps.reduce((a, p) => a + (p.dents ? p.dents.length : 0), 0), clay: ps.reduce((a, p) => a + Math.abs(K.area(p.cont[0])), 0), thin: ps.reduce((a, p) => Math.min(a, p.h), 1), confirm: this.confirm, tools: this.tools,
+        album: this.album ? { n: this.album.list.length, view: this.album.view, busy: this.album.busy } : null, top: ps.length ? ps[ps.length - 1].cont[0].length : 0, cent: ps.map(p => K.centroid(p.cont[0])) };
+    }
     item(kind, id) { return this.items.find(i => i.kind === kind && i.id === id); }
-    gp(x, y) { return { x: (x - this.board.x) / this.cs, y: (y - this.board.y) / this.cs }; }
+    gp(x, y) { return [(x - this.board.x) / this.board.s, (y - this.board.y) / this.board.s]; }
+    sp(x, y) { return { x: this.board.x + x * this.board.s, y: this.board.y + y * this.board.s }; }
     inBoard(x, y, m = 0) { const b = this.board; return x >= b.x - m && x <= b.x + b.s + m && y >= b.y - m && y <= b.y + b.s + m; }
 
     start() { this.resize(); this.resume(); voice.say('clay-start'); }
@@ -141,19 +208,51 @@
     pause() { this.running = false; cancelAnimationFrame(this.raf); this.ptr = null; if (this.stroke) this.up(); this.save(); }
     destroy() { this.pause(); this.closeAlbum(); this.canvas.remove(); }
 
-    /* ---------------------------------------------------------------- saving the board */
+    /* ---------------------------------------------------------------- saving, undo */
     pid() { return store.active ? store.active.id : null; }
     async loadSaved() {
       const pid = this.pid(); if (!pid) return; const rec = await dbGet(pid);
-      if (rec && rec.h && rec.h.length === N && rec.c && rec.c.length === N * 3 && !this.touched) { this.H.set(rec.h); this.C.set(rec.c); this.dirty = true; }
+      if (rec && rec.v === 3 && typeof rec.objs === 'string' && !this.touched) { try { const o = JSON.parse(rec.objs); if (Array.isArray(o.objs)) { this.objs = o.objs; this.nid = o.nid || this.objs.length + 1; } } catch (_) { /* an unreadable save is left alone */ } }
     }
-    save() { const pid = this.pid(); if (!pid || !this.touched) return; this.saveAt = 0; dbPut({ pid, h: this.H.slice(), c: this.C.slice(), t: Date.now() }); }
-    pushUndo() { this.undo.push({ h: this.H.slice(), c: this.C.slice() }); if (this.undo.length > UNDO_MAX) this.undo.shift(); this.touched = true; }
-    doUndo() { const u = this.undo.pop(); if (!u) { sfx.oops && sfx.oops(); return; } this.H.set(u.h); this.C.set(u.c); this.dirty = true; sfx.whoosh(); this.saveAt = this.t + 1.5; }
-    clearAll() { this.pushUndo(); this.H.fill(0); this.C.fill(238); this.dirty = true; sfx.whoosh(); this.saveAt = this.t + 1.5; }
+    pack() { return JSON.stringify({ objs: this.objs, nid: this.nid }); }
+    save() { const pid = this.pid(); if (!pid || !this.touched) return; this.saveAt = 0; dbPut({ pid, v: 3, objs: this.pack(), t: Date.now() }); }
+    pushUndo() { this.undo.push(this.pack()); if (this.undo.length > UNDO_MAX) this.undo.shift(); this.touched = true; }
+    doUndo() { const u = this.undo.pop(); if (!u) { sfx.oops && sfx.oops(); return; } try { const o = JSON.parse(u); this.objs = o.objs; this.nid = o.nid; } catch (_) { return; } this.anim.clear(); sfx.whoosh(); this.saveAt = this.t + 1.5; }
+    clearAll() { this.pushUndo(); this.objs = []; this.anim.clear(); sfx.whoosh(); this.saveAt = this.t + 1.5; }
+    touch(o) { o.v = (o.v || 0) + 1; }
+
+    /* ---------------------------------------------------------------- the pieces on the board */
+    colorRgb() { const c = COLORS[this.col]; return c.rainbow ? null : c.c; }
+    newPiece(cont, h, extra = {}) {
+      const c = COLORS[this.col], p = Object.assign({ t: 'p', id: this.nid++, cont: [cont], h, dents: [], v: 1, col: this.col, rgb: c.rainbow ? [255, 150, 200] : c.c, rain: !!c.rainbow, ra: Math.random() * 2 }, extra);
+      this.objs.push(p); return p;
+    }
+    animate(o, kind, dur = .3, extra = {}) { this.anim.set(o.id, Object.assign({ kind, t0: this.t, dur }, extra)); }
+    // the topmost piece or bead at a point
+    pick(g, margin = .012) {
+      for (let i = this.objs.length - 1; i >= 0; i--) {
+        const o = this.objs[i];
+        if (o.t === 'i') { if (Math.hypot(g[0] - o.x, g[1] - o.y) < o.r * 1.15 + margin) return o; }
+        else if (K.inPiece(g, o) || K.edgeDist(g, o.cont[0]) < margin && K.inside(g, o.cont[0])) return o;
+      }
+      return null;
+    }
+    pickPiece(g, margin = .012) { for (let i = this.objs.length - 1; i >= 0; i--) { const o = this.objs[i]; if (o.t === 'p' && (K.inPiece(g, o) || K.edgeDist(g, o.cont[0]) < margin)) return o; } return null; }
+    shift(o, dx, dy) {
+      if (o.t === 'i') { o.x += dx; o.y += dy; return; }
+      for (const c of o.cont) for (const p of c) { p[0] += dx; p[1] += dy; }
+      for (const d of o.dents || []) { d.x += dx; d.y += dy; }
+      const e = this.sprites.get(o); if (e) { e.spr.x += dx; e.spr.y += dy; }
+    }
+    // pieces' geometry changed: rebuild its picture next frame
+    reshape(o) { this.touch(o); }
+    center(o) { return o.t === 'i' ? [o.x, o.y] : K.centroid(o.cont[0]); }
+    // beads that sit on top of a piece travel with it
+    riders(p) { const i0 = this.objs.indexOf(p), out = []; for (let i = i0 + 1; i < this.objs.length; i++) { const o = this.objs[i]; if (o.t === 'i' && K.inPiece([o.x, o.y], p)) out.push(o); } return out; }
+    remove(o) { const i = this.objs.indexOf(o); if (i >= 0) this.objs.splice(i, 1); this.anim.delete(o.id); }
+    spawnOK() { if (this.objs.length >= MAXOBJ) { sfx.oops && sfx.oops(); return false; } return true; }
 
     /* ---------------------------------------------------------------- input */
-    colorNow(dist = 0) { const c = COLORS[this.col]; return c.rainbow ? hsl(dist * 2.2, .75, .62) : c.c; }
     radius() { return SIZE_R[this.size]; }
     down(x, y) {
       SPG.audio.unlock();
@@ -177,11 +276,11 @@
     }
     pressItem(it) {
       sfx.tap();
-      if (it.kind === 'color') { this.col = it.id; this.menu = null; if (this.tool === 'hand' || this.tool === 'cutters' || this.tool === 'knife' || this.tool === 'stamps' || this.tool === 'roll' || this.tool === 'squish' || this.tool === 'pull' || this.tool === 'pinch' || this.tool === 'poke' || this.tool === 'smooth') this.tool = 'clay'; return; }
+      if (it.kind === 'color') { this.col = it.id; this.menu = null; if (this.tool !== 'clay' && this.tool !== 'dye' && this.tool !== 'extras') this.tool = 'clay'; return; }
       if (it.kind === 'size') { this.size = (this.size + 1) % 3; this.menu = null; return; }
       if (it.kind === 'act') {
         this.menu = null;
-        if (it.id === 'undo') this.doUndo(); else if (it.id === 'camera') this.snap(); else if (it.id === 'album') this.openAlbum(); else if (it.id === 'bin') { if (this.touched && this.H.some(v => v > 0.5)) this.confirm = true; }
+        if (it.id === 'undo') this.doUndo(); else if (it.id === 'camera') this.snap(); else if (it.id === 'album') this.openAlbum(); else if (it.id === 'bin') { if (this.touched && this.objs.length) this.confirm = true; }
         return;
       }
       const same = this.tool === it.id; this.tool = it.id;
@@ -190,244 +289,280 @@
     }
     beginStroke(x, y) {
       const g = this.gp(x, y), tool = this.tool;
-      const s = this.stroke = { tool, gx: g.x, gy: g.y, lx: g.x, ly: g.y, dist: 0, speed: 0, t0: this.t, moved: false, base: null, dir: null };
-      if (tool === 'cutters' || tool === 'stamps' || tool === 'extras') return;           // these show where they will land, and act when the finger lifts
-      if (tool === 'hand') { if (!this.pickUp(s, g.x, g.y)) { this.stroke = null; return; } this.pushUndoPending = true; return; }
-      this.pushUndo();
-      if (tool === 'clay') { s.base = this.H.slice(); this.dome(g.x, g.y, this.radius(), this.colorNow(0), s.base); sfx.pop(); this.dirty = true; }
-      else if (tool === 'knife') this.cutLine(g.x, g.y, g.x, g.y);
+      const s = this.stroke = { tool, g, lg: g, start: g, t0: this.t, moved: false, dist: 0, path: [g], speed: 0 };
+      if (tool === 'cutters' || tool === 'stamps' || tool === 'extras' || tool === 'knife') return;     // these show where they will land, and act when the finger lifts
+      if (tool === 'clay') { if (!this.spawnOK()) { this.stroke = null; return; } this.pushUndo(); s.p = this.newPiece(K.circle(g[0], g[1], this.radius(), this.nid * 3.1), 1); this.animate(s.p, 'pop', .3); sfx.pop(); return; }
+      if (tool === 'hand') {
+        const o = this.pick(g); if (!o) { this.stroke = null; return; }
+        this.pushUndo(); s.o = o; s.riders = o.t === 'p' ? this.riders(o) : []; const i = this.objs.indexOf(o); this.objs.splice(i, 1); this.objs.push(o); for (const r of s.riders) { const j = this.objs.indexOf(r); this.objs.splice(j, 1); this.objs.push(r); }
+        this.animate(o, 'lift', .12, { hold: true }); sfx.pop(); return;
+      }
+      if (tool === 'pull' || tool === 'pinch') {
+        const R = this.radius() * (tool === 'pull' ? 1.15 : .6), p = this.pickPiece(g, R * .7); if (!p) { this.stroke = null; return; }
+        this.pushUndo(); s.p = p; s.R = R; s.area0 = Math.abs(K.area(p.cont[0])); s.h0 = p.h; return;
+      }
+      if (tool === 'squish') { const p = this.pickPiece(g, .01); if (!p) { this.stroke = null; return; } this.pushUndo(); s.p = p; return; }
+      if (tool === 'roll') { const p = this.pickPiece(g, .01); this.pushUndo(); s.p = p; return; }
+      if (tool === 'poke') { const p = this.pickPiece(g, .005); if (!p) { this.stroke = null; return; } this.pushUndo(); s.p = p; return; }
+      if (tool === 'smooth') { this.pushUndo(); return; }
+      if (tool === 'dye') { const o = this.pick(g); if (!o) { this.stroke = null; return; } this.pushUndo(); this.dyeObj(o); return; }
     }
     move(x, y) {
       const s = this.stroke; if (!s) return;
-      const g = this.gp(x, y), dx = g.x - s.lx, dy = g.y - s.ly, d = Math.hypot(dx, dy);
-      s.gx = g.x; s.gy = g.y;
-      if (d < .02) return;
-      s.moved = true;
-      const R = this.radius();
+      const g = this.gp(x, y), dx = g[0] - s.lg[0], dy = g[1] - s.lg[1], d = Math.hypot(dx, dy);
+      s.g = g;
+      if (d < .004) return;
+      s.moved = true; s.dist += d;
       switch (s.tool) {
         case 'clay': {
-          const step = Math.max(1, R * .22), n = Math.ceil(d / step);
-          for (let k = 1; k <= n; k++) { const u = k / n; s.dist += d / n; this.dome(s.lx + dx * u, s.ly + dy * u, R, this.colorNow(s.dist), s.base); }
+          const last = s.path[s.path.length - 1];
+          if (Math.hypot(g[0] - last[0], g[1] - last[1]) > this.radius() * .16) s.path.push(g);
+          if (s.dist > this.radius() * .5 && s.path.length >= 2) { const p = s.p, a = s.path[0], b = s.path[s.path.length - 1]; p.cont = [K.rope(s.path, this.radius() * .6, p.id)]; p.h = 1; p.ra = Math.atan2(b[1] - a[1], b[0] - a[0]); this.reshape(p); this.anim.delete(p.id); }
           if (this.t - this.sndT > .12) { sfx.squish(); this.sndT = this.t; }
           break;
         }
-        case 'pull': this.warp(s.lx, s.ly, dx, dy, R); if (this.t - this.sndT > .14) { sfx.squish(); this.sndT = this.t; } break;
-        case 'roll': this.rollSeg(s, dx, dy, d, R); if (this.t - this.sndT > .1) { sfx.roll(); this.sndT = this.t; } break;
-        case 'knife': this.cutLine(s.lx, s.ly, g.x, g.y); break;
-        case 'hand': this.moveHeld(s, g.x, g.y); break;
+        case 'hand': {
+          const o = s.o, ddx = dx, ddy = dy; this.shift(o, ddx, ddy); for (const r of s.riders) this.shift(r, ddx, ddy);
+          break;
+        }
+        case 'pull': case 'pinch': this.pullStep(s, s.lg, dx, dy); if (this.t - this.sndT > .14) { sfx.squish(); this.sndT = this.t; } break;
+        case 'roll': this.rollStep(s, g, dx, dy, d); if (this.t - this.sndT > .1) { sfx.roll(); this.sndT = this.t; } break;
+        case 'smooth': this.smoothStep(g); break;
         default: break;
       }
       s.speed = s.speed * .7 + (d / Math.max(.008, this.t - (s.tl || this.t - .016))) * .3; s.tl = this.t;
-      s.lx = g.x; s.ly = g.y; this.dirty = true;
+      s.lg = g;
     }
     up() {
       const s = this.stroke; this.stroke = null; if (!s) return;
-      const R = this.radius();
-      if (s.tool === 'knife') sfx.snap();
-      if (s.tool === 'hand') { this.dropHeld(s); }
-      else if (s.tool === 'cutters') this.applyCutter(s.gx, s.gy);
-      else if (s.tool === 'stamps') this.applyStamp(s.gx, s.gy);
-      else if (s.tool === 'extras') this.applyExtra(s.gx, s.gy, R);
-      this.dirty = true; this.saveAt = this.t + 1.5;
+      if (s.tool === 'clay' && s.p) { if (s.p.cont[0].length > 60 && s.moved) { sfx.pop(); } this.touch(s.p); }
+      else if (s.tool === 'hand' && s.o) this.dropHeld(s);
+      else if (s.tool === 'cutters') this.applyCutter(s.g);
+      else if (s.tool === 'stamps') this.applyStamp(s.g);
+      else if (s.tool === 'extras') this.applyExtra(s.g);
+      else if (s.tool === 'knife') this.applyKnife(s.start, s.g);
+      else if (s.tool === 'poke' && s.p && !s.holed) this.applyPoke(s.g, s.p, false);
+      for (const o of this.objs) if (o.t === 'p' && o.cont[0].length > 220) { o.cont[0] = K.tidy(K.resample(o.cont[0], .01), .02, .006); this.touch(o); }
+      this.saveAt = this.t + 1.5;
     }
 
     /* ---------------------------------------------------------------- per frame: the tools that work while a finger is held down */
     update(dt) {
       const s = this.stroke; if (!s || this.ptr == null) return;
-      const R = this.radius(), x = s.gx, y = s.gy;
-      if (s.tool === 'squish') {
-        const moving = this.t - (s.tl || 0) < .1, sink = 22 + (moving ? Math.min(60, s.speed * 1.2) : 0);
-        if (this.squishAt(x, y, R * 1.25, sink * SC * dt)) { if (this.t - this.sndT > .16) { sfx.squish(); this.sndT = this.t; } this.dirty = true; }
-      } else if (s.tool === 'pinch') { if (this.pinchAt(x, y, R, dt)) { this.dirty = true; if (this.t - this.sndT > .2) { sfx.roll(); this.sndT = this.t; } } }
-      else if (s.tool === 'poke') { if (this.pokeAt(x, y, R, dt)) { this.dirty = true; if (this.t - this.sndT > .2) { sfx.roll(); this.sndT = this.t; } } }
-      else if (s.tool === 'smooth') { this.smoothAt(x, y, R * 1.2); this.dirty = true; if (this.t - this.sndT > .2) { sfx.roll(); this.sndT = this.t; } }
-      else if (s.tool === 'dye') { this.dyeAt(x, y, R, dt, s); this.dirty = true; }
-    }
-
-    /* ---------------------------------------------------------------- clay operations */
-    // a rounded lump (half a ball) of radius r laid on top of what was there when the stroke began: overlapping lumps of one stroke make a smooth rope
-    dome(cx, cy, r, col, base) {
-      const H = this.H, C = this.C, x0 = Math.max(0, Math.floor(cx - r)), x1 = Math.min(G - 1, Math.ceil(cx + r)), y0 = Math.max(0, Math.floor(cy - r)), y1 = Math.min(G - 1, Math.ceil(cy + r)), r2 = r * r;
-      for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) {
-        const d2 = (x - cx) * (x - cx) + (y - cy) * (y - cy); if (d2 >= r2) continue;
-        const i = y * G + x, dd = Math.sqrt(d2), eg = Math.min(1, (r - dd) / 1.6), hh = Math.sqrt(r2 - d2) * eg * eg, tg = Math.min(MAXH, (base ? base[i] : H[i]) + hh * .92);
-        if (tg > H[i] + .01) { if (hh > .6 || H[i] < .3 || !base) { C[i * 3] = col[0]; C[i * 3 + 1] = col[1]; C[i * 3 + 2] = col[2]; } H[i] = tg; }
-      }
-    }
-    // press a flat tool down: clay under it above `ceil` is pushed out into the ring around it. sd(x, y) < 0 inside, between 0 and ring around.
-    flatten(x0, y0, x1, y1, sd, ring, ceil, extraOK, mr = 3, capAdd = 2.6 * SC) {
-      const H = this.H, C = this.C, mark = this.mark || (this.mark = new Uint8Array(N)); x0 = Math.max(0, Math.floor(x0)); y0 = Math.max(0, Math.floor(y0)); x1 = Math.min(G - 1, Math.ceil(x1)); y1 = Math.min(G - 1, Math.ceil(y1));
-      let excess = 0, cr = 0, cg = 0, cb = 0, cw = 0; const marked = [], rc = [];
-      for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) {
-        const v = sd(x, y), i = y * G + x;
-        if (v <= 0) { if (H[i] > ceil) { const e = H[i] - ceil; excess += e; cr += C[i * 3] * e; cg += C[i * 3 + 1] * e; cb += C[i * 3 + 2] * e; cw += e; H[i] = ceil; mark[i] = 1; marked.push(i); } }
-        else if (v < ring && (!extraOK || extraOK(x, y))) rc.push(i, v);
-      }
-      let moved = false;
-      if (excess > 0) {
-        // clay only squeezes out next to where it was pushed from, never into empty board far away
-        const near = [], vs = []; for (let k = 0; k < rc.length; k += 2) {
-          const i = rc[k], x = i % G, y = (i / G) | 0; let ok = H[i] > .3;
-          for (let dy = -mr; dy <= mr && !ok; dy++) for (let dx = -mr; dx <= mr; dx++) { const X = x + dx, Y = y + dy; if (X >= 0 && Y >= 0 && X < G && Y < G && mark[Y * G + X]) { ok = true; break; } }
-          if (ok) { near.push(i); vs.push(rc[k + 1]); }
+      if (s.tool === 'squish' && s.p) {
+        const p = s.p, k = 1 + (.9 + Math.min(1.2, s.speed * .6)) * dt;
+        const bb = K.bbox(p.cont);
+        if (p.h > FLAT + .001 && bb.x1 - bb.x0 < .5 && bb.y1 - bb.y0 < .5) {   // it spreads out, but never off the board
+          const c = K.centroid(p.cont[0]); const nk = Math.min(k, 1 + (p.h - FLAT) * 3);
+          for (const co of p.cont) for (const q of co) { q[0] = c[0] + (q[0] - c[0]) * nk; q[1] = c[1] + (q[1] - c[1]) * nk; }
+          for (const d of p.dents || []) { d.x = c[0] + (d.x - c[0]) * nk; d.y = c[1] + (d.y - c[1]) * nk; d.r *= nk; }
+          p.h = Math.max(FLAT, p.h / (nk * nk)); this.reshape(p);
+          if (this.t - this.sndT > .16) { sfx.squish(); this.sndT = this.t; }
         }
-        if (near.length) {
-          const add = Math.min(excess / near.length, capAdd), col = [cr / cw, cg / cw, cb / cw];
-          for (let k = 0; k < near.length; k++) { const i = near[k]; if (H[i] < .5) { C[i * 3] = col[0]; C[i * 3 + 1] = col[1]; C[i * 3 + 2] = col[2]; } H[i] = Math.min(MAXH, H[i] + add * (1 - vs[k] / ring * .5)); }
-          moved = true;
-        }
-      }
-      for (const i of marked) mark[i] = 0;
-      return moved || excess > 0;
-    }
-    squishAt(cx, cy, r, sink) {
-      const H = this.H, x0 = Math.max(0, Math.floor(cx - r)), x1 = Math.min(G - 1, Math.ceil(cx + r)), y0 = Math.max(0, Math.floor(cy - r)), y1 = Math.min(G - 1, Math.ceil(cy + r));
-      let mx = 0; for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) { if (Math.hypot(x - cx, y - cy) <= r && H[y * G + x] > mx) mx = H[y * G + x]; }
-      if (mx <= FLAT + .02) return false;
-      return this.flatten(cx - r - 6, cy - r - 6, cx + r + 6, cy + r + 6, (x, y) => Math.hypot(x - cx, y - cy) - r, 5 * SC, Math.max(FLAT, mx - sink), null, 4 * SC);
-    }
-    rollSeg(s, dx, dy, d, R) {
-      const ux = dx / d, uy = dy / d, L = R * 2.4, back = 1.5 * SC, fwd = d + 1.5 * SC, ring = 3.5 * SC, x0 = s.lx, y0 = s.ly;
-      const along = (x, y) => (x - x0) * ux + (y - y0) * uy, across = (x, y) => -(x - x0) * uy + (y - y0) * ux;
-      const sd = (x, y) => { const u = along(x, y), v = Math.abs(across(x, y)); return Math.max(-back - u, u - fwd, v - L); };
-      const rg = L + fwd + ring + 2;
-      this.flatten(x0 - rg, y0 - rg, x0 + rg, y0 + rg, sd, ring, FLAT, (x, y) => along(x, y) > -back, 2 * SC);
-    }
-    // drag clay along with a finger (backward warp: what is at the finger moves with it)
-    warp(px, py, dx, dy, R) {
-      const rho = R * 1.35, m = Math.hypot(dx, dy), k = m > R * 1.2 ? R * 1.2 / m : 1; dx *= k; dy *= k;
-      const H = this.H, C = this.C, H0 = this.H0, C0 = this.C0, x0 = Math.max(0, Math.floor(px - rho)), x1 = Math.min(G - 1, Math.ceil(px + rho)), y0 = Math.max(0, Math.floor(py - rho)), y1 = Math.min(G - 1, Math.ceil(py + rho));
-      for (let y = Math.max(0, y0 - 2); y <= Math.min(G - 1, y1 + 2); y++) { const a = y * G + Math.max(0, x0 - 2 - Math.ceil(m)), b = y * G + Math.min(G - 1, x1 + 2 + Math.ceil(m)); H0.set(H.subarray(a, b + 1), a); C0.set(C.subarray(a * 3, b * 3 + 3), a * 3); }
-      const samp = (fx, fy, out) => {
-        fx = clamp(fx, 0, G - 1.001); fy = clamp(fy, 0, G - 1.001); const ix = fx | 0, iy = fy | 0, ax = fx - ix, ay = fy - iy, i = iy * G + ix;
-        const h = (H0[i] * (1 - ax) + H0[i + 1] * ax) * (1 - ay) + (H0[i + G] * (1 - ax) + H0[i + G + 1] * ax) * ay;
-        const near = ax < .5 ? (ay < .5 ? i : i + G) : (ay < .5 ? i + 1 : i + G + 1);
-        out[0] = h; out[1] = C0[near * 3]; out[2] = C0[near * 3 + 1]; out[3] = C0[near * 3 + 2];
-      };
-      const o = [0, 0, 0, 0];
-      for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) {
-        const d = Math.hypot(x - px, y - py) / rho; if (d >= 1) continue; const w = (1 - d * d) * (1 - d * d), i = y * G + x;
-        samp(x - dx * w, y - dy * w, o); H[i] = o[0] < .12 ? 0 : o[0]; if (o[0] > .3) { C[i * 3] = o[1]; C[i * 3 + 1] = o[2]; C[i * 3 + 2] = o[3]; }
-      }
-    }
-    pinchAt(cx, cy, R, dt) {
-      const H = this.H, r = R * 1.5, sg = R * .55; let any = false;
-      for (let y = Math.max(0, Math.floor(cy - r)); y <= Math.min(G - 1, Math.ceil(cy + r)); y++) for (let x = Math.max(0, Math.floor(cx - r)); x <= Math.min(G - 1, Math.ceil(cx + r)); x++) {
-        const i = y * G + x; if (H[i] < .3) continue; const d2 = (x - cx) * (x - cx) + (y - cy) * (y - cy); if (d2 > r * r) continue;
-        H[i] = Math.min(MAXH, H[i] + Math.exp(-d2 / (2 * sg * sg)) * 16 * SC * dt); any = true;
-      }
-      return any;
-    }
-    pokeAt(cx, cy, R, dt) {
-      const H = this.H, r = R * 1.1, sg = R * .4; let any = false;
-      for (let y = Math.max(0, Math.floor(cy - r)); y <= Math.min(G - 1, Math.ceil(cy + r)); y++) for (let x = Math.max(0, Math.floor(cx - r)); x <= Math.min(G - 1, Math.ceil(cx + r)); x++) {
-        const i = y * G + x; if (H[i] <= 0) continue; const d2 = (x - cx) * (x - cx) + (y - cy) * (y - cy); if (d2 > r * r) continue;
-        H[i] = Math.max(0, H[i] - Math.exp(-d2 / (2 * sg * sg)) * 48 * SC * dt); any = true;
-      }
-      return any;
-    }
-    smoothAt(cx, cy, r) {
-      const H = this.H, C = this.C, H0 = this.H0, C0 = this.C0, x0 = Math.max(1, Math.floor(cx - r)), x1 = Math.min(G - 2, Math.ceil(cx + r)), y0 = Math.max(1, Math.floor(cy - r)), y1 = Math.min(G - 2, Math.ceil(cy + r));
-      for (let y = y0 - 1; y <= y1 + 1; y++) { const a = y * G + x0 - 1, b = y * G + x1 + 1; H0.set(H.subarray(a, b + 1), a); C0.set(C.subarray(a * 3, b * 3 + 3), a * 3); }
-      for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) {
-        const d = Math.hypot(x - cx, y - cy); if (d > r) continue; const i = y * G + x; if (H0[i] < .2) continue;
-        const f = .5 * (1 - d / r); let sh = 0, sr = 0, sg2 = 0, sb = 0, n = 0;
-        for (let oy = -1; oy <= 1; oy++) for (let ox = -1; ox <= 1; ox++) { const j = i + oy * G + ox; if (H0[j] < .2) continue; sh += H0[j]; sr += C0[j * 3]; sg2 += C0[j * 3 + 1]; sb += C0[j * 3 + 2]; n++; }
-        if (!n) continue; H[i] = H0[i] + (sh / n - H0[i]) * f; C[i * 3] = C0[i * 3] + (sr / n - C0[i * 3]) * f; C[i * 3 + 1] = C0[i * 3 + 1] + (sg2 / n - C0[i * 3 + 1]) * f; C[i * 3 + 2] = C0[i * 3 + 2] + (sb / n - C0[i * 3 + 2]) * f;
-      }
-    }
-    dyeAt(cx, cy, R, dt, s) {
-      const H = this.H, C = this.C, col = this.colorNow(s.dist), k = 1 - Math.exp(-dt * 7); s.dist += 1;
-      for (let y = Math.max(0, Math.floor(cy - R)); y <= Math.min(G - 1, Math.ceil(cy + R)); y++) for (let x = Math.max(0, Math.floor(cx - R)); x <= Math.min(G - 1, Math.ceil(cx + R)); x++) {
-        const i = y * G + x; if (H[i] < .2) continue; const d = Math.hypot(x - cx, y - cy); if (d > R) continue; const f = k * (1 - d / R * .6);
-        C[i * 3] += (col[0] - C[i * 3]) * f; C[i * 3 + 1] += (col[1] - C[i * 3 + 1]) * f; C[i * 3 + 2] += (col[2] - C[i * 3 + 2]) * f;
-      }
-    }
-    cutLine(ax, ay, bx, by) {
-      const H = this.H, r = GAP[this.size] * .5 + .9, x0 = Math.max(0, Math.floor(Math.min(ax, bx) - r)), x1 = Math.min(G - 1, Math.ceil(Math.max(ax, bx) + r)), y0 = Math.max(0, Math.floor(Math.min(ay, by) - r)), y1 = Math.min(G - 1, Math.ceil(Math.max(ay, by) + r));
-      const dx = bx - ax, dy = by - ay, l2 = dx * dx + dy * dy || 1;
-      for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) {
-        const u = clamp(((x - ax) * dx + (y - ay) * dy) / l2, 0, 1), d = Math.hypot(x - (ax + dx * u), y - (ay + dy * u)); if (d <= r) H[y * G + x] = 0;
+      } else if (s.tool === 'poke' && s.p && !s.holed && this.t - s.t0 > .55 && !s.moved) {
+        s.holed = true; this.applyPoke(s.g, s.p, true);
       }
     }
 
-    /* ---------------------------------------------------------------- cutters, stamps, eyes and beads */
-    cutterR() { return [9 * SC, 14 * SC, 22 * SC][this.size]; }
-    mask(kind, r, isCutter) {
-      const key = kind + '|' + r + '|' + (isCutter ? GAP[this.size] : 's'), hit = this.masks.get(key); if (hit) return hit;
-      const gap = isCutter ? GAP[this.size] : 0, M = Math.ceil(2 * (r + gap + 3)), cv = document.createElement('canvas'); cv.width = cv.height = M; const c = cv.getContext('2d', { willReadFrequently: true });
-      c.translate(M / 2, M / 2); c.lineJoin = 'round';
-      if (isCutter) { SHAPES[kind](c, r); c.strokeStyle = '#f00'; c.lineWidth = gap * 2; c.stroke(); c.fillStyle = '#0f0'; c.fill(); } else { SHAPES[kind](c, r); c.fillStyle = '#fff'; c.fill(); }
-      const d = c.getImageData(0, 0, M, M).data, out = new Float32Array(M * M);
-      for (let i = 0; i < M * M; i++) { const a = d[i * 4 + 3] / 255; out[i] = isCutter ? (a < .5 ? 0 : d[i * 4 + 1] > 128 ? 2 : 1) : a; }
-      const m = { M, data: out }; this.masks.set(key, m); return m;
-    }
-    applyCutter(gx, gy) {
-      if (!this.inBoard(this.board.x + gx * this.cs, this.board.y + gy * this.cs)) return;
-      const m = this.mask(this.cutter, this.cutterR(), true), H = this.H, ox = Math.round(gx - m.M / 2), oy = Math.round(gy - m.M / 2); let cutAny = false;
-      this.pushUndo();
-      for (let y = 0; y < m.M; y++) for (let x = 0; x < m.M; x++) {
-        if (m.data[y * m.M + x] !== 1) continue; const X = ox + x, Y = oy + y; if (X < 0 || Y < 0 || X >= G || Y >= G) continue; if (H[Y * G + X] > 0) { H[Y * G + X] = 0; cutAny = true; }
+    /* ---------------------------------------------------------------- shaping */
+    // pull: the points of the outline near the finger travel with it, so clay stretches into a tail or a point
+    pullStep(s, from, dx, dy) {
+      const p = s.p, R = s.R, sharp = s.tool === 'pinch', amp = sharp ? 1.25 : 1;
+      for (const co of p.cont) for (const q of co) {
+        const d = Math.hypot(q[0] - from[0], q[1] - from[1]); if (d >= R) continue;
+        const w = Math.pow(1 - d / R, sharp ? 1.8 : 1.4); q[0] += dx * w * amp; q[1] += dy * w * amp;
       }
-      sfx.snap(); if (cutAny) { sfx.pop(); const p = this.screenOf(gx, gy); this.fx.burst(p.x, p.y, 8, { colors: ['#fff', '#ffd54a'], speed: 140, g: 160, life: .5, size: 5, shape: 'star' }); }
+      p.cont = p.cont.map((co, i) => { let c = K.tidy(co, .014, .005); c = K.smooth(c, .22, 1); return K.orient(c, i === 0); });
+      const a = Math.abs(K.area(p.cont[0])); p.h = clamp(s.h0 * s.area0 / Math.max(1e-5, a), .3, 1);
+      for (const q of p.dents || []) if (Math.hypot(q.x - from[0], q.y - from[1]) < R * .6) { q.x += dx * .6; q.y += dy * .6; }
+      this.reshape(p);
     }
-    applyStamp(gx, gy) {
-      if (!this.inBoard(this.board.x + gx * this.cs, this.board.y + gy * this.cs)) return;
-      const m = this.mask(this.stamp, this.cutterR(), false), H = this.H, ox = Math.round(gx - m.M / 2), oy = Math.round(gy - m.M / 2); let any = false;
-      this.pushUndo();
-      for (let y = 0; y < m.M; y++) for (let x = 0; x < m.M; x++) {
-        const a = m.data[y * m.M + x]; if (a <= .02) continue; const X = ox + x, Y = oy + y; if (X < 0 || Y < 0 || X >= G || Y >= G) continue; const i = Y * G + X;
-        if (H[i] > .8) { H[i] -= Math.min(H[i] * .5, 1.5 * SC) * a; any = true; }
-      }
-      if (any) { sfx.pop(); sfx.squish(); }
+    // the rolling pin: whatever it passes over spreads out sideways and gets thin
+    rollStep(s, g, dx, dy, d) {
+      const p = this.pickPiece(g, .02) || s.p; if (!p) return; s.p = p;
+      const nx = dx / d, ny = dy / d, px = -ny, py = nx, c = K.centroid(p.cont[0]), perp = Math.exp(2.6 * d), along = 1 + .5 * d;
+      const f = q => { const vx = q[0] - c[0], vy = q[1] - c[1], a = (vx * nx + vy * ny) * along, b = (vx * px + vy * py) * perp; q[0] = c[0] + nx * a + px * b; q[1] = c[1] + ny * a + py * b; };
+      { const bb = K.bbox(p.cont); if (bb.x1 - bb.x0 > .62 || bb.y1 - bb.y0 > .62) { p.h = Math.max(FLAT, p.h * Math.exp(-4.5 * d)); this.reshape(p); return; } }
+      for (const co of p.cont) for (const q of co) f(q);
+      for (const dt of p.dents || []) { const q = [dt.x, dt.y]; f(q); dt.x = q[0]; dt.y = q[1]; dt.r *= (1 + .3 * d); }
+      p.h = Math.max(FLAT, p.h * Math.exp(-4.5 * d)); p.cont = p.cont.map((co, i) => K.orient(K.tidy(co, .016, .005), i === 0)); this.reshape(p);
     }
-    applyExtra(gx, gy, R) {
-      if (!this.inBoard(this.board.x + gx * this.cs, this.board.y + gy * this.cs)) return;
-      this.pushUndo(); const H = this.H, C = this.C;
-      const lump = (cx, cy, r, col, amp = .9) => {
-        for (let y = Math.max(0, Math.floor(cy - r)); y <= Math.min(G - 1, Math.ceil(cy + r)); y++) for (let x = Math.max(0, Math.floor(cx - r)); x <= Math.min(G - 1, Math.ceil(cx + r)); x++) {
-          const d2 = (x - cx) * (x - cx) + (y - cy) * (y - cy); if (d2 >= r * r) continue; const i = y * G + x; H[i] = Math.min(MAXH, H[i] + Math.sqrt(r * r - d2) * amp); C[i * 3] = col[0]; C[i * 3 + 1] = col[1]; C[i * 3 + 2] = col[2];
-        }
-      };
-      if (this.extra === 'eye') { const r = R * .8, a = Math.random() * TAU; lump(gx, gy, r, [252, 252, 250]); lump(gx + Math.cos(a) * r * .22, gy + Math.sin(a) * r * .22, r * .52, [38, 32, 44], 1.1); sfx.plink(2); }
-      else if (this.extra === 'bead') { lump(gx, gy, R * .4, BEADS[Math.floor(Math.random() * BEADS.length)]); sfx.plink(1); }
-      else if (this.extra === 'pearl') { lump(gx, gy, R * .62, [255, 236, 244]); sfx.plink(4); }
-      else { if (H[Math.round(gy) * G + Math.round(gx)] < .5) { sfx.pop(); return; } for (let k = 0; k < 10; k++) { const a = Math.random() * TAU, d = Math.sqrt(Math.random()) * R * 1.5; lump(gx + Math.cos(a) * d, gy + Math.sin(a) * d, 1.4 * SC, BEADS[k % BEADS.length], .8); } sfx.plink(3); }
-      const p = this.screenOf(gx, gy); this.fx.burst(p.x, p.y, 6, { colors: ['#fff', '#ffd54a', '#ff8aa3'], speed: 120, g: 140, life: .5, size: 4, shape: 'star' });
+    smoothStep(g) {
+      const R = this.radius() * 1.1, p = this.pickPiece(g, R); if (!p) return;
+      p.dents = (p.dents || []).filter(d => Math.hypot(d.x - g[0], d.y - g[1]) > R * .9);
+      p.cont = p.cont.map((co, i) => { const n = co.length; const sm = K.smooth(co, .5, 2); return K.orient(co.map((q, j) => { const d = Math.hypot(q[0] - g[0], q[1] - g[1]), w = d < R ? 1 - d / R : 0; return [q[0] + (sm[j][0] - q[0]) * w, q[1] + (sm[j][1] - q[1]) * w]; }), i === 0); });
+      this.reshape(p); if (this.t - this.sndT > .14) { sfx.brush && sfx.brush(); this.sndT = this.t; }
     }
-    screenOf(gx, gy) { return { x: this.board.x + gx * this.cs, y: this.board.y + gy * this.cs }; }
+    dyeObj(o) {
+      const c = COLORS[this.col]; if (o.t === 'i') { if (o.k === 'bead' || o.k === 'pearl') { o.c = c.rainbow ? BEADS[this.nid++ % BEADS.length] : c.c; } return; }
+      o.col = this.col; o.rgb = c.rainbow ? [255, 150, 200] : c.c; o.rain = !!c.rainbow; o.ra = Math.random() * 2; this.reshape(o); sfx.pop();
+      const ctr = this.sp(...K.centroid(o.cont[0])); this.fx.burst(ctr.x, ctr.y, 8, { colors: [css(o.rgb), '#fff'], speed: 140, g: 200, life: .6, size: 5, shape: 'star' });
+    }
 
-    /* ---------------------------------------------------------------- the hand: pick a whole piece up and move it */
-    pickUp(s, gx, gy) {
-      const H = this.H, C = this.C; let sx = Math.round(gx), sy = Math.round(gy), best = -1;
-      for (let r = 0; r <= 5 * SC && best < 0; r++) for (let y = sy - r; y <= sy + r && best < 0; y++) for (let x = sx - r; x <= sx + r; x++) { if (x < 0 || y < 0 || x >= G || y >= G) continue; if (H[y * G + x] > .35) { best = y * G + x; break; } }
-      if (best < 0) return false;
-      const seen = new Uint8Array(N), q = new Int32Array(N); let qh = 0, qt = 0; q[qt++] = best; seen[best] = 1;
-      while (qh < qt) {
-        const i = q[qh++], x = i % G, y = (i / G) | 0;
-        if (x > 0 && !seen[i - 1] && H[i - 1] > .02) { seen[i - 1] = 1; q[qt++] = i - 1; } if (x < G - 1 && !seen[i + 1] && H[i + 1] > .02) { seen[i + 1] = 1; q[qt++] = i + 1; }
-        if (y > 0 && !seen[i - G] && H[i - G] > .02) { seen[i - G] = 1; q[qt++] = i - G; } if (y < G - 1 && !seen[i + G] && H[i + G] > .02) { seen[i + G] = 1; q[qt++] = i + G; }
-      }
+    /* ---------------------------------------------------------------- the hand: drop on the bin to throw away */
+    dropHeld(s) {
+      const o = s.o, a = this.anim.get(o.id); if (a && a.hold) this.anim.delete(o.id);
+      const bin = this.item('act', 'bin'), at = this.sp(...s.g);
+      if (bin && Math.hypot(at.x - bin.x, at.y - bin.y) < bin.r * 1.4) { for (const r of s.riders) this.remove(r); this.remove(o); sfx.whoosh(); this.fx.burst(bin.x, bin.y, 10, { colors: ['#fff', '#d7c9e0'], speed: 160, g: 200, life: .6, size: 6 }); return; }
+      // keep it on the board
+      const c = this.center(o), nx = clamp(c[0], .04, .96), ny = clamp(c[1], .04, .96); if (nx !== c[0] || ny !== c[1]) { this.shift(o, nx - c[0], ny - c[1]); for (const r of s.riders) this.shift(r, nx - c[0], ny - c[1]); }
+      this.animate(o, 'drop', .22); sfx.snap && sfx.snap();
+    }
+
+    /* ---------------------------------------------------------------- cutters, stamps, knife, poke, eyes and beads */
+    cutterR() { return CUT_R[this.size]; }
+    applyCutter(g) {
+      const R = this.cutterR(); let p = this.pickPiece(g, 0);
+      if (!p || !K.inPiece(g, p)) { sfx.oops && sfx.oops(); return; }
+      const shape = K.shape(this.cutter, R, g[0], g[1])[0];
+      // cut from the topmost piece the whole shape fits in (a cookie lying on the dough is left alone); otherwise it just leaves a mark
+      for (let i = this.objs.length - 1; i >= 0; i--) { const o = this.objs[i]; if (o.t === 'p' && shape.every(q => K.inPiece(q, o))) { p = o; break; } }
       this.pushUndo();
-      const idx = q.slice(0, qt), h = new Float32Array(qt), c = new Uint8Array(qt * 3); let minX = G, maxX = 0, minY = G, maxY = 0;
-      for (let k = 0; k < qt; k++) { const i = idx[k], x = i % G, y = (i / G) | 0; h[k] = H[i]; c[k * 3] = C[i * 3]; c[k * 3 + 1] = C[i * 3 + 1]; c[k * 3 + 2] = C[i * 3 + 2]; H[i] = 0; if (x < minX) minX = x; if (x > maxX) maxX = x; if (y < minY) minY = y; if (y > maxY) maxY = y; }
-      // the clay that is left behind (some of the board's own cells can be just under the rim of the piece): keep a copy to put things back on
-      s.held = { idx, h, c, minX, maxX, minY, maxY, bgH: H.slice(), bgC: C.slice(), ox: 0, oy: 0, sx: gx, sy: gy };
-      this.compose(s.held, 1.4); sfx.pop(); return true;
-    }
-    compose(p, lift) {
-      const H = this.H, C = this.C; H.set(p.bgH); C.set(p.bgC);
-      for (let k = 0; k < p.idx.length; k++) {
-        const i = p.idx[k], x = (i % G) + p.ox, y = ((i / G) | 0) + p.oy; if (x < 0 || y < 0 || x >= G || y >= G) continue;
-        const j = y * G + x, tg = Math.min(MAXH, p.bgH[j] * .55 + p.h[k] + lift); if (tg >= H[j]) { H[j] = tg; C[j * 3] = p.c[k * 3]; C[j * 3 + 1] = p.c[k * 3 + 1]; C[j * 3 + 2] = p.c[k * 3 + 2]; }
+      if (shape.every(q => K.inPiece(q, p)) && this.objs.length < MAXOBJ) {
+        const hole = K.orient(shape, false), cookie = K.orient(shape.map(q => [q[0], q[1]]), true);
+        p.cont.push(hole); this.reshape(p);
+        const piece = { t: 'p', id: this.nid++, cont: [cookie], h: p.h, v: 1, dents: [], col: p.col, rgb: p.rgb, rain: p.rain, ra: p.ra };
+        // the cut shape slides out of the hole, away from the middle of the board
+        let vx = R * 1.9, vy = R * .7; if (g[0] + vx > .92) vx = -vx; if (g[1] + vy > .92) vy = -R * .7;
+        this.objs.push(piece); this.shift(piece, vx, vy); this.animate(piece, 'slide', .32, { dx: -vx, dy: -vy });
+        sfx.snap(); sfx.pop(); const sc = this.sp(g[0], g[1]); this.fx.burst(sc.x, sc.y, 6, { colors: ['#fff', css(p.rgb)], speed: 120, g: 160, life: .5, size: 4 });
+      } else {   // not all of it fits on the piece: it just presses its shape into the top
+        p.dents.push({ k: this.cutter, x: g[0], y: g[1], r: R, a: 0, d: 1 }); this.reshape(p); sfx.pop();
       }
     }
-    moveHeld(s, gx, gy) {
-      const p = s.held; if (!p) return;
-      p.ox = clamp(Math.round(gx - p.sx), -p.minX, G - 1 - p.maxX); p.oy = clamp(Math.round(gy - p.sy), -p.minY, G - 1 - p.maxY);
-      this.compose(p, 1.4);
+    applyStamp(g) {
+      const p = this.pickPiece(g, 0); if (!p || !K.inPiece(g, p)) { sfx.oops && sfx.oops(); return; }
+      this.pushUndo(); p.dents.push({ k: this.stamp, x: g[0], y: g[1], r: STAMP_R[this.size], a: 0, d: 1 }); if (p.dents.length > 40) p.dents.shift(); this.reshape(p); sfx.pop();
+      this.animate(p, 'press', .2);
     }
-    dropHeld(s) { const p = s.held; if (!p) return; this.compose(p, 0); sfx.pop(); }
+    applyPoke(g, p, hold) {
+      const r = POKE_R[this.size];
+      if (hold && p.h < .6 && K.inPiece(g, p) && K.edgeDist(g, p.cont[0]) > r * 1.3) {
+        p.cont.push(K.orient(K.shape('circle', r * .9, g[0], g[1])[0], false)); this.reshape(p); sfx.pop(); const sc = this.sp(g[0], g[1]); this.fx.burst(sc.x, sc.y, 6, { colors: ['#fff', css(p.rgb)], speed: 110, g: 160, life: .45, size: 4 });
+      } else if (K.inPiece(g, p)) { p.dents.push({ k: 'circle', x: g[0], y: g[1], r, a: 0, d: hold ? 2 : 1.2 }); this.reshape(p); sfx.pop(); }
+    }
+    applyKnife(a, b) {
+      if (Math.hypot(b[0] - a[0], b[1] - a[1]) < .03) return;
+      let cut = false; const out = [];
+      this.pushUndo();
+      for (const o of this.objs) {
+        if (o.t !== 'p') { out.push(o); continue; }
+        const parts = K.split(o.cont[0], a, b); if (!parts) { out.push(o); continue; }
+        cut = true;
+        const nx = -(b[1] - a[1]), ny = b[0] - a[0], nl = Math.hypot(nx, ny) || 1, gap = .026;
+        const mk = (cont, sgn) => {
+          const q = { t: 'p', id: this.nid++, cont: [K.orient(K.tidy(K.resample(cont, .012), .02, .006), true)], h: o.h, v: 1, dents: [], col: o.col, rgb: o.rgb, rain: o.rain, ra: o.ra };
+          for (let i = 1; i < o.cont.length; i++) if (K.inside(K.centroid(o.cont[i]), q.cont[0])) q.cont.push(o.cont[i]);
+          q.dents = (o.dents || []).filter(d => K.inside([d.x, d.y], q.cont[0]));
+          const dx = nx / nl * gap * sgn, dy = ny / nl * gap * sgn; this.shift(q, dx, dy); this.animate(q, 'slide', .22, { dx: -dx * .6, dy: -dy * .6 }); return q;
+        };
+        const cA = K.centroid(parts[0]), cB = K.centroid(parts[1]), sA = (cA[0] - cB[0]) * nx + (cA[1] - cB[1]) * ny >= 0 ? 1 : -1;   // each half moves away from the other
+        out.push(mk(parts[0], sA), mk(parts[1], -sA));
+      }
+      if (cut) { this.objs = out; sfx.snap(); const sc = this.sp((a[0] + b[0]) / 2, (a[1] + b[1]) / 2); this.fx.burst(sc.x, sc.y, 5, { colors: ['#fff'], speed: 90, g: 80, life: .4, size: 3 }); } else { this.undo.pop(); }
+    }
+    applyExtra(g) {
+      if (!this.spawnOK()) return; this.pushUndo();
+      const k = this.extra, R = k === 'eye' ? EYE_R[this.size] : BEAD_R[this.size], c = COLORS[this.col];
+      let o;
+      if (k === 'eye') o = { t: 'i', k, x: g[0], y: g[1], r: R, a: (Math.random() - .5) * .5 };
+      else if (k === 'bead') o = { t: 'i', k, x: g[0], y: g[1], r: R, c: c.rainbow ? BEADS[this.nid % BEADS.length] : c.c };
+      else if (k === 'pearl') o = { t: 'i', k, x: g[0], y: g[1], r: R * 1.1 };
+      else { const bits = []; for (let i = 0; i < 12; i++) { const a = Math.random() * TAU, d = Math.sqrt(Math.random()) * EYE_R[this.size] * 1.4; bits.push([Math.cos(a) * d, Math.sin(a) * d, Math.random() * TAU, BEADS[i % BEADS.length]]); } o = { t: 'i', k: 'spr', x: g[0], y: g[1], r: EYE_R[this.size] * 1.3, bits }; }
+      o.id = this.nid++; o.v = 1; this.objs.push(o); this.animate(o, 'pop', .26); sfx.pop();
+    }
+
+    /* ---------------------------------------------------------------- frame */
+    tick(now) {
+      if (!this.running) return;
+      const dt = Math.min(.05, (now - this.last) / 1000); this.last = now; this.t += dt; this.flash = Math.max(0, this.flash - dt * 3);
+      this.update(dt); this.fx.update(dt);
+      if (this.snapA) { this.snapA.t += dt; if (this.snapA.t > 1.4) this.snapA = null; }
+      if (this.saveAt && this.t > this.saveAt && !this.stroke) this.save();
+      this.draw(); this.raf = requestAnimationFrame(this.tick);
+    }
+
+    /* ---------------------------------------------------------------- drawing the board */
+    sprOf(o, S) {
+      let e = this.sprites.get(o); if (e && e.v === o.v && e.S === S) return e.spr;
+      const spr = K.sprite(o, S); this.sprites.set(o, { v: o.v, S, spr }); return spr;
+    }
+    // the cutting mat
+    drawMat(c, x, y, s) {
+      c.save(); c.translate(x, y);
+      c.fillStyle = 'rgba(80,60,40,.22)'; rr(c, 0, s * .012, s, s, s * .04); c.fill();
+      const mat = c.createLinearGradient(0, 0, 0, s); mat.addColorStop(0, '#f7eedd'); mat.addColorStop(1, '#ecdcc2'); c.fillStyle = mat; rr(c, 0, 0, s, s, s * .04); c.fill();
+      c.save(); rr(c, 0, 0, s, s, s * .04); c.clip(); c.fillStyle = 'rgba(150,115,70,.12)'; const gap = s / 20; for (let gy = 1; gy < 20; gy++) for (let gx = 1; gx < 20; gx++) { c.beginPath(); c.arc(gx * gap, gy * gap, s * .0028, 0, TAU); c.fill(); }
+      const vg = c.createRadialGradient(s / 2, s / 2, s * .35, s / 2, s / 2, s * .78); vg.addColorStop(0, 'rgba(255,255,255,0)'); vg.addColorStop(1, 'rgba(120,85,40,.12)'); c.fillStyle = vg; c.fillRect(0, 0, s, s);
+      c.restore(); c.strokeStyle = 'rgba(255,255,255,.9)'; c.lineWidth = s * .008; rr(c, 0, 0, s, s, s * .04); c.stroke(); c.restore();
+    }
+    // the pieces and beads, back to front, into a square of side s at (x, y); S is the sprite resolution (pixels per board width)
+    drawObjs(c, x, y, s, S, live) {
+      c.save(); c.translate(x, y); c.beginPath(); rr(c, 0, 0, s, s, s * .04); c.clip();
+      for (const o of this.objs) {
+        const an = live ? this.anim.get(o.id) : null; let k = 1, ox = 0, oy = 0, lift = 0;
+        if (an) {
+          const u = clamp((this.t - an.t0) / an.dur, 0, 1);
+          if (an.kind === 'pop') k = u >= 1 ? 1 : .55 + .55 * Math.sin(u * Math.PI * .55) + (u > .6 ? -.1 * Math.sin((u - .6) / .4 * Math.PI) : 0);
+          else if (an.kind === 'slide') { const e = 1 - Math.pow(1 - u, 3); ox = an.dx * (1 - e); oy = an.dy * (1 - e); lift = Math.sin(u * Math.PI) * .01; }
+          else if (an.kind === 'drop') k = 1 + .05 * (1 - u) * Math.sin(u * Math.PI * 1.5) + (u < .5 ? .03 * (1 - u * 2) : 0);
+          else if (an.kind === 'press') k = 1 - .03 * Math.sin(u * Math.PI);
+          else if (an.kind === 'lift') k = 1.035;
+          if (u >= 1 && !an.hold) this.anim.delete(o.id);
+        }
+        c.save();
+        if (k !== 1 || ox || oy || lift) { const ctr = this.center(o); c.translate((ctr[0] + ox) * s, (ctr[1] + oy - lift) * s); c.scale(k, k); c.translate(-ctr[0] * s, -ctr[1] * s); }
+        if (o.t === 'p') { const spr = this.sprOf(o, live && this.stroke && this.stroke.p === o && this.stroke.tool !== 'hand' ? S * .5 : S); c.drawImage(spr.cv, spr.x * s, spr.y * s, spr.w / spr.S * s, spr.h / spr.S * s); }
+        else this.drawBead(c, o, s);
+        c.restore();
+      }
+      c.restore();
+    }
+    drawBead(c, o, s) {
+      const x = o.x * s, y = o.y * s, r = o.r * s;
+      c.save(); c.translate(x, y);
+      const shadow = (rx, ry, ox, oy, a) => { c.fillStyle = `rgba(70,40,30,${a})`; c.beginPath(); c.ellipse(ox, oy, rx, ry, 0, 0, TAU); c.fill(); };
+      if (o.k === 'eye') {
+        c.rotate(o.a || 0); shadow(r * 1.02, r * .95, r * .12, r * .2, .22);
+        const g = c.createRadialGradient(-r * .3, -r * .35, r * .1, 0, 0, r * 1.05); g.addColorStop(0, '#ffffff'); g.addColorStop(.7, '#f6f3ee'); g.addColorStop(1, '#d4cdc8'); c.fillStyle = g; c.beginPath(); c.arc(0, 0, r, 0, TAU); c.fill();
+        c.strokeStyle = 'rgba(80,60,70,.35)'; c.lineWidth = Math.max(1, r * .05); c.stroke();
+        const px = r * .14, py = r * .2, pr = r * .5; c.fillStyle = '#2a2430'; c.beginPath(); c.arc(px, py, pr, 0, TAU); c.fill();
+        c.fillStyle = 'rgba(255,255,255,.95)'; c.beginPath(); c.arc(px - pr * .35, py - pr * .38, pr * .3, 0, TAU); c.fill(); c.beginPath(); c.arc(px + pr * .3, py + pr * .3, pr * .13, 0, TAU); c.fill();
+      } else if (o.k === 'bead' || o.k === 'pearl') {
+        const base = o.k === 'pearl' ? [250, 238, 244] : (o.c || [255, 90, 110]); shadow(r * 1.0, r * .9, r * .18, r * .3, .24);
+        const g = c.createRadialGradient(-r * .35, -r * .4, r * .08, 0, 0, r * 1.05); g.addColorStop(0, css(base.map(v => Math.min(255, v + 90)))); g.addColorStop(.45, css(base)); g.addColorStop(1, css(base, .6)); c.fillStyle = g; c.beginPath(); c.arc(0, 0, r, 0, TAU); c.fill();
+        c.fillStyle = 'rgba(255,255,255,.85)'; c.beginPath(); c.ellipse(-r * .34, -r * .4, r * .26, r * .15, -.7, 0, TAU); c.fill();
+        if (o.k === 'pearl') { const pg = c.createLinearGradient(-r, -r, r, r); pg.addColorStop(0, 'rgba(180,220,255,.35)'); pg.addColorStop(.5, 'rgba(255,200,230,.25)'); pg.addColorStop(1, 'rgba(200,255,220,.3)'); c.fillStyle = pg; c.beginPath(); c.arc(0, 0, r, 0, TAU); c.fill(); }
+      } else {   // sprinkles
+        for (const [dx, dy, a, col] of o.bits) { const L = s * .016; c.save(); c.translate(dx * s, dy * s); c.rotate(a); c.fillStyle = 'rgba(70,40,30,.25)'; rr(c, -L + 1, -L * .3 + 2, L * 2, L * .7, L * .35); c.fill(); c.fillStyle = css(col); rr(c, -L, -L * .35, L * 2, L * .7, L * .35); c.fill(); c.fillStyle = 'rgba(255,255,255,.4)'; rr(c, -L * .8, -L * .3, L * 1.4, L * .22, L * .1); c.fill(); c.restore(); }
+      }
+      c.restore();
+    }
+    draw() {
+      const c = this.ctx, w = this.w, h = this.h; if (!w) return;
+      const bg = c.createLinearGradient(0, 0, 0, h); bg.addColorStop(0, '#fdf1dd'); bg.addColorStop(1, '#f6dcbc'); c.fillStyle = bg; c.fillRect(0, 0, w, h);
+      c.fillStyle = 'rgba(255,255,255,.35)'; for (let i = 0; i < 7; i++) c.fillRect(0, h * (i + .5) / 7, w, 2);
+      const b = this.board; this.drawMat(c, b.x, b.y, b.s); this.drawObjs(c, b.x, b.y, b.s, b.s * this.dpr, true);
+      // a ring that shows how big the tool is, and where a cutter, stamp or bead will land
+      const s = this.stroke, hv = this.hover && this.ptr == null && this.inBoard(this.hover.x, this.hover.y) ? this.hover : null;
+      if (s) {
+        const p = this.sp(s.g[0], s.g[1]);
+        if (s.tool === 'cutters' || s.tool === 'stamps') {
+          const kind = s.tool === 'cutters' ? this.cutter : this.stamp, r = (s.tool === 'cutters' ? this.cutterR() : STAMP_R[this.size]) * b.s;
+          c.save(); c.translate(p.x, p.y); SHAPE_PATH(c, kind, r); c.fillStyle = 'rgba(255,255,255,.3)'; c.fill('evenodd'); c.setLineDash([r * .2, r * .14]); c.strokeStyle = '#fff'; c.lineWidth = 3; c.stroke(); c.strokeStyle = 'rgba(90,63,94,.4)'; c.lineWidth = 1.2; c.stroke(); c.restore();
+        } else if (s.tool === 'extras') { c.save(); c.strokeStyle = 'rgba(255,255,255,.9)'; c.lineWidth = 3; c.setLineDash([6, 5]); c.beginPath(); c.arc(p.x, p.y, (this.extra === 'eye' ? EYE_R[this.size] : BEAD_R[this.size] * 1.4) * b.s, 0, TAU); c.stroke(); c.restore(); }
+        else if (s.tool === 'knife') { const a = this.sp(s.start[0], s.start[1]); c.save(); c.setLineDash([8, 6]); c.strokeStyle = '#fff'; c.lineWidth = 4; c.lineCap = 'round'; c.beginPath(); c.moveTo(a.x, a.y); c.lineTo(p.x, p.y); c.stroke(); c.strokeStyle = 'rgba(90,63,94,.5)'; c.lineWidth = 1.5; c.stroke(); c.restore(); }
+        else if (s.tool === 'roll') { c.save(); c.translate(p.x, p.y); c.rotate(-.35); const L = this.radius() * b.s * 1.6, Rr = this.radius() * b.s * .5; c.fillStyle = 'rgba(224,168,104,.85)'; rr(c, -L, -Rr, L * 2, Rr * 2, Rr); c.fill(); c.fillStyle = 'rgba(255,255,255,.3)'; rr(c, -L + 4, -Rr + 3, L * 2 - 8, Rr * .5, Rr * .25); c.fill(); c.restore(); }
+        else if (s.tool !== 'hand') { c.save(); c.strokeStyle = 'rgba(255,255,255,.8)'; c.lineWidth = 3; c.beginPath(); c.arc(p.x, p.y, this.radius() * b.s * (s.tool === 'squish' ? 1.1 : s.tool === 'pinch' ? .6 : 1), 0, TAU); c.stroke(); c.strokeStyle = 'rgba(90,63,94,.35)'; c.lineWidth = 1.5; c.stroke(); c.restore(); }
+      } else if (hv && (this.tool === 'clay')) { c.save(); c.strokeStyle = 'rgba(255,255,255,.55)'; c.setLineDash([5, 6]); c.lineWidth = 2; c.beginPath(); c.arc(hv.x, hv.y, this.radius() * b.s, 0, TAU); c.stroke(); c.restore(); }
+      this.fx.draw(c);
+      for (const it of this.items) this.drawItem(c, it);
+      if (this.menu) this.drawMenu(c);
+      if (this.snapA) this.drawSnap(c);
+      if (this.flash > 0) { c.fillStyle = `rgba(255,255,255,${this.flash * .75})`; c.fillRect(0, 0, w, h); }
+      if (this.confirm) this.drawConfirm(c);
+      if (this.album) this.drawAlbum(c);
+    }
 
     /* ---------------------------------------------------------------- her album of clay pictures */
     async openAlbum() {
@@ -483,97 +618,11 @@
       try {
         const S = 900, out = document.createElement('canvas'); out.width = out.height = S; const q = out.getContext('2d');
         const bg = q.createLinearGradient(0, 0, 0, S); bg.addColorStop(0, '#fdf1dd'); bg.addColorStop(1, '#f7dfc0'); q.fillStyle = bg; q.fillRect(0, 0, S, S);
-        this.renderBoard(q, 40, 40, S - 80, 1);
+        this.drawMat(q, 40, 40, S - 80); this.drawObjs(q, 40, 40, S - 80, this.board.s * this.dpr, false);
         q.fillStyle = 'rgba(90,63,94,.55)'; q.font = '700 34px Fredoka, system-ui, sans-serif'; q.textAlign = 'center'; q.fillText('Clay Corner', S / 2, S - 12);
         const small = document.createElement('canvas'); small.width = small.height = 120; small.getContext('2d').drawImage(out, 0, 0, 120, 120); this.snapA = { img: small, t: 0 };
         out.toBlob(b => { if (b && this.pid() && SPG.photos) SPG.photos.add(this.pid(), b, { game: 'clay', recipe: 'clay', name: 'Clay' }); }, 'image/jpeg', .9);
       } catch (_) { /* no picture this time */ }
-    }
-
-    /* ---------------------------------------------------------------- drawing the clay */
-    shade() {
-      const H = this.H, C = this.C, d = this.imd.data, nz = this.noise;
-      const lx = -.45, ly = -.55, lz = .7, ll = Math.hypot(lx, ly, lz), Lx = lx / ll, Ly = ly / ll, Lz = lz / ll;
-      let hx = Lx, hy = Ly, hz = Lz + 1; const hl = Math.hypot(hx, hy, hz); hx /= hl; hy /= hl; hz /= hl;
-      for (let y = 0; y < G; y++) {
-        const ym = y > 0 ? -G : 0, yp = y < G - 1 ? G : 0, y3m = y > 2 ? -3 * G : 0, y3p = y < G - 3 ? 3 * G : 0;
-        for (let x = 0; x < G; x++) {
-          const i = y * G + x, h = H[i], o = i * 4;
-          if (h < .05) {
-            // a soft halo just outside the clay, so cut and flat edges are smooth instead of stair-stepped
-            if (x > 0 && y > 0 && x < G - 1 && y < G - 1) {
-              let m = 0, best = -1, bh = 0;
-              for (let q = 0; q < 8; q++) { const j = i + NB[q]; if (H[j] >= .05) { m++; if (H[j] > bh) { bh = H[j]; best = j; } } }
-              if (m && bh >= .6) { const k2 = best * 3, sh2 = .72; d[o] = C[k2] * sh2; d[o + 1] = C[k2 + 1] * sh2; d[o + 2] = C[k2 + 2] * sh2; d[o + 3] = m / 11 * 255; continue; }
-            }
-            d[o + 3] = 0; continue;
-          }
-          const xm = x > 0 ? -1 : 0, xp = x < G - 1 ? 1 : 0;
-          const gx = (H[i + xp] - H[i + xm]) / (xp - xm || 1), gy = (H[i + yp] - H[i + ym]) / ((yp - ym) / G || 1);
-          const nl = 1 / Math.sqrt(gx * gx * .64 + gy * gy * .64 + 1), nx = -gx * .8 * nl, ny = -gy * .8 * nl, nzv = nl;
-          const diff = Math.max(0, nx * Lx + ny * Ly + nzv * Lz), sp = Math.pow(Math.max(0, nx * hx + ny * hy + nzv * hz), 16) * .16;
-          const x3m = x > 2 ? -3 : 0, x3p = x < G - 3 ? 3 : 0, avg = (H[i + x3m] + H[i + x3p] + H[i + y3m] + H[i + y3p]) * .25, ao = clamp((avg - h) * .06, 0, .3);
-          const sh = .42 + .72 * diff - ao + nz[i], k = i * 3;
-          d[o] = Math.min(255, C[k] * sh + sp * 255); d[o + 1] = Math.min(255, C[k + 1] * sh + sp * 255); d[o + 2] = Math.min(255, C[k + 2] * sh + sp * 255);
-          let al = h >= 1.1 ? 1 : Math.max(0, Math.min(1, (h - .05) / 1.05));
-          if (x > 0 && y > 0 && x < G - 1 && y < G - 1) { let n = 0; for (let q = 0; q < 8; q++) if (H[i + NB[q]] < .05) n++; if (n) al *= 1 - n / 11; }
-          d[o + 3] = al * 255;
-        }
-      }
-      this.imgc.putImageData(this.imd, 0, 0);
-    }
-    // the cutting mat and the clay (with its shadow), drawn into a square of side s at (x, y) on context c
-    renderBoard(c, x, y, s, dpr) {
-      c.save(); c.translate(x, y);
-      const mat = c.createLinearGradient(0, 0, 0, s); mat.addColorStop(0, '#d6f2e3'); mat.addColorStop(1, '#bfe8d2');
-      c.fillStyle = 'rgba(80,60,40,.22)'; rr(c, 0, s * .012, s, s, s * .04); c.fill();
-      c.fillStyle = mat; rr(c, 0, 0, s, s, s * .04); c.fill();
-      c.save(); rr(c, 0, 0, s, s, s * .04); c.clip(); c.strokeStyle = 'rgba(255,255,255,.55)'; c.lineWidth = Math.max(1, s * .003);
-      for (let i = 1; i < 16; i++) { c.beginPath(); c.moveTo(i * s / 16, 0); c.lineTo(i * s / 16, s); c.moveTo(0, i * s / 16); c.lineTo(s, i * s / 16); c.stroke(); }
-      c.restore(); c.strokeStyle = 'rgba(255,255,255,.9)'; c.lineWidth = s * .008; rr(c, 0, 0, s, s, s * .04); c.stroke();
-      if (this.shadowOK !== false) {
-        try { c.save(); c.shadowColor = 'rgba(55,35,25,.38)'; c.shadowBlur = s * .018 * dpr; c.shadowOffsetX = 8000 * dpr + s * .006 * dpr; c.shadowOffsetY = s * .012 * dpr; c.imageSmoothingEnabled = true; c.drawImage(this.img, -8000, 0, s, s); c.restore(); } catch (_) { this.shadowOK = false; }
-      }
-      c.imageSmoothingEnabled = true; c.imageSmoothingQuality = 'high'; c.drawImage(this.img, 0, 0, s, s);
-      c.restore();
-    }
-    refreshLayer() {
-      this.shade(); const L = this.layer.width, c = this.layerc; c.setTransform(1, 0, 0, 1, 0, 0); c.clearRect(0, 0, L, L);
-      this.renderBoard(c, 0, 0, L, 1); this.dirty = false;
-    }
-
-    /* ---------------------------------------------------------------- frame */
-    tick(now) {
-      if (!this.running) return;
-      const dt = Math.min(.05, (now - this.last) / 1000); this.last = now; this.t += dt; this.flash = Math.max(0, this.flash - dt * 3);
-      this.update(dt); this.fx.update(dt);
-      if (this.snapA) { this.snapA.t += dt; if (this.snapA.t > 1.4) this.snapA = null; }
-      if (this.saveAt && this.t > this.saveAt && !this.stroke) this.save();
-      this.draw(); this.raf = requestAnimationFrame(this.tick);
-    }
-    draw() {
-      const c = this.ctx, w = this.w, h = this.h; if (!w) return;
-      if (this.dirty) this.refreshLayer();
-      const bg = c.createLinearGradient(0, 0, 0, h); bg.addColorStop(0, '#fdf1dd'); bg.addColorStop(1, '#f6dcbc'); c.fillStyle = bg; c.fillRect(0, 0, w, h);
-      c.fillStyle = 'rgba(255,255,255,.35)'; for (let i = 0; i < 7; i++) c.fillRect(0, h * (i + .5) / 7, w, 2);
-      const b = this.board; c.drawImage(this.layer, b.x, b.y, b.s, b.s);
-      // a ring that shows how big the tool is, and where a cutter, stamp or bead will land
-      const s = this.stroke;
-      if (s) {
-        const p = this.screenOf(s.gx, s.gy);
-        if (s.tool === 'cutters' || s.tool === 'stamps') {
-          const kind = s.tool === 'cutters' ? this.cutter : this.stamp, r = this.cutterR() * this.cs;
-          c.save(); c.translate(p.x, p.y); SHAPES[kind](c, r); c.fillStyle = 'rgba(255,255,255,.28)'; c.fill(); c.setLineDash([r * .2, r * .14]); c.strokeStyle = '#fff'; c.lineWidth = 3; c.stroke(); c.restore();
-        } else if (s.tool === 'extras') { c.save(); c.strokeStyle = 'rgba(255,255,255,.9)'; c.lineWidth = 3; c.setLineDash([6, 5]); c.beginPath(); c.arc(p.x, p.y, this.radius() * this.cs * (this.extra === 'eye' ? .8 : .5), 0, TAU); c.stroke(); c.restore(); }
-        else if (s.tool !== 'hand' && s.tool !== 'knife') { c.save(); c.strokeStyle = 'rgba(255,255,255,.8)'; c.lineWidth = 3; c.beginPath(); c.arc(p.x, p.y, this.radius() * this.cs * (s.tool === 'squish' ? 1.25 : 1), 0, TAU); c.stroke(); c.strokeStyle = 'rgba(90,63,94,.35)'; c.lineWidth = 1.5; c.stroke(); c.restore(); }
-      }
-      this.fx.draw(c);
-      for (const it of this.items) this.drawItem(c, it);
-      if (this.menu) this.drawMenu(c);
-      if (this.snapA) this.drawSnap(c);
-      if (this.flash > 0) { c.fillStyle = `rgba(255,255,255,${this.flash * .75})`; c.fillRect(0, 0, w, h); }
-      if (this.confirm) this.drawConfirm(c);
-      if (this.album) this.drawAlbum(c);
     }
 
     /* ---------------------------------------------------------------- buttons and menus */
@@ -599,6 +648,7 @@
     icon(c, id, s) {
       c.save(); c.lineCap = c.lineJoin = 'round'; const cc = css(COLORS[this.col].rainbow ? [255, 126, 182] : COLORS[this.col].c), INK = '#5a3f5e';
       const ball = (x, y, r, col) => { const g = c.createRadialGradient(x - r * .35, y - r * .4, r * .1, x, y, r); g.addColorStop(0, '#fff8'); g.addColorStop(.25, col); g.addColorStop(1, col); c.fillStyle = col; c.beginPath(); c.arc(x, y, r, 0, TAU); c.fill(); c.fillStyle = 'rgba(255,255,255,.45)'; c.beginPath(); c.ellipse(x - r * .3, y - r * .4, r * .32, r * .17, -.5, 0, TAU); c.fill(); };
+      if (TOOLPIC[id]) { TOOLPIC[id](c, s * 1.05, COLORS[this.col].rainbow ? [255, 126, 182] : COLORS[this.col].c); c.restore(); return; }
       switch (id) {
         case 'clay': ball(-s * .2, s * .12, s * .55, cc); c.strokeStyle = cc; c.lineWidth = s * .3; c.beginPath(); c.moveTo(s * .1, -s * .45); c.bezierCurveTo(s * .5, -s * .9, s * .9, -s * .1, s * .62, s * .5); c.stroke(); break;
         case 'hand': c.fillStyle = '#ffcfa4'; rr(c, -s * .5, -s * .05, s, s * .8, s * .3); c.fill(); for (let i = 0; i < 4; i++) { rr(c, -s * .5 + i * s * .26, -s * (.75 - (i === 1 || i === 2 ? .1 : 0)), s * .22, s * .85, s * .11); c.fill(); } c.save(); c.translate(-s * .55, s * .15); c.rotate(-.8); rr(c, 0, -s * .1, s * .5, s * .22, s * .11); c.fill(); c.restore(); break;
@@ -608,12 +658,12 @@
         case 'pinch': c.fillStyle = cc; c.beginPath(); c.moveTo(-s * .8, s * .6); c.quadraticCurveTo(-s * .2, s * .5, 0, -s * .7); c.quadraticCurveTo(s * .2, s * .5, s * .8, s * .6); c.closePath(); c.fill(); c.fillStyle = '#ffcfa4'; c.beginPath(); c.arc(-s * .42, -s * .35, s * .22, 0, TAU); c.arc(s * .42, -s * .35, s * .22, 0, TAU); c.fill(); break;
         case 'poke': c.fillStyle = cc; rr(c, -s * .85, s * .15, s * 1.7, s * .6, s * .2); c.fill(); c.fillStyle = 'rgba(0,0,0,.2)'; c.beginPath(); c.ellipse(0, s * .22, s * .3, s * .1, 0, 0, TAU); c.fill(); c.fillStyle = '#ffcfa4'; rr(c, -s * .17, -s * .85, s * .34, s * 1.05, s * .17); c.fill(); break;
         case 'knife': c.save(); c.rotate(.7); c.fillStyle = '#dfe6ee'; c.beginPath(); c.moveTo(-s * .12, -s * .95); c.lineTo(s * .16, -s * .95); c.quadraticCurveTo(s * .3, -s * .2, s * .16, s * .2); c.lineTo(-s * .12, s * .2); c.closePath(); c.fill(); c.fillStyle = '#e0a060'; rr(c, -s * .16, s * .2, s * .36, s * .7, s * .14); c.fill(); c.restore(); break;
-        case 'cutters': c.save(); SHAPES.star(c, s * .78); c.fillStyle = cc; c.fill(); c.strokeStyle = '#fff'; c.lineWidth = s * .14; c.stroke(); c.strokeStyle = 'rgba(90,63,94,.5)'; c.lineWidth = s * .06; c.stroke(); c.restore(); break;
-        case 'stamps': c.fillStyle = '#e0a060'; rr(c, -s * .2, -s * .85, s * .4, s * .6, s * .15); c.fill(); c.fillStyle = cc; rr(c, -s * .75, -s * .3, s * 1.5, s * .55, s * .16); c.fill(); c.save(); c.translate(0, s * .62); SHAPES.heart(c, s * .22); c.fillStyle = INK; c.fill(); c.restore(); break;
+        case 'cutters': c.save(); SHAPE_PATH(c, 'star', s * .78); c.fillStyle = cc; c.fill(); c.strokeStyle = '#fff'; c.lineWidth = s * .14; c.stroke(); c.strokeStyle = 'rgba(90,63,94,.5)'; c.lineWidth = s * .06; c.stroke(); c.restore(); break;
+        case 'stamps': c.fillStyle = '#e0a060'; rr(c, -s * .2, -s * .85, s * .4, s * .6, s * .15); c.fill(); c.fillStyle = cc; rr(c, -s * .75, -s * .3, s * 1.5, s * .55, s * .16); c.fill(); c.save(); c.translate(0, s * .62); SHAPE_PATH(c, 'heart', s * .22); c.fillStyle = INK; c.fill(); c.restore(); break;
         case 'smooth': c.fillStyle = '#ffe28a'; rr(c, -s * .75, -s * .5, s * 1.5, s, s * .3); c.fill(); c.fillStyle = '#e7bd4b'; for (const [x, y] of [[-.4, -.15], [.1, .2], [.45, -.2], [-.1, -.28], [.4, .22], [-.45, .25]]) { c.beginPath(); c.arc(x * s, y * s, s * .09, 0, TAU); c.fill(); } break;
         case 'dye': c.fillStyle = cc; c.beginPath(); c.moveTo(0, -s * .9); c.quadraticCurveTo(s * .85, s * .15, s * .55, s * .55); c.quadraticCurveTo(0, s * 1.0, -s * .55, s * .55); c.quadraticCurveTo(-s * .85, s * .15, 0, -s * .9); c.fill(); c.fillStyle = 'rgba(255,255,255,.5)'; c.beginPath(); c.ellipse(-s * .2, s * .1, s * .12, s * .28, .3, 0, TAU); c.fill(); break;
         case 'extras': c.fillStyle = '#fff'; c.strokeStyle = INK; c.lineWidth = s * .1; c.beginPath(); c.arc(-s * .3, 0, s * .52, 0, TAU); c.fill(); c.stroke(); c.beginPath(); c.arc(s * .5, s * .15, s * .38, 0, TAU); c.fill(); c.stroke(); c.fillStyle = INK; c.beginPath(); c.arc(-s * .2, s * .1, s * .24, 0, TAU); c.arc(s * .5, s * .22, s * .17, 0, TAU); c.fill(); break;
-        case 'size': { const rs = [.17, .27, .4]; for (let i = 0; i < 3; i++) { c.fillStyle = i === this.size ? '#59b96e' : '#d7c9e0'; c.beginPath(); c.arc((i - 1) * s * .72, 0, s * rs[i] * 1.25, 0, TAU); c.fill(); } break; }
+        case 'size': { const rs = [.26, .38, .52], xs = [-.62, -.02, .66], col = COLORS[this.col].rainbow ? [255, 126, 182] : COLORS[this.col].c; for (let i = 0; i < 3; i++) { lump(c, xs[i] * s, s * (.78 - rs[i]) , rs[i] * s * .9, rs[i] * s * .9, i === this.size ? col : [200, 188, 212]); if (i === this.size) { c.strokeStyle = '#59b96e'; c.lineWidth = s * .09; c.beginPath(); c.arc(xs[i] * s, s * (.78 - rs[i]), rs[i] * s * 1.02, 0, TAU); c.stroke(); } } break; }
         case 'undo': c.strokeStyle = INK; c.lineWidth = s * .2; c.beginPath(); c.arc(0, s * .1, s * .5, Math.PI * 1.1, Math.PI * 2.2); c.stroke(); c.fillStyle = INK; c.beginPath(); c.moveTo(-s * .78, -s * .35); c.lineTo(-s * .2, -s * .55); c.lineTo(-s * .45, s * .1); c.closePath(); c.fill(); break;
         case 'camera': c.fillStyle = INK; rr(c, -s * .85, -s * .5, s * 1.7, s * 1.15, s * .22); c.fill(); rr(c, -s * .3, -s * .72, s * .6, s * .3, s * .1); c.fill(); c.fillStyle = '#fff'; c.beginPath(); c.arc(0, s * .08, s * .42, 0, TAU); c.fill(); c.fillStyle = '#7fd4f5'; c.beginPath(); c.arc(0, s * .08, s * .27, 0, TAU); c.fill(); break;
         case 'album': c.fillStyle = '#fff'; c.strokeStyle = INK; c.lineWidth = s * .1; c.save(); c.rotate(-.18); rr(c, -s * .75, -s * .6, s * 1.0, s * 1.0, s * .1); c.fill(); c.stroke(); c.restore(); c.save(); c.rotate(.12); c.fillStyle = '#fff'; rr(c, -s * .2, -s * .45, s * 1.0, s * 1.0, s * .1); c.fill(); c.stroke(); c.fillStyle = '#9fd9a7'; rr(c, -s * .08, -s * .33, s * .76, s * .62, s * .06); c.fill(); c.fillStyle = cc; c.beginPath(); c.arc(s * .3, s * .02, s * .17, 0, TAU); c.fill(); c.restore(); break;
@@ -648,7 +698,7 @@
         const cur = (this.menu === 'cutters' && this.cutter === o) || (this.menu === 'stamps' && this.stamp === o) || (this.menu === 'extras' && this.extra === o);
         if (cur) { c.fillStyle = '#e4f6e8'; c.beginPath(); c.arc(x, y, L.os * .46, 0, TAU); c.fill(); c.strokeStyle = '#59b96e'; c.lineWidth = 3; c.stroke(); }
         c.save(); c.translate(x, y);
-        if (SHAPES[o]) { SHAPES[o](c, r); c.fillStyle = this.menu === 'stamps' ? '#b9a3c7' : css(COLORS[this.col].rainbow ? [255, 126, 182] : COLORS[this.col].c); c.fill(); c.strokeStyle = 'rgba(90,63,94,.45)'; c.lineWidth = 2; c.stroke(); }
+        if (CUTTERS.includes(o) || STAMPS.includes(o)) { SHAPE_PATH(c, o, r); c.fillStyle = this.menu === 'stamps' ? '#b9a3c7' : css(COLORS[this.col].rainbow ? [255, 126, 182] : COLORS[this.col].c); c.fill('evenodd'); c.strokeStyle = 'rgba(90,63,94,.45)'; c.lineWidth = 2; c.stroke(); }
         else if (o === 'eye') { c.fillStyle = '#fff'; c.strokeStyle = '#5a3f5e'; c.lineWidth = 2.5; c.beginPath(); c.arc(0, 0, r, 0, TAU); c.fill(); c.stroke(); c.fillStyle = '#2b2430'; c.beginPath(); c.arc(r * .2, r * .15, r * .5, 0, TAU); c.fill(); }
         else if (o === 'bead') { c.fillStyle = '#ff5a6e'; c.beginPath(); c.arc(0, 0, r * .6, 0, TAU); c.fill(); c.fillStyle = 'rgba(255,255,255,.55)'; c.beginPath(); c.arc(-r * .2, -r * .2, r * .18, 0, TAU); c.fill(); }
         else if (o === 'pearl') { c.fillStyle = '#ffeaf3'; c.strokeStyle = '#e8b9cf'; c.lineWidth = 2; c.beginPath(); c.arc(0, 0, r * .85, 0, TAU); c.fill(); c.stroke(); c.fillStyle = '#fff'; c.beginPath(); c.arc(-r * .28, -r * .3, r * .2, 0, TAU); c.fill(); }
@@ -676,17 +726,14 @@
     id: 'clay', name: 'Clay Corner', order: 13,
     icon(c, w, h) {
       const g = c.createLinearGradient(0, 0, 0, h); g.addColorStop(0, '#fff3e2'); g.addColorStop(1, '#f8dcc0'); c.fillStyle = g; c.fillRect(0, 0, w, h);
-      c.fillStyle = '#cdeedd'; rr(c, w * .06, h * .55, w * .88, h * .38, h * .06); c.fill();
-      const blob = (x, y, rx, ry, col) => {
-        c.fillStyle = 'rgba(80,50,30,.22)'; c.beginPath(); c.ellipse(x + rx * .08, y + ry * .22, rx, ry * .95, 0, 0, TAU); c.fill();
-        const gr = c.createRadialGradient(x - rx * .35, y - ry * .45, ry * .1, x, y, rx * 1.1); gr.addColorStop(0, css(col, 1.25)); gr.addColorStop(.55, css(col, 1)); gr.addColorStop(1, css(col, .78));
-        c.fillStyle = gr; c.beginPath(); c.ellipse(x, y, rx, ry, 0, 0, TAU); c.fill(); c.fillStyle = 'rgba(255,255,255,.45)'; c.beginPath(); c.ellipse(x - rx * .35, y - ry * .5, rx * .3, ry * .17, -.4, 0, TAU); c.fill();
-      };
-      blob(w * .3, h * .62, w * .2, h * .18, [255, 126, 182]); blob(w * .62, h * .5, w * .17, h * .17, [96, 196, 240]); blob(w * .5, h * .74, w * .22, h * .11, [255, 212, 70]);
-      // a little bunny made of clay: two ears and a face on the pink lump
-      blob(w * .24, h * .38, w * .05, h * .1, [255, 126, 182]); blob(w * .36, h * .38, w * .05, h * .1, [255, 126, 182]);
-      c.fillStyle = '#fff'; c.beginPath(); c.arc(w * .26, h * .6, w * .035, 0, TAU); c.arc(w * .35, h * .6, w * .035, 0, TAU); c.fill(); c.fillStyle = '#3a2f44'; c.beginPath(); c.arc(w * .265, h * .605, w * .018, 0, TAU); c.arc(w * .355, h * .605, w * .018, 0, TAU); c.fill();
-      c.save(); c.translate(w * .72, h * .3); c.rotate(.5); c.fillStyle = '#e0a868'; rr(c, -w * .17, -h * .055, w * .34, h * .11, h * .05); c.fill(); c.fillStyle = '#b87a40'; rr(c, -w * .26, -h * .03, w * .1, h * .06, h * .03); c.fill(); rr(c, w * .16, -h * .03, w * .1, h * .06, h * .03); c.fill(); c.restore();
+      const S = Math.min(w, h) * (window.devicePixelRatio > 1 ? 1 : 1), put = (cont, rgb, th, extra) => { const sp = K.sprite(Object.assign({ cont, h: th, rgb, dents: [] }, extra || {}), S); c.drawImage(sp.cv, w / 2 - S / 2 + sp.x * S, h / 2 - S / 2 + sp.y * S, sp.w, sp.h); };
+      // a little clay bunny: a pink body, two ears and a blue ball beside it, a yellow snake along the bottom
+      put([K.rope([[.2, .86], [.4, .8], [.6, .88], [.8, .82]], .055, 3)], [255, 208, 60], 1);
+      put([K.circle(.7, .55, .15, 4)], [96, 196, 240], 1);
+      put([K.rope([[.3, .2], [.3, .4]], .055, 6)], [255, 118, 178], 1); put([K.rope([[.46, .2], [.46, .4]], .055, 8)], [255, 118, 178], 1);
+      put([K.circle(.38, .56, .2, 9)], [255, 118, 178], 1);
+      const eye = (x, y) => { c.fillStyle = '#fff'; c.beginPath(); c.arc(x * w, y * h, w * .04, 0, Math.PI * 2); c.fill(); c.fillStyle = '#2a2430'; c.beginPath(); c.arc(x * w + 1, y * h + 2, w * .022, 0, Math.PI * 2); c.fill(); };
+      eye(.33, .53); eye(.44, .53);
     },
     create: host => new ClayGame(host)
   });
