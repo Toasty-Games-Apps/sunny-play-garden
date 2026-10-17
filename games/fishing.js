@@ -89,7 +89,7 @@
       this.spots = SPOTS.filter(sp => sp.tier <= (this.tier === 1 ? 1 : 2));
       this.cfg = [null, { wait: [1.4, 2.4], taps: 1 }, { wait: [2, 3.8], taps: 3 }, { wait: [2.6, 4.8], taps: 5 }][this.tier];
       this.fx = new art.Fx(); this.t = 0; this.running = false; this.mode = 'idle';   // idle -> ready (rod in hand) -> cast -> wait -> bite -> reel -> jump -> card
-      this.rings = []; this.spoken = {}; this.rodHint = 0; this.shake = 0; this.rodAng = 0;
+      this.rings = []; this.spoken = {}; this.rodHint = 0; this.shake = 0; this.rodAng = 0; this.swim = []; this.bugs = []; this.nightLast = null; this.respawn = []; this.cardInfo = null;
       this.tick = this.tick.bind(this); SPG.fishingGame = this;
       const cv = this.canvas;
       cv.addEventListener('pointerdown', e => { e.preventDefault(); const r = cv.getBoundingClientRect(); this.press((e.clientX - r.left) * this.w / r.width, (e.clientY - r.top) * this.h / r.height); });
@@ -106,6 +106,7 @@
       this.petS = bs * 2.5; this.petX = clamp(w * .17, this.petS * .6, w * .35); this.petY = h - this.dockH * .62;
       this.tip = { x: this.petX + this.petS * .55, y: this.petY - this.petS * 1.0 };
       this.pos = this.spots.map(sp => { const y = this.waterTop + (this.waterBot - this.waterTop) * (.14 + sp.y * .72); return { sp, x: w * (.1 + sp.x * .8), y, s: .7 + (y - this.waterTop) / (this.waterBot - this.waterTop) * .6 }; });
+      this.swim = this.swim.filter(f => f.hook); for (const f of this.swim) if (f.home) f.home = this.pos.find(q => q.sp === f.home.sp) || null;
       this.draw();
     }
     start() { this.resize(); this.resume(); voice.say('fish-start'); }
@@ -145,22 +146,134 @@
     }
     land() {
       const F = this.fishNow, b = this.bob; this.mode = 'jump'; this.modeT = 0; this.jump = { from: { x: b.x, y: b.y }, to: { x: this.w / 2, y: this.h * .42 } };
-      sfx.whoosh(); this.splash(b.x, b.y, 14);
+      sfx.whoosh(); this.splash(b.x, b.y, 14); this.dropHooked(); if (F.amb) F.amb = null;
       const first = !this.bag.caught[F.id]; this.isNew = first; this.bag.caught[F.id] = (this.bag.caught[F.id] || 0) + 1; this.bag.total++; this.counter.set(this.bag.total);
       if (first) store.addStars && store.addStars(1); store.save();
     }
-    leaveCard() { this.mode = 'idle'; this.fishNow = null; this.bob = null; sfx.tap(); }
+    leaveCard() { this.dropHooked(); this.mode = 'idle'; this.fishNow = null; this.bob = null; sfx.tap(); }
+    dropHooked() { const F = this.fishNow; if (F && F.amb) { this.swim = this.swim.filter(q => q !== F.amb); this.respawn.push({ t: 3 + Math.random() * 3, home: F.amb.home }); } }
     splash(x, y, n) { this.fx.burst(x, y, n, { colors: ['#fff', '#cfeeff', '#9fd8f5'], speed: 150, g: 420, life: .7, size: 5 * this.sz(), up: 140 }); this.rings.push({ x, y, t: 0 }); sfx.pop(); }
     sz() { return clamp(Math.min(this.w, this.h * 1.3) / 780, .6, 1.5); }
 
+    /* ---------------------------------------------------------------- the pond comes alive: fish swimming by, bugs over the water, fish that leap for them */
+    isNight() { return !!(SPG.night && SPG.night.on && SPG.night.on()); }
+    waterY(u) { return this.waterTop + (this.waterBot - this.waterTop) * u; }
+    // a fish for the pond: a resident of one spot (swims about near it) or a traveller that crosses the whole pond
+    newFish(home, near) {
+      const bs = this.bs, ids = home ? home.sp.fish : this.pool, id = ids[Math.floor(Math.random() * ids.length)], dir = Math.random() < .5 ? -1 : 1;
+      const f = { id, size: .85 + Math.random() * .4, dir, ph: Math.random() * 6, home: home || null, depth: Math.random(), sp: .45 + Math.random() * .4, cool: 3 + Math.random() * 7, leap: null, hook: false, hunt: null, vx: 0 };
+      if (home) { const R = this.spotR(home), a = Math.random() * TAU, d = near ? R * 3.2 : R * (.5 + Math.random() * 2.5); f.x = home.x + Math.cos(a) * d; f.y = clamp(home.y + Math.sin(a) * d * .45, this.waterY(.06), this.waterY(.94)); f.tx = f.x; f.ty = f.y; }
+      else { f.x = dir > 0 ? -bs * 1.5 : this.w + bs * 1.5; f.y = this.waterY(.08 + Math.random() * .84); f.base = f.y; }
+      return f;
+    }
+    newBug(kind) {
+      const bs = this.bs, night = this.isNight(), k = kind || (night ? (Math.random() < .8 ? 'firefly' : 'moth') : ['fly', 'fly', 'fly', 'butterfly', 'dragonfly'][Math.floor(Math.random() * 5)]);
+      const b = { k, cx: this.w * (.08 + Math.random() * .84), cy: this.waterY(.1 + Math.random() * .8), ph: Math.random() * 20, z: bs * (k === 'fly' ? .8 + Math.random() * .4 : k === 'dragonfly' ? .8 + Math.random() * .6 : k === 'firefly' ? .35 + Math.random() * .9 : .9 + Math.random() * .4), sp: .7 + Math.random() * .6, target: false, gone: false, frozen: false };
+      b.x = b.cx; b.y = b.cy; return b;
+    }
+    updateLife(dt) {
+      const w = this.w, h = this.h, bs = this.bs, night = this.isNight();
+      if (!this.pool) this.pool = [...new Set(this.spots.flatMap(q => q.fish))];
+      if (!this.swim.length && !this.respawn.length) { for (const p of this.pos) this.swim.push(this.newFish(p)); for (let i = 0; i < 3; i++) { const f = this.newFish(null); f.x = w * (.1 + Math.random() * .8); this.swim.push(f); } }
+      if (this.nightLast !== night) { this.nightLast = night; this.bugs = []; }
+      const want = night ? { firefly: 8, moth: 2 } : { fly: 4, butterfly: 2, dragonfly: 1 };
+      const have = {}; for (const b of this.bugs) have[b.k] = (have[b.k] || 0) + 1;
+      for (const k of Object.keys(want)) if ((have[k] || 0) < want[k] && Math.random() < dt * .8) this.bugs.push(this.newBug(k));
+      // bugs flutter about
+      const T = this.t;
+      for (const b of this.bugs) {
+        if (b.frozen) continue; const p = b.ph + T * b.sp;
+        if (b.k === 'fly') { b.x = b.cx + Math.sin(p * 3.1) * bs * .4 + Math.sin(p * 7.3) * bs * .12; b.y = b.cy + Math.cos(p * 2.3) * bs * .22 + Math.sin(p * 5.1) * bs * .08; }
+        else if (b.k === 'dragonfly') { b.x = b.cx + Math.sin(p * .55) * w * .28; b.y = b.cy + Math.sin(p * .9 + 1) * bs * .7; b.cx = clamp(b.cx, w * .15, w * .85); }
+        else if (b.k === 'firefly') { b.x = b.cx + Math.sin(p * .6) * bs * .9 + Math.sin(p * 1.7) * bs * .2; b.y = b.cy + Math.cos(p * .5) * bs * .45; }
+        else { b.x = b.cx + Math.sin(p * .9) * bs * .9; b.y = b.cy + Math.sin(p * 1.3) * bs * .35; }   // butterflies and moths drift slowly
+      }
+      this.bugs = this.bugs.filter(b => !b.gone);
+      // fish
+      for (const r of this.respawn) r.t -= dt; for (const r of this.respawn.filter(q => q.t <= 0)) this.swim.push(this.newFish(r.home)); this.respawn = this.respawn.filter(q => q.t > 0);
+      const yMin = this.waterY(.06), yMax = this.waterY(.94);
+      for (const f of this.swim) {
+        if (f.hook) continue;
+        f.cool -= dt;
+        if (f.leap) { this.updateLeap(f, dt); continue; }
+        // hungry: pick a bug that is hovering over the water and swim to just before it
+        if (f.cool <= 0 && !f.hunt && this.mode !== 'cast') { const prey = this.bugs.filter(b => !b.target && !b.frozen && b.k !== 'dragonfly' && b.x > bs && b.x < w - bs); const b = prey[Math.floor(Math.random() * prey.length)]; if (b && Math.hypot(b.x - f.x, b.y - f.y) < w * .55) { f.hunt = b; b.target = true; } else f.cool = 2 + Math.random() * 3; }
+        let tx, ty, spd = f.sp * bs * .9;
+        if (f.hunt) {
+          const b = f.hunt; if (b.gone) { f.hunt = null; f.cool = 5; continue; }
+          const face = b.x >= f.x ? 1 : -1; tx = b.x - face * bs * .55; ty = b.y; spd *= 2.4;
+          if (Math.hypot(tx - f.x, ty - f.y) < bs * .22) { b.frozen = true; f.dir = face; f.leap = { t: 0, dur: .95, x0: f.x, y0: b.y, x1: b.x + face * bs * .55, H: Math.max(bs * .6, b.z), bug: b, ate: false }; this.splashAt(f.x, f.y, 7, true); continue; }
+        } else if (f.home) {
+          if (Math.hypot(f.tx - f.x, f.ty - f.y) < bs * .25) { const R = this.spotR(f.home), a = Math.random() * TAU; f.tx = clamp(f.home.x + Math.cos(a) * R * 3.4, bs, w - bs); f.ty = clamp(f.home.y + Math.sin(a) * R * 1.1, yMin, yMax); }
+          tx = f.tx; ty = f.ty;
+        } else { f.x += f.dir * f.sp * bs * dt * 1.1; f.y = clamp((f.base || f.y) + Math.sin(T * .8 + f.ph) * bs * .18, yMin, yMax); if (f.x < -bs * 2 || f.x > w + bs * 2) { f.gone = true; } if (Math.random() < dt * .25) this.rings.push({ x: f.x - f.dir * bs * .4, y: f.y, t: .6, soft: true }); continue; }
+        const dx = tx - f.x, dy = ty - f.y, d = Math.hypot(dx, dy) || 1, st = Math.min(d, spd * dt); f.x += dx / d * st; f.y += dy / d * st; if (Math.abs(dx) > bs * .12) f.dir = dx > 0 ? 1 : -1;
+        if (Math.random() < dt * .15) this.rings.push({ x: f.x - f.dir * bs * .4, y: f.y, t: .6, soft: true });
+      }
+      if (this.swim.some(f => f.gone)) { const gone = this.swim.filter(f => f.gone); this.swim = this.swim.filter(f => !f.gone); for (const f of gone) this.respawn.push({ t: 2 + Math.random() * 5, home: null }); }
+      // a raindrop-sized ripple now and then
+      if (Math.random() < dt * 1.2) this.rings.push({ x: w * Math.random(), y: this.waterY(.05 + Math.random() * .9), t: .7, soft: true });
+    }
+    updateLeap(f, dt) {
+      const L = f.leap; L.t += dt; const u = clamp(L.t / L.dur, 0, 1);
+      f.x = lerp(L.x0, L.x1, u); f.air = Math.sin(u * Math.PI) * L.H; f.y = L.y0;
+      if (!L.ate && u >= .5) { L.ate = true; L.bug.gone = true; this.fx.burst(L.bug.x, L.bug.y - L.bug.z, 5, { colors: ['#fff', '#ffe9a0'], speed: 60, g: 80, life: .5, size: 3 * this.sz() }); }
+      if (u >= 1) { f.leap = null; f.air = 0; f.hunt = null; f.cool = 6 + Math.random() * 8; this.splashAt(f.x, f.y, 9, true); }
+    }
+    // a splash of drops and a ring, not as loud as when she catches something
+    splashAt(x, y, n, quiet) { this.fx.burst(x, y, n, { colors: ['#fff', '#cfeeff', '#9fd8f5'], speed: 130, g: 420, life: .7, size: 4 * this.sz(), up: 130 }); this.rings.push({ x, y, t: 0 }); if (quiet) { if (sfx.bubble) sfx.bubble(); } else sfx.pop(); }
+    // a swimming fish: the same drawing as the fish she will catch, seen through the water
+    drawSwimmer(c, f, night) {
+      const bs = this.bs, depth = .35 + f.depth * .65, sc = bs * 1.2 * f.size;
+      c.save(); c.translate(f.x, f.y); c.scale(f.dir, 1);
+      c.globalAlpha = .4 + .2 * depth; drawFish(c, f.id, sc, this.t, { sil: night ? 'rgba(6,20,48,.6)' : 'rgba(20,70,105,.55)', ph: f.ph });
+      c.globalAlpha = .3 * (1 - depth * .5); drawFish(c, f.id, sc, this.t, { ph: f.ph });
+      c.restore(); c.globalAlpha = 1;
+    }
+    drawLeaper(c, f) {
+      const L = f.leap, bs = this.bs, u = clamp(L.t / L.dur, 0, 1), sc = bs * 1.2 * f.size;
+      // its shadow stays on the water; the fish is in the air
+      c.fillStyle = 'rgba(10,50,80,.25)'; c.beginPath(); c.ellipse(f.x, f.y, sc * .4 * (1 - f.air / (L.H * 2.2)), sc * .13, 0, 0, TAU); c.fill();
+      const vx = (L.x1 - L.x0) * f.dir * f.dir, vy = -Math.PI * Math.cos(u * Math.PI) * L.H;
+      c.save(); c.translate(f.x, f.y - f.air); c.scale(f.dir, 1); c.rotate(Math.atan2(vy, Math.abs(L.x1 - L.x0))); drawFish(c, f.id, sc, this.t * 1.4, { ph: f.ph }); c.restore();
+    }
+    drawBug(c, b, night) {
+      const bs = this.bs, x = b.x, y = b.y - b.z, T = this.t * 12 * b.sp + b.ph, u = bs * .1;
+      if (b.k !== 'firefly') { c.fillStyle = 'rgba(10,50,80,.14)'; c.beginPath(); c.ellipse(b.x, b.y, u * 1.3, u * .5, 0, 0, TAU); c.fill(); }
+      c.save(); c.translate(x, y); c.lineCap = 'round';
+      if (b.k === 'fly') {
+        const fl = Math.abs(Math.sin(T * 2)); c.fillStyle = 'rgba(255,255,255,.55)'; for (const sd of [-1, 1]) { c.beginPath(); c.ellipse(sd * u * .5, -u * .3, u * .75, u * .28 * (.4 + fl), sd * .5, 0, TAU); c.fill(); }
+        c.fillStyle = '#3a2f3e'; c.beginPath(); c.ellipse(0, 0, u * .4, u * .65, 0, 0, TAU); c.fill(); c.fillStyle = '#6b5a70'; c.beginPath(); c.arc(0, -u * .6, u * .3, 0, TAU); c.fill();
+      } else if (b.k === 'dragonfly') {
+        const ang = Math.cos(b.ph + this.t * .55 * b.sp) > 0 ? 0 : Math.PI; c.scale(Math.cos(ang), 1); const fl = Math.sin(T * 2) * .25;
+        c.strokeStyle = '#2fb7c9'; c.lineWidth = u * .42; c.beginPath(); c.moveTo(-u * 2.2, 0); c.lineTo(u * 1.1, 0); c.stroke(); c.fillStyle = '#1e8fa3'; c.beginPath(); c.arc(u * 1.3, 0, u * .5, 0, TAU); c.fill();
+        c.fillStyle = 'rgba(220,245,255,.6)'; for (const [dx, sd] of [[.5, -1], [.5, 1], [-.2, -1], [-.2, 1]]) { c.save(); c.translate(dx * u, 0); c.rotate(sd * (1.25 + fl)); c.beginPath(); c.ellipse(0, -u * 1.0, u * .3, u * 1.1, 0, 0, TAU); c.fill(); c.restore(); }
+      } else if (b.k === 'firefly') {
+        const gl = .5 + .5 * Math.sin(this.t * 2.2 * b.sp + b.ph * 3), r = u * (4 + gl * 4), g = c.createRadialGradient(0, 0, 0, 0, 0, r); g.addColorStop(0, `rgba(255,248,150,${.9 * gl})`); g.addColorStop(1, 'rgba(255,240,120,0)'); c.fillStyle = g; c.beginPath(); c.arc(0, 0, r, 0, TAU); c.fill();
+        c.fillStyle = '#2a2433'; c.beginPath(); c.ellipse(0, -u * .05, u * .28, u * .45, 0, 0, TAU); c.fill(); c.fillStyle = `rgba(255,245,140,${.4 + .6 * gl})`; c.beginPath(); c.ellipse(0, u * .35, u * .24, u * .3, 0, 0, TAU); c.fill();
+      } else {   // butterfly (day) and moth (night)
+        const flap = Math.abs(Math.cos(T * (b.k === 'moth' ? .9 : .7))), col = b.k === 'moth' ? '#e8dcc4' : (['#ff8fb8', '#ffc24a', '#8fd0ff'][Math.floor(b.ph) % 3]);
+        c.fillStyle = col; for (const sd of [-1, 1]) { c.beginPath(); c.ellipse(sd * u * 1.1 * flap, -u * .5, u * 1.25 * flap + .5, u * 1.0, sd * .4, 0, TAU); c.fill(); c.beginPath(); c.ellipse(sd * u * .8 * flap, u * .7, u * .85 * flap + .5, u * .75, -sd * .4, 0, TAU); c.fill(); }
+        c.fillStyle = 'rgba(255,255,255,.55)'; for (const sd of [-1, 1]) { c.beginPath(); c.arc(sd * u * 1.1 * flap, -u * .55, u * .3 * flap, 0, TAU); c.fill(); }
+        c.fillStyle = '#4a3a4e'; c.beginPath(); c.ellipse(0, 0, u * .2, u * .9, 0, 0, TAU); c.fill();
+        if (b.k === 'moth') { const r = u * 3, g = c.createRadialGradient(0, 0, 0, 0, 0, r); g.addColorStop(0, 'rgba(255,245,200,.35)'); g.addColorStop(1, 'rgba(255,245,200,0)'); c.fillStyle = g; c.beginPath(); c.arc(0, 0, r, 0, TAU); c.fill(); }
+      }
+      c.restore();
+    }
+
     /* ---------------------------------------------------------------- the rounds */
     startWait() {
-      const p = this.target, id = p.sp.fish[Math.floor(Math.random() * p.sp.fish.length)], size = .85 + Math.random() * .4;
-      this.fishNow = { id, size }; this.mode = 'wait'; this.modeT = 0; this.waitFor = lerp(this.cfg.wait[0], this.cfg.wait[1], Math.random());
-      const a = Math.random() * TAU, d = this.spotR(p) * 3.2; this.shadow = { x: p.x + Math.cos(a) * d, y: p.y + Math.sin(a) * d * .45, p0: { x: p.x + Math.cos(a) * d, y: p.y + Math.sin(a) * d * .45 }, face: 1, ph: Math.random() * 6 };
+      const p = this.target, R = this.spotR(p);
+      // the shadow she sees is a real fish already swimming here: the nearest one that lives at this spot is the one that bites (or a new one swims in)
+      let f = this.swim.filter(q => !q.hook && !q.leap && p.sp.fish.includes(q.id)).map(q => ({ q, d: Math.hypot(q.x - p.x, (q.y - p.y) * 1.6) })).sort((u, v) => u.d - v.d)[0];
+      f = f && f.d < Math.max(R * 6, this.w * .3) ? f.q : null;
+      if (!f) { f = this.newFish(p, true); this.swim.push(f); }
+      if (f.hunt) { f.hunt.target = false; f.hunt = null; }
+      f.hook = true; this.fishNow = { id: f.id, size: f.size, amb: f }; this.mode = 'wait'; this.modeT = 0; this.waitFor = lerp(this.cfg.wait[0], this.cfg.wait[1], Math.random());
+      this.shadow = { x: f.x, y: f.y, p0: { x: f.x, y: f.y }, face: f.dir, ph: f.ph };
     }
     update(dt) {
-      this.modeT += dt; this.shake = Math.max(0, this.shake - dt * 3); this.rodHint = Math.max(0, this.rodHint - dt * 1.2); this.rodAng = lerp(this.rodAng, this.mode === 'ready' ? -.2 : this.mode === 'wait' || this.mode === 'bite' || this.mode === 'reel' ? .12 : 0, Math.min(1, dt * 5));
+      this.modeT += dt; if (this.pos) this.updateLife(dt); this.shake = Math.max(0, this.shake - dt * 3); this.rodHint = Math.max(0, this.rodHint - dt * 1.2); this.rodAng = lerp(this.rodAng, this.mode === 'ready' ? -.2 : this.mode === 'wait' || this.mode === 'bite' || this.mode === 'reel' ? .12 : 0, Math.min(1, dt * 5));
       for (const r of this.rings) r.t += dt; this.rings = this.rings.filter(r => r.t < 1.2);
       const b = this.bob;
       if (this.mode === 'cast') {
@@ -189,22 +302,26 @@
 
     /* ---------------------------------------------------------------- drawing */
     draw() {
-      const c = this.ctx, w = this.w, h = this.h; if (!w) return; const night = SPG.night && SPG.night.on && SPG.night.on();
+      const c = this.ctx, w = this.w, h = this.h; if (!w) return; const night = this.isNight();
       // sky and far hills
       let g = c.createLinearGradient(0, 0, 0, this.waterTop + 10); g.addColorStop(0, night ? '#1d2358' : '#a9e1f3'); g.addColorStop(1, night ? '#3b4488' : '#e9f8ee'); c.fillStyle = g; c.fillRect(0, 0, w, this.waterTop + 10);
-      if (night) { c.fillStyle = '#fff8d8'; c.beginPath(); c.arc(w * .8, h * .12, Math.min(w, h) * .05, 0, TAU); c.fill(); } else { c.fillStyle = '#ffe27a'; c.beginPath(); c.arc(w * .82, h * .13, Math.min(w, h) * .06, 0, TAU); c.fill(); c.fillStyle = 'rgba(255,255,255,.9)'; for (const [x, y, k] of [[.2, .09, 1], [.55, .06, .8], [.72, .2, .7]]) { c.beginPath(); c.ellipse(w * x, h * y, w * .07 * k, h * .03 * k, 0, 0, TAU); c.ellipse(w * x + w * .04 * k, h * y - h * .01, w * .045 * k, h * .028 * k, 0, 0, TAU); c.fill(); } }
+      if (night) { const mr = Math.min(w, h) * .055, mx = w * .8, my = h * .12, mg = c.createRadialGradient(mx, my, mr * .6, mx, my, mr * 4); mg.addColorStop(0, 'rgba(255,248,210,.45)'); mg.addColorStop(1, 'rgba(255,248,210,0)'); c.fillStyle = mg; c.beginPath(); c.arc(mx, my, mr * 4, 0, TAU); c.fill(); for (let i = 0; i < 46; i++) { const sx = (i * 97 % 100) / 100 * w, sy = (i * 53 % 100) / 100 * this.waterTop * .85, tw = .4 + .6 * Math.abs(Math.sin(this.t * 1.3 + i)); c.globalAlpha = tw; art.star(c, sx, sy, (1.5 + i % 3) * this.sz(), '#fff8c8', 0); } c.globalAlpha = 1; c.fillStyle = '#fff8d8'; c.beginPath(); c.arc(mx, my, mr, 0, TAU); c.fill(); c.fillStyle = 'rgba(210,205,170,.55)'; for (const [dx, dy, k] of [[-.3, -.2, .25], [.25, .15, .2], [-.05, .35, .15]]) { c.beginPath(); c.arc(mx + dx * mr, my + dy * mr, mr * k, 0, TAU); c.fill(); } } else { c.fillStyle = '#ffe27a'; c.beginPath(); c.arc(w * .82, h * .13, Math.min(w, h) * .06, 0, TAU); c.fill(); c.fillStyle = 'rgba(255,255,255,.9)'; for (const [x, y, k] of [[.2, .09, 1], [.55, .06, .8], [.72, .2, .7]]) { c.beginPath(); c.ellipse(w * x, h * y, w * .07 * k, h * .03 * k, 0, 0, TAU); c.ellipse(w * x + w * .04 * k, h * y - h * .01, w * .045 * k, h * .028 * k, 0, 0, TAU); c.fill(); } }
       c.fillStyle = night ? '#2c4a52' : '#a8d99a'; c.beginPath(); c.moveTo(0, this.waterTop + 4); c.quadraticCurveTo(w * .2, this.waterTop - h * .1, w * .45, this.waterTop - h * .02); c.quadraticCurveTo(w * .7, this.waterTop - h * .12, w, this.waterTop - h * .03); c.lineTo(w, this.waterTop + 8); c.lineTo(0, this.waterTop + 8); c.fill();
       c.fillStyle = night ? '#25423f' : '#7ec16f'; for (let i = 0; i < 9; i++) { const x = w * (i + .5) / 9, tr = h * (.04 + (i * 7 % 5) * .008); c.beginPath(); c.arc(x, this.waterTop - tr * .2, tr, Math.PI, 0); c.fill(); }
       // the pond
       g = c.createLinearGradient(0, this.waterTop, 0, h); g.addColorStop(0, night ? '#2a6a8a' : '#7fd4f0'); g.addColorStop(1, night ? '#173e5c' : '#3a9ec8'); c.fillStyle = g; c.fillRect(0, this.waterTop, w, h - this.waterTop);
       c.strokeStyle = 'rgba(255,255,255,.28)'; c.lineWidth = 2; for (let k = 0; k < 14; k++) { const y = this.waterTop + (k + .5) / 14 * (this.waterBot - this.waterTop), amp = 3 + k * .5; c.beginPath(); for (let x = 0; x <= w; x += 14) { const yy = y + Math.sin(x * .02 + this.t * (.8 + k * .05) + k) * amp * .5; x ? c.lineTo(x, yy) : c.moveTo(x, yy); } c.stroke(); }
+      if (night) { const mx = w * .8; for (let k = 0; k < 16; k++) { const u = (k + .5) / 16, y = this.waterY(u * .96), half = (.05 + .5 * u) * this.bs * 1.4 * (.6 + .4 * Math.sin(this.t * 2 + k * 1.7)), x = mx + Math.sin(this.t * .9 + k) * this.bs * .25; c.fillStyle = `rgba(255,250,210,${.5 * (1 - u * .5)})`; c.beginPath(); c.ellipse(x, y, half, this.bs * .035, 0, 0, TAU); c.fill(); } }
+      // the fish that are swimming by, seen through the water (the one she is fishing for is one of them)
+      for (const f of this.swim) if (!f.hook && !f.leap) this.drawSwimmer(c, f, night);
+      if (this.shadow && this.fishNow && (this.mode === 'wait' || this.mode === 'bite' || this.mode === 'reel')) { const s = this.shadow, F = this.fishNow, b = this.bob, at = this.mode === 'wait' ? s : { x: b.x - this.bs * .35 + Math.sin(this.t * 22) * 3 * (1 + this.shake), y: b.y + this.bs * .22, face: 1 }; this.drawSwimmer(c, { id: F.id, size: F.size, x: at.x, y: at.y, dir: at.face, ph: s.ph, depth: .3 }, night); }
       for (const p of this.pos) this.drawSpot(c, p);
-      if (this.mode === 'wait' && this.shadow) { const s = this.shadow, F = this.fishNow; c.save(); c.translate(s.x, s.y); c.scale(s.face, 1); drawFish(c, F.id, this.bs * 1.2 * F.size, this.t, { sil: 'rgba(20,60,90,.4)', ph: s.ph }); c.restore(); }
-      for (const r of this.rings) { const k = r.t / 1.2; c.strokeStyle = `rgba(255,255,255,${.7 * (1 - k)})`; c.lineWidth = 3 * (1 - k) + 1; c.beginPath(); c.ellipse(r.x, r.y, 10 + k * this.bs, (10 + k * this.bs) * .4, 0, 0, TAU); c.stroke(); }
+      for (const r of this.rings) { const k = r.t / 1.2; c.strokeStyle = `rgba(255,255,255,${(r.soft ? .4 : .7) * (1 - k)})`; c.lineWidth = 3 * (1 - k) + 1; c.beginPath(); c.ellipse(r.x, r.y, 10 + k * this.bs, (10 + k * this.bs) * .4, 0, 0, TAU); c.stroke(); }
+      for (const f of this.swim) if (f.leap) this.drawLeaper(c, f);
+      for (const b of this.bugs) this.drawBug(c, b, night);
       this.drawDock(c); this.drawLine(c); this.fx.draw(c); this.drawButtons(c);
       if (this.mode === 'jump' || this.mode === 'card') this.drawCatch(c);
       if (this.mode === 'book') this.drawBook(c);
-      if (night) { c.fillStyle = 'rgba(10,20,60,.25)'; c.fillRect(0, 0, w, h); }
     }
     drawSpot(c, p) {
       const R = this.spotR(p), { x, y } = p, id = p.sp.id, ready = this.mode === 'ready', pulse = 1 + Math.sin(this.t * 4 + x) * .06;
@@ -214,7 +331,7 @@
       if (id === 'deep') { c.fillStyle = 'rgba(10,50,90,.35)'; c.beginPath(); c.ellipse(0, 0, R * 1.15, R * .5, 0, 0, TAU); c.fill(); }
       if (id === 'sand') { c.fillStyle = 'rgba(245,225,170,.55)'; c.beginPath(); c.ellipse(0, R * .05, R * 1.2, R * .5, 0, 0, TAU); c.fill(); }
       if (id === 'reeds') { for (const [dx, hh] of [[-1.0, 1.1], [-.8, .85], [.9, 1.0], [1.1, .8], [-1.2, .7]]) { c.strokeStyle = '#4f8a3e'; c.lineWidth = R * .09; c.beginPath(); c.moveTo(dx * R, R * .1); c.quadraticCurveTo(dx * R + R * .1, -R * hh * .5, dx * R + R * .05, -R * hh); c.stroke(); c.fillStyle = '#8a5a3a'; rr(c, dx * R + R * .05 - R * .07, -R * hh - R * .22, R * .14, R * .3, R * .07); c.fill(); } }
-      if (id === 'lilies') { for (const [dx, dy, k] of [[-.95, .1, 1], [.9, .05, .85], [.2, -.45, .7]]) { c.fillStyle = '#4fae5e'; c.beginPath(); c.ellipse(dx * R, dy * R, R * .42 * k, R * .2 * k, 0, 0.25, TAU - .25); c.lineTo(dx * R, dy * R); c.fill(); } c.fillStyle = '#ff9ec4'; c.beginPath(); c.arc(.9 * R, -.02 * R, R * .13, 0, TAU); c.fill(); }
+      if (id === 'lilies') { for (const [dx, dy, k] of [[-.95, .1, 1], [.9, .05, .85], [.2, -.45, .7]]) { c.fillStyle = '#4fae5e'; c.beginPath(); c.ellipse(dx * R + Math.sin(this.t * .6 + k * 3) * R * .07, dy * R + Math.cos(this.t * .5 + k * 2) * R * .03, R * .42 * k, R * .2 * k, Math.sin(this.t * .4 + k) * .12, 0.25, TAU - .25); c.lineTo(dx * R + Math.sin(this.t * .6 + k * 3) * R * .07, dy * R + Math.cos(this.t * .5 + k * 2) * R * .03); c.fill(); } c.fillStyle = '#ff9ec4'; c.beginPath(); c.arc(.9 * R, -.02 * R, R * .13, 0, TAU); c.fill(); }
       if (id === 'rocks') { for (const [dx, dy, k, col] of [[-1.0, .15, 1, '#9aa3ad'], [-.7, .3, .7, '#b5bcc4'], [1.0, .1, .9, '#8c959f'], [.75, .3, .6, '#aab2bb']]) { c.fillStyle = col; c.beginPath(); c.ellipse(dx * R, dy * R, R * .38 * k, R * .26 * k, 0, 0, TAU); c.fill(); c.fillStyle = 'rgba(255,255,255,.35)'; c.beginPath(); c.ellipse(dx * R - R * .1 * k, dy * R - R * .08 * k, R * .14 * k, R * .07 * k, -.4, 0, TAU); c.fill(); } }
       if (ready) { c.strokeStyle = '#fff'; c.lineWidth = 4; c.setLineDash([R * .22, R * .16]); c.lineDashOffset = -this.t * 18; c.beginPath(); c.ellipse(0, 0, R * 1.5 * pulse, R * .72 * pulse, 0, 0, TAU); c.stroke(); c.setLineDash([]); c.fillStyle = 'rgba(255,255,255,.2)'; c.beginPath(); c.ellipse(0, 0, R * 1.5 * pulse, R * .72 * pulse, 0, 0, TAU); c.fill(); }
       c.restore();
@@ -234,13 +351,19 @@
       c.strokeStyle = '#8a5a30'; c.lineWidth = Math.max(4, this.bs * .1); c.lineCap = 'round'; c.beginPath(); c.moveTo(sx, sy); c.quadraticCurveTo((sx + tx) / 2 + this.bs * .2, (sy + ty) / 2 - this.bs * .1, tx, ty); c.stroke();
       c.fillStyle = '#d8d8e0'; c.beginPath(); c.arc(sx + this.bs * .15, sy - this.bs * .1, this.bs * .13, 0, TAU); c.fill();
       this.tipNow = { x: tx, y: ty };
+      if (this.isNight()) {   // a lantern on the dock, and a little light at the end of the rod
+        const lx = this.w * .93, ly = top + this.dockH * .1, g = c.createRadialGradient(lx, ly, 0, lx, ly, this.bs * 3.2); g.addColorStop(0, 'rgba(255,214,130,.55)'); g.addColorStop(1, 'rgba(255,214,130,0)'); c.fillStyle = g; c.beginPath(); c.arc(lx, ly, this.bs * 3.2, 0, TAU); c.fill();
+        c.fillStyle = '#6b4a2a'; c.fillRect(lx - this.bs * .05, ly, this.bs * .1, this.bs * .9); c.fillStyle = '#ffe9a8'; rr(c, lx - this.bs * .2, ly - this.bs * .3, this.bs * .4, this.bs * .4, this.bs * .08); c.fill(); c.strokeStyle = '#6b4a2a'; c.lineWidth = 3; c.stroke();
+        const tg = c.createRadialGradient(tx, ty, 0, tx, ty, this.bs * .7); tg.addColorStop(0, 'rgba(255,240,170,.8)'); tg.addColorStop(1, 'rgba(255,240,170,0)'); c.fillStyle = tg; c.beginPath(); c.arc(tx, ty, this.bs * .7, 0, TAU); c.fill();
+      }
     }
     drawLine(c) {
       const b = this.bob, tip = this.tipNow || this.tip; if (!b || this.mode === 'idle' || this.mode === 'ready' || this.mode === 'book' && !b) return;
       const bx = b.x, by = b.y + (this.mode === 'bite' || this.mode === 'reel' ? Math.sin(this.t * 25) * 3 * (1 + this.shake) + this.bs * .12 * Math.min(1, this.modeT * 6) : Math.sin(this.t * 3) * 2);
       c.strokeStyle = 'rgba(255,255,255,.85)'; c.lineWidth = 2; c.beginPath(); c.moveTo(tip.x, tip.y); c.quadraticCurveTo((tip.x + bx) / 2, Math.max(tip.y, by) + this.bs * (this.mode === 'cast' ? -.2 : .5), bx, by - this.bs * .2); c.stroke();
       if (this.mode === 'jump' || this.mode === 'card') return;
-      const r = this.bs * .2; c.save(); c.translate(bx, by);
+      const r = this.bs * .2; if (this.isNight() && this.mode !== 'cast') { const hg = c.createRadialGradient(bx, by, 0, bx, by, this.bs * 1.1); hg.addColorStop(0, 'rgba(255,235,160,.7)'); hg.addColorStop(1, 'rgba(255,235,160,0)'); c.fillStyle = hg; c.beginPath(); c.arc(bx, by, this.bs * 1.1, 0, TAU); c.fill(); }
+      c.save(); c.translate(bx, by);
       c.fillStyle = '#fff'; c.beginPath(); c.arc(0, 0, r, 0, TAU); c.fill(); c.fillStyle = '#ff5a6e'; c.beginPath(); c.arc(0, 0, r, Math.PI, TAU); c.fill(); c.fillStyle = 'rgba(255,255,255,.5)'; c.beginPath(); c.arc(-r * .35, -r * .4, r * .22, 0, TAU); c.fill();
       c.restore();
       if (this.mode === 'bite') { const k = 1 + Math.sin(this.t * 10) * .1; c.save(); c.translate(bx, by - this.bs * .95); c.scale(k, k); c.fillStyle = '#ffd54a'; c.beginPath(); c.arc(0, 0, this.bs * .36, 0, TAU); c.fill(); c.fillStyle = INK; c.font = `800 ${this.bs * .5}px Fredoka, system-ui`; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText('!', 0, this.bs * .03); c.restore(); }
@@ -259,16 +382,22 @@
       c.fillStyle = '#4f93b0'; rr(c, -k, -k * .8, k * 2, k * 1.6, k * .2); c.fill(); c.fillStyle = '#fffaf0'; rr(c, -k * .8, -k * .65, k * 1.6, k * 1.3, k * .12); c.fill(); c.save(); c.translate(0, 0); drawFish(c, 'goldfish', k * 1.3, 1, { still: true }); c.restore(); c.restore();
       if (Object.keys(this.bag.caught).length) { c.fillStyle = '#59b96e'; c.beginPath(); c.arc(book.x + book.r * .75, book.y - book.r * .7, book.r * .34, 0, TAU); c.fill(); c.fillStyle = '#fff'; c.font = `800 ${book.r * .46}px Fredoka, system-ui`; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(String(Object.keys(this.bag.caught).length), book.x + book.r * .75, book.y - book.r * .68); }
     }
+    // how big (the length of a size-1 fish) a species may be drawn to fit inside a box: the fish is about 1.3 lengths wide and 1.8 body heights tall
+    fitS(id, aw, ah) { const sp = FISH[id]; return Math.min(aw / (1.3 * sp.len), ah / (1.8 * sp.len * sp.hr)); }
+    cardBox() { const w = this.w, h = this.h, cw = Math.min(w * .9, h * 1.2, 600), ch = Math.min(h * .84, cw * .9); return { x: w / 2 - cw / 2, y: h * .47 - ch / 2, w: cw, h: ch }; }
+    catchSize(F, box) { return this.fitS(F.id, box.w * .8, box.h * .5) * (.86 + .14 * clamp((F.size - .85) / .4, 0, 1)); }
     drawCatch(c) {
-      const F = this.fishNow; if (!F) return; const w = this.w, h = this.h, big = Math.min(w * .7, h * .5);
-      if (this.mode === 'jump') { const b = this.bob, u = clamp(this.modeT / 1.0, 0, 1); c.save(); c.translate(b.x, b.y); c.rotate(-.6 + u * .6 + Math.sin(this.t * 30) * .15); drawFish(c, F.id, lerp(this.bs * 1.4, big * .8, ease(u)) * F.size, this.t, { ph: 0 }); c.restore(); return; }
+      const F = this.fishNow; if (!F) return; const w = this.w, h = this.h, box = this.cardBox(), fs = this.catchSize(F, box);
+      this.cardInfo = { box, fish: { w: 1.3 * FISH[F.id].len * fs, h: 1.8 * FISH[F.id].len * FISH[F.id].hr * fs } };
+      if (this.mode === 'jump') { const b = this.bob, u = clamp(this.modeT / 1.0, 0, 1); c.save(); c.translate(b.x, b.y); c.rotate(-.6 + u * .6 + Math.sin(this.t * 30) * .15); drawFish(c, F.id, lerp(this.bs * 1.2 * F.size, fs, ease(u)), this.t, { ph: 0 }); c.restore(); return; }
       c.fillStyle = 'rgba(90,63,94,.45)'; c.fillRect(0, 0, w, h);
-      const k = Math.min(1, this.modeT * 3), rise = 1 - Math.pow(1 - k, 3);
-      c.save(); c.translate(w / 2, h * .46); c.scale(rise, rise);
-      c.fillStyle = '#fffaf0'; rr(c, -big * .62, -big * .5, big * 1.24, big * 1.05, 30); c.fill(); c.strokeStyle = '#ffd54a'; c.lineWidth = 8; c.stroke();
-      c.save(); c.translate(0, -big * .08 + Math.sin(this.t * 3) * 4); c.rotate(Math.sin(this.t * 2) * .05); drawFish(c, F.id, big * .95 * F.size, this.t); c.restore();
-      c.fillStyle = INK; c.font = `800 ${big * .16}px Fredoka, system-ui`; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(FISH[F.id].name + '!', 0, big * .4);
-      if (this.isNew) { c.fillStyle = '#ff8aa3'; rr(c, -big * .62, -big * .62, big * .5, big * .22, 14); c.fill(); c.fillStyle = '#fff'; c.font = `800 ${big * .1}px Fredoka, system-ui`; c.fillText('NEW', -big * .37, -big * .51); }
+      const k = Math.min(1, this.modeT * 3), rise = 1 - Math.pow(1 - k, 3), cx = box.x + box.w / 2, cy = box.y + box.h / 2;
+      c.save(); c.translate(cx, cy); c.scale(rise, rise);
+      c.fillStyle = '#fffaf0'; rr(c, -box.w / 2, -box.h / 2, box.w, box.h, 30); c.fill(); c.strokeStyle = '#ffd54a'; c.lineWidth = 8; c.stroke();
+      c.save(); c.translate(0, -box.h * .08 + Math.sin(this.t * 3) * 3); c.rotate(Math.sin(this.t * 2) * .04); drawFish(c, F.id, fs, this.t); c.restore();
+      const name = FISH[F.id].name + '!'; let fz = box.h * .13; c.font = `800 ${fz}px Fredoka, system-ui`; const tw = c.measureText(name).width; if (tw > box.w * .8) { fz *= box.w * .8 / tw; c.font = `800 ${fz}px Fredoka, system-ui`; }
+      c.fillStyle = INK; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(name, 0, box.h * .36);
+      if (this.isNew) { const bw = box.w * .22, bh = box.h * .1; c.fillStyle = '#ff8aa3'; rr(c, -box.w / 2 + 12, -box.h / 2 + 12, bw, bh, 12); c.fill(); c.fillStyle = '#fff'; c.font = `800 ${bh * .62}px Fredoka, system-ui`; c.fillText('NEW', -box.w / 2 + 12 + bw / 2, -box.h / 2 + 12 + bh / 2 + 1); }
       c.restore();
     }
     drawBook(c) {
@@ -278,13 +407,13 @@
       ALL.forEach((id, i) => {
         const cx = x + 20 + (i % cols) * cw + cw / 2, cy = y + 20 + Math.floor(i / cols) * ch + ch / 2, n = this.bag.caught[id] || 0;
         c.fillStyle = n ? '#e8f6ff' : '#eee8f2'; rr(c, cx - cw * .46, cy - ch * .46, cw * .92, ch * .92, 18); c.fill();
-        c.save(); c.translate(cx + cw * .04, cy - ch * .06); drawFish(c, id, Math.min(cw * .62, ch * .86), this.t, n ? { still: false } : { sil: 'rgba(90,63,94,.3)' }); c.restore();
+        c.save(); c.translate(cx + cw * .04, cy - ch * .06); drawFish(c, id, this.fitS(id, cw * .7, ch * .5), this.t, n ? { still: false } : { sil: 'rgba(90,63,94,.3)' }); c.restore();
         if (n) { c.fillStyle = '#59b96e'; c.beginPath(); c.arc(cx + cw * .34, cy - ch * .32, Math.min(cw, ch) * .12, 0, TAU); c.fill(); c.fillStyle = '#fff'; c.font = `800 ${Math.min(cw, ch) * .15}px Fredoka, system-ui`; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(String(n), cx + cw * .34, cy - ch * .31); c.fillStyle = INK; c.font = `700 ${Math.min(cw, ch) * .13}px Fredoka, system-ui`; c.fillText(FISH[id].name, cx, cy + ch * .36); }
         else { c.fillStyle = 'rgba(90,63,94,.45)'; c.font = `800 ${Math.min(cw, ch) * .2}px Fredoka, system-ui`; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText('?', cx, cy + ch * .33); }
       });
     }
     // geometry for the play-tests
-    probe() { return { w: this.w, h: this.h, mode: this.mode, rod: this.rod, book: this.book, spots: this.pos.map(p => ({ id: p.sp.id, x: p.x, y: p.y, r: this.spotR(p) })), caught: this.bag.caught, total: this.bag.total, fish: this.fishNow && this.fishNow.id, taps: this.cfg.taps, tier: this.tier, bob: this.bob && { x: this.bob.x, y: this.bob.y } }; }
+    probe() { return { w: this.w, h: this.h, mode: this.mode, rod: this.rod, book: this.book, spots: this.pos.map(p => ({ id: p.sp.id, x: p.x, y: p.y, r: this.spotR(p) })), caught: this.bag.caught, total: this.bag.total, fish: this.fishNow && this.fishNow.id, taps: this.cfg.taps, tier: this.tier, bob: this.bob && { x: this.bob.x, y: this.bob.y }, swim: this.swim.map(f => ({ id: f.id, x: f.x, y: f.y, hook: f.hook, leap: !!f.leap, home: f.home && f.home.sp.id })), bugs: this.bugs.map(b => ({ k: b.k, x: b.x, y: b.y })), night: this.isNight(), hooked: this.fishNow && this.fishNow.amb ? this.fishNow.amb.id : null, card: this.cardInfo }; }
   }
 
   SPG.games.push({

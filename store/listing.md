@@ -4,7 +4,7 @@
 Little Sprout Park
 
 ## Short description (max 80)
-Gentle games for little ones: letters, fruit, rain, fire rescue, a garden, coloring, puzzles, pet care, music, a train and hide and seek.
+Gentle games for little ones: letters, fruit, rain, fire rescue, a garden, coloring, puzzles, pet care, music, shape building and hide and seek.
 
 ## Full description (max 4000)
 Little Sprout Park is a calm, colourful collection of games made for little hands (about ages 2 to 6). No ads, no accounts, no scary bits: just gentle play that a child can enjoy on their own, with big buttons and no reading needed.
@@ -26,7 +26,7 @@ Pet Care: feed, wash and tuck in your Pet Shop friend.
 
 Bunny Band: touch the animal friends to make music, copy little tunes, and record your own song.
 
-Choo-Choo Train: load the train cars with the right colors, shapes and numbers.
+Shape Builder: build pictures from colored shapes by fitting each piece into its hole, then watch the picture come alive.
 
 Hide and Seek: walk around a map and find the garden friends hiding behind the bushes.
 Style Studio: dress up girls and boys in princess gowns, crowns and wings, do their hair and make-up, paint their nails and send them down the runway.

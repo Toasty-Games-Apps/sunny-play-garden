@@ -28,7 +28,7 @@
     'catch-drops': 'Catch the raindrops!', 'rainbow': 'A rainbow!',
     'fire-start': 'Some little fires! Spray them with water!', 'fire-pet': 'Tap the pet to help them down!', 'fire-done': 'Everyone is safe! Hooray!',
     'band-start': 'Touch the friends to make music!', 'band-copy': 'Listen... now you play!', 'band-song': 'Play some notes, then touch the red button!',
-    'train-start': 'All aboard! Fill up the train!', 'train-go': 'Choo choo! Off we go!', 'train-wrong': 'Try another one!',
+    'shapes-start': 'Build the picture! Put each shape in its hole!', 'shapes-done': 'You built it!', 'shapes-wrong': 'Try another one!',
     'puzzle-start': 'Put the picture together!', 'puzzle-done': 'You made the picture!', 'puzzle-next': 'Tap the green arrow for another puzzle!',
     'care-start': 'Take care of your friend!', 'care-food': 'Yum! Thank you!', 'care-clean': 'So fresh and clean!', 'care-sleep': 'Shhh... sleepy time.', 'care-hungry': 'Your friend is hungry!', 'care-dirty': 'Your friend needs a bath!', 'care-tired': 'Your friend is sleepy!',
     'hide-start': 'Who is hiding? Walk along the trail and look!', 'hide-found': 'Found you! Come along!', 'hide-done': 'You found everybody!', 'hide-gate': 'You found everyone here! Follow the glowing trail to the next place!', 'hide-locked': 'Find all your friends first!', 'hide-new': 'A new place to explore!', 'hide-home': 'What a wonderful adventure! Everyone is home!',
@@ -46,6 +46,8 @@
     'count-touch': 'Touch each one to count!', 'count-how': 'How many are there?', 'count-find': 'Touch the number!', 'math-plus': 'plus', 'math-minus': 'take away', 'math-is': 'is', 'math-sum': 'How many altogether?', 'math-left': 'How many are left?', 'math-more': 'One more makes', 'math-start': 'Let us add and take away!', 'count-start': 'Let us count!',
     'color/red': 'Red!', 'color/blue': 'Blue!', 'color/yellow': 'Yellow!', 'color/green': 'Green!',
     'shape/circle': 'Circle!', 'shape/square': 'Square!', 'shape/triangle': 'Triangle!', 'shape/star': 'Star!',
+    'shape/rectangle': 'Rectangle!', 'shape/oval': 'Oval!', 'shape/semicircle': 'Half circle!', 'shape/trapezoid': 'Trapezoid!', 'shape/diamond': 'Diamond!',
+    'color/orange': 'Orange!', 'color/purple': 'Purple!', 'color/pink': 'Pink!', 'color/brown': 'Brown!', 'color/gray': 'Gray!', 'color/white': 'White!',
     'aq-start': 'Touch the water to feed the fish!', 'aq-fresh': 'A fresh new fish tank! Here are some coins to buy new fish!', 'aq-coin': 'A shiny coin! Touch it!', 'aq-grow': 'Your fish is growing!', 'aq-shop': 'Spend your coins!', 'aq-boss': 'A grumpy visitor! Tap it with bubbles!', 'aq-boss-done': 'You made a new friend! Hooray!',
     'aq/guppy': 'A little guppy', 'aq/clown': 'A clownfish', 'aq/angel': 'An angelfish', 'aq/puffer': 'A pufferfish', 'aq/food': 'Better fish food', 'aq/more': 'More fish food', 'aq/snail': 'A helper snail', 'aq/power': 'Bubble power', 'aq/castle': 'A castle', 'aq/chest': 'A treasure chest', 'aq/weed': 'Seaweed', 'aq/shell': 'A big shell',
     'care-morning': 'Good morning!', 'room/home': 'A cozy home!', 'room/castle': 'A castle!', 'room/halloween': 'A spooky house!', 'room/christmas': 'A Christmas house!', 'room/dino': 'Dinosaur land!', 'room/space': 'Outer space!', 'room/beach': 'A seaside house!',
@@ -114,7 +116,7 @@
     ...PRAISE, ...LETTERS.map(l => 'letter/' + l), ...LETTERS.map(l => 'sound/' + l), ...Array.from({ length: 10 }, (_, i) => 'num/' + (i + 1)),
     'welcome', 'try-again', 'break-time',
     'find', 'is-for', 'starts-with', 'write-name', 'count-touch', 'count-how', 'math-plus', 'math-minus', 'math-is',
-    'fire-start', 'band-start', 'band-copy', 'train-start', 'puzzle-start', 'care-start', 'care-sleep', 'hide-start', 'hide-found', 'dig-first', 'pour-water',
+    'fire-start', 'band-start', 'band-copy', 'shapes-start', 'puzzle-start', 'care-start', 'care-sleep', 'hide-start', 'hide-found', 'dig-first', 'pour-water',
     'aq-start', 'cook-add', 'cook-stir', 'cook-cut', 'cook-bake', 'cook-decorate', 'cook-serve', 'clay-start', 'fish-start', 'fish-bite'
   ].filter(k => k in LINES);
   const CORE_SET = new Set(CORE);
