@@ -51,7 +51,7 @@
     const redraw = () => render(body);
 
     body.replaceChildren(...[
-      h('p', { class: 'lead' }, SPG.config.recorder ? 'Record your own voice for the games. Choose who is recording, open a group, tap Record, say the line, and tap Stop. Anything you skip keeps using the tablet’s built-in voice.' : 'Choose which voice the games use, switch off lines you don’t want, and set how often the games cheer.'),
+      h('p', { class: 'lead' }, SPG.config.recorder ? 'Record your own voice for the games: just the short list below (about 100 lines). Choose who is recording, open a group, tap Record, say the line, and tap Stop. Anything you skip keeps using the tablet’s built-in voice.' : 'Choose which voice the games use, switch off lines you don’t want, and set how often the games cheer.'),
       message ? h('p', { class: 'notice' }, message) : null,
       SPG.config.recorder ? h('h3', {}, 'Who is recording?') : null,
       SPG.config.recorder ? seg(voice.SETS.map(s => [s.id, `${s.name} (${countFor(s.id)}/${keys.length})`]), activeSet, id => { if (recording) return; activeSet = id; confirmDel = null; message = ''; redraw(); }, 'Who is recording') : null,
@@ -67,7 +67,8 @@
       h('h3', {}, 'How often should the games cheer?'),
       seg([['lots', 'Every time'], ['some', 'Sometimes'], ['off', 'Never']], store.settings.praise || 'some', v => { store.settings.praise = v; store.save(); redraw(); }, 'Cheering frequency'),
       h('p', { class: 'fine' }, 'Recordings are saved on this tablet only. Each line can be switched off with its own switch, and you can hear what each line sounds like with Hear.'),
-      ...voice.GROUPS.map(g => group(g, keys, muted, redraw))
+      ...voice.GROUPS.map(g => group(g, keys, muted, redraw)),
+      moreSection(muted, redraw)
     ].filter(Boolean));
     if (scroller) scroller.scrollTop = top;
   }
@@ -133,12 +134,23 @@
     return box;
   }
 
-  function group(g, allKeys, muted, redraw) {
+  // The optional lines: nobody has to record these. They are only spoken with "Extra audio help", or by the built-in voice.
+  function moreSection(muted, redraw) {
+    const more = voice.moreKeys(); if (!more.length) return null;
+    const det = h('details', { class: 'vgroup vmore', open: openGroups.has('more') });
+    det.addEventListener('toggle', () => { det.open ? openGroups.add('more') : openGroups.delete('more'); });
+    det.append(h('summary', {}, `More lines (optional, ${more.length}) `, h('span', { class: 'fine' }, 'you never need to record these')));
+    det.append(h('p', { class: 'fine' }, 'Everything above is the short list that matters. These extra lines (the names of things, extra hints, animal sounds) are left to the built-in voice, and most of them are only said when \u201CExtra audio help\u201D is on in Grown-ups. Record any you like.'));
+    for (const g of voice.GROUPS) { const el = group(g, more, muted, redraw, 'more-'); if (el) det.append(el); }
+    return det;
+  }
+
+  function group(g, allKeys, muted, redraw, idp = '') {
     const list = allKeys.filter(k => voice.groupOf(k) === g);
     if (!list.length) return null;
     const done = list.filter(k => voice.hasClip(activeSet, k)).length;
-    const det = h('details', { class: 'vgroup', open: openGroups.has(g.id) });
-    det.addEventListener('toggle', () => { det.open ? openGroups.add(g.id) : openGroups.delete(g.id); });
+    const det = h('details', { class: 'vgroup', open: openGroups.has(idp + g.id) });
+    det.addEventListener('toggle', () => { det.open ? openGroups.add(idp + g.id) : openGroups.delete(idp + g.id); });
     det.append(h('summary', {}, `${g.title} `, h('span', { class: 'fine' }, `${done}/${list.length} recorded`)));
     det.append(h('p', { class: 'fine' }, SPG.pron.fill(g.note)));
     const allOn = list.every(k => !muted.has(k));

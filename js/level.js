@@ -15,7 +15,7 @@
   ];
   const AGES = [2, 3, 4, 5, 6, 7];
   // the exact age at which each game steps up to tier 2 and to tier 3 (age 2 is always tier 1)
-  const RULE = { letters: [3, 6], numbers: [3, 5], math: [3, 5], fruit: [3, 6], rain: [3, 5], fire: [3, 5], band: [3, 5], train: [3, 6], puzzle: [3, 5], hide: [3, 6], garden: [3, 6], cook: [3, 5], clay: [3, 5] };
+  const RULE = { letters: [3, 6], numbers: [3, 5], math: [3, 5], fruit: [3, 6], rain: [3, 5], fire: [3, 5], band: [3, 5], train: [3, 6], puzzle: [3, 5], hide: [3, 6], garden: [3, 6], cook: [3, 5], clay: [3, 5], fishing: [3, 5] };
   // what each game does at each tier (shown to grown-ups)
   const GAMES = [
     ['letters', 'Letter Garden', ['Always three choices in the find-it games', 'Three choices, then four with practice', 'Four choices every time, look-alike letters allowed']],
@@ -31,6 +31,7 @@
     ['garden', 'Grow a Garden', ['Plants need less water', 'The usual amount of water', 'Plants need more water']],
     ['cook', 'Sprout Kitchen', ['Ingredients measured out, at most two scoops of each', 'Real recipe amounts (cups, half cups, eggs, butter sticks), counted out loud', 'Real recipe amounts (cups, half cups, eggs, butter sticks), counted out loud']],
     ['clay', 'Clay Corner', ['Seven big tools: clay, hand, pull, squish, rolling pin, cookie cutters, eyes and beads', 'Adds the knife, stamps, smoothing, pinch and poke', 'Adds colouring (every tool)']],
+    ['fishing', 'Fishing Pond', ['Three fishing spots, a fish bites quickly and one tap reels it in', 'Five fishing spots (deeper water too), three taps to reel a fish in', 'Five fishing spots, five taps to reel in, and the fish tugs while reeling']],
   ];
 
   const cfgOf = p => {
