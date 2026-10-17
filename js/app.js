@@ -145,7 +145,7 @@
   SPG.ui.press($('hub-who'), () => { voice.stop(); renderWho(); });
   SPG.ui.press($('hub-lock'), () => askGate(openParent));
 
-  const tints = { letters: ['#ffe3ec', '#f5b8cb'], fruit: ['#ffe9c7', '#f5c98a'], rain: ['#d8efff', '#a8d3f2'], fire: ['#ffe1d6', '#f5a58f'], band: ['#ffe3f0', '#f2a9c9'], train: ['#e3f0ff', '#9cc5f0'], puzzle: ['#e6f7ec', '#98d4ae'], care: ['#fff0d9', '#f2c88c'], hide: ['#e8f6d8', '#a7d78a'], garden: ['#dff5d0', '#a9d98f'], color: ['#efe4ff', '#cdbcf7'], pets: ['#ffe8ef', '#f6b9cc'], style: ['#ffe3f1', '#f7a8cf'], aquarium: ['#d8f2ff', '#7fc8ec'], cook: ['#fff0dc', '#f5c690'], clay: ['#ffe9d4', '#f2b98c'] };
+  const tints = { letters: ['#ffe3ec', '#f5b8cb'], fruit: ['#ffe9c7', '#f5c98a'], rain: ['#d8efff', '#a8d3f2'], fire: ['#ffe1d6', '#f5a58f'], band: ['#ffe3f0', '#f2a9c9'], train: ['#e3f0ff', '#9cc5f0'], puzzle: ['#e6f7ec', '#98d4ae'], care: ['#fff0d9', '#f2c88c'], hide: ['#e8f6d8', '#a7d78a'], garden: ['#dff5d0', '#a9d98f'], color: ['#efe4ff', '#cdbcf7'], pets: ['#ffe8ef', '#f6b9cc'], style: ['#ffe3f1', '#f7a8cf'], aquarium: ['#d8f2ff', '#7fc8ec'], cook: ['#fff0dc', '#f5c690'], clay: ['#ffe9d4', '#f2b98c'], fishing: ['#d8f2ff', '#8ccbe8'] };
   function renderCards() {
     const all = SPG.games.slice().sort((a, b) => a.order - b.order);
     const games = orderedGames(all.filter(g => !g.shop)), shops = all.filter(g => g.shop);
@@ -613,7 +613,7 @@
     players.append(add);
 
     body.replaceChildren(
-      h('section', { style: 'border-top:0;padding-top:0' }, h('h3', {}, 'Sound'), toggle('Voice prompts', 'voice'), toggle('Extra audio help', 'audioHelp'), h('p', { class: 'fine' }, 'For children who need more help hearing what things are: the games also say the name of each menu item, ingredient, piece of clothing or shop item as it is touched, and speak a little slower. Off by default, so the games stay quiet and calm.'), toggle('Sound effects', 'sound'), toggle('Soft background music', 'music'), toggle('Coloring Book music', 'colorMusic')),
+      h('section', { style: 'border-top:0;padding-top:0' }, h('h3', {}, 'Sound'), toggle('Voice prompts', 'voice'), toggle('Extra audio help', 'audioHelp'), h('p', { class: 'fine' }, 'For children who need more help hearing what things are: the games also say the name of each menu item, ingredient, piece of clothing or shop item as it is touched, give extra hints and say more cheers, and speak a little slower. Off by default, so the games stay quiet and calm (the short list of recorded lines is always said).'), toggle('Sound effects', 'sound'), toggle('Soft background music', 'music'), toggle('Coloring Book music', 'colorMusic')),
       voicesSection(),
       timerSection(),
       pinSection(),

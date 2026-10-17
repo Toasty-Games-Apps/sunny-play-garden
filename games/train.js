@@ -46,7 +46,7 @@
       this.host = host;
       this.canvas = document.createElement('canvas'); this.canvas.className = 'game-canvas';
       host.append(this.canvas); this.ctx = this.canvas.getContext('2d');
-      this.bag = store.bag('train', () => ({ trains: 0, items: 0 }));
+      SPG.trainGame = this; this.bag = store.bag('train', () => ({ trains: 0, items: 0 }));
       this.scenic = SPG.scenery.fader(['meadow', 'farm', 'snow', 'beach', 'city', 'sunset', 'night', 'autumn'][(this.bag.trains || 0) % 8]);   // the train rolls through a new place each trip
       this.bag.trains = this.bag.trains || 0; this.bag.items = this.bag.items || 0;
       this.counter = SPG.ui.counter(host, (c, s) => { c.translate(s / 2, s * .55); c.fillStyle = '#e8433f'; art.rr(c, -s * .34, -s * .06, s * .5, s * .3, s * .06); c.fill(); c.fillStyle = '#5a3f5e'; art.rr(c, s * .1, -s * .28, s * .24, s * .52, s * .06); c.fill(); c.fillRect(-s * .3, -s * .28, s * .12, s * .24); c.beginPath(); c.arc(-s * .2, s * .26, s * .1, 0, TAU); c.arc(s * .18, s * .26, s * .1, 0, TAU); c.fill(); }, this.bag.trains);
@@ -117,6 +117,7 @@
       this.layoutItems();
       this.items.forEach((it, k) => { it.pop = 1; it.state = 'spit'; it.t = -.4 - k * .16; it.inited = true; });   // the station machine spits the blocks out one by one
       this.restockAt = 0;
+      this.ensureSupply();   // the blocks are dealt car by car, so check that all the cars can be filled at once and add what is missing
     }
     // the machine on the platform's left edge that spits out blocks
     chutePos() { return { x: this.w * .045, y: (this.wide ? this.h * .7 : this.h * .62) + this.h * .035 }; }
@@ -140,13 +141,18 @@
     }
     // Keep it solvable: every car that still needs things must have enough things on the platform that it will take.
     ensureSupply() {
-      let added = false;
-      for (const car of this.cars) {
-        const left = car.need - car.filled; if (left <= 0) continue;
-        const have = this.items.filter(it => it.state !== 'placed' && this.accepts(car, it)).length;
-        for (let k = have; k < left; k++) { this.addItem(car); const it = this.items[this.items.length - 1]; it.state = 'spit'; it.t = -.1 - k * .15; it.inited = true; it.pop = 1; added = true; }
+      // Every car must always be able to be filled from what is on the platform right now, all at the same time. Each space still empty in a car
+      // is matched with a different block that fits it; any space left without one gets a block spat out for it at once.
+      const free = this.items.filter(it => it.state !== 'placed' && it.state !== 'fly'), slots = [];
+      for (const car of this.cars) for (let k = car.filled; k < car.need; k++) slots.push(car);
+      const owner = new Array(free.length).fill(-1);
+      const tryFill = (si, seen) => { for (let i = 0; i < free.length; i++) { if (seen[i] || !this.accepts(slots[si], free[i])) continue; seen[i] = 1; if (owner[i] < 0 || tryFill(owner[i], seen)) { owner[i] = si; return true; } } return false; };
+      const filled = new Set(); slots.forEach((_, si) => { if (tryFill(si, [])) filled.add(si); });
+      for (let si = 0, n = 0; si < slots.length; si++) {
+        if (owner.includes(si)) continue;
+        this.addItem(slots[si]); const it = this.items[this.items.length - 1]; it.state = 'spit'; it.t = -.1 - (n++) * .15; it.inited = true; it.pop = 1;
       }
-      if (added) { this.layoutItems(); this.items.forEach(it => { if (it.state === 'home' && it.pop === 1 && !it.placedOnce) { it.pop = 0; it.placedOnce = true; } }); }
+      if (this.items.length > free.length + this.items.filter(it => it.state === 'placed' || it.state === 'fly').length) { this.layoutItems(); this.items.forEach(it => { if (it.state === 'home' && it.pop === 1 && !it.placedOnce) { it.pop = 0; it.placedOnce = true; } }); }
     }
 
     /* ---------------------------------------------------------------- dragging */
@@ -174,6 +180,7 @@
       const k = target.filled++; it.state = 'fly'; it.t = 0; it.car = target; it.slot = k; it.from = { x: it.x, y: it.y };
       target.slots[k] = it;
       this.bag.items++;
+      this.ensureSupply();   // a block that was meant for another car may just have been used: the machine replaces it straight away
     }
     sendHome(it, wrong, spit) {
       it.state = 'back'; it.t = 0; it.from = { x: it.x, y: it.y }; it.arc = spit ? this.cw * .55 : this.cw * .12;
@@ -319,7 +326,7 @@
         if (car.slots[k]) continue;
         const s = this.slotPos(car, k);
         if (car.type === 'shape') { c.save(); c.translate(s.x, s.y); silhouette(c, car.val, s.r * 1.05, 'rgba(255,255,255,.55)', '#5a3f5e'); c.restore(); }   // a ghost of the shape it wants
-        else if (car.type === 'color') { c.save(); c.translate(s.x, s.y); c.globalAlpha = .6; silhouette(c, SHAPES[(Math.floor(this.t * .8) + k) % SHAPES.length], s.r * 1.0, COLORS[car.val], '#fff'); c.restore(); }   // any shape of this color fits: the preview cycles through them
+        else if (car.type === 'color') { c.save(); c.translate(s.x, s.y); c.globalAlpha = .75; silhouette(c, 'circle', s.r * 1.0, COLORS[car.val], '#fff'); c.restore(); }   // a steady spot of the colour it wants (any shape of that colour fits; nothing changes or cycles)
         else { c.strokeStyle = 'rgba(255,255,255,.9)'; c.lineWidth = 3.5; c.setLineDash([7, 6]); c.beginPath(); c.arc(s.x, s.y, s.r * 1.1, 0, TAU); c.stroke(); c.setLineDash([]);
           c.fillStyle = 'rgba(255,255,255,.22)'; c.beginPath(); c.arc(s.x, s.y, s.r * 1.1, 0, TAU); c.fill(); }
       }

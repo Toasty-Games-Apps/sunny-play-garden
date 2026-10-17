@@ -38,6 +38,7 @@
     'cook-grill': 'Put it on the grill!', 'cook-flip': 'Flip it over!', 'cook-stack': 'Stack it up! Pick the glowing one!', 'cook-frost': 'Touch the cake with icing!',
     'cook-decorate': 'Make it pretty!', 'cook-slice': 'Slice it with the knife!',
     'cook-serve': 'Yummy! Touch it to take a bite!',
+    'fish-start': 'Tap the fishing rod, then tap a spot!', 'fish-bite': 'A bite! Tap to reel it in!', 'fish/bass': 'A bass!', 'fish/bluegill': 'A bluegill!', 'fish/goldfish': 'A goldfish!', 'fish/carp': 'A carp!', 'fish/trout': 'A trout!', 'fish/perch': 'A perch!', 'fish/catfish': 'A catfish!', 'fish/salmon': 'A salmon!', 'fish/minnow': 'A minnow!',
     'clay-start': 'Squish, roll and shape your clay!', 'clay/clay': 'Clay!', 'clay/hand': 'Pick it up!', 'clay/pull': 'Pull it!', 'clay/squish': 'Squish!', 'clay/roll': 'Roll it flat!', 'clay/cutters': 'Cookie cutters!', 'clay/extras': 'Eyes and beads!', 'clay/knife': 'Cut it!', 'clay/stamps': 'Stamps!', 'clay/smooth': 'Smooth it!', 'clay/pinch': 'Pinch!', 'clay/poke': 'Poke!', 'clay/dye': 'Add some color!', 'clay/circle': 'A circle!', 'clay/square': 'A square!', 'clay/heart': 'A heart!', 'clay/star': 'A star!', 'clay/flower': 'A flower!', 'clay/triangle': 'A triangle!', 'clay/bear': 'A bear!', 'clay/cat': 'A kitty!', 'clay/dots': 'Dots!', 'clay/paw': 'A paw!', 'clay/ridges': 'Stripes!', 'clay/ring': 'A ring!', 'clay/zigzag': 'A zigzag!', 'clay/eye': 'A googly eye!', 'clay/bead': 'A bead!', 'clay/pearl': 'A pearl!', 'clay/sprinkles': 'Sprinkles!',
     'cook-pickbun': 'Pick a bun!', 'cook-pickbread': 'Pick your bread!', 'cook-patties': 'Put patties on the grill! One, two or three!', 'cook-meat': 'Add the meat you like!', 'cook-cheese': 'Add some cheese, or touch the green check!', 'cook-veg': 'Add the veggies you like!', 'cook-saucetop': 'Add some sauce, then put the top on!', 'cook-scoop': 'Pick your ice cream!', 'cook-pizzasauce': 'Spread the sauce all over!', 'cook-pizzacheese': 'Sprinkle on the cheese!', 'cook-toppings': 'Put your toppings anywhere you like!', 'cook-yum': 'Yum yum!', 'cook-wrong': 'Try the glowing one!', 'cook-done': 'You cooked it! Delicious!',
     'cookr/sugar': 'Sugar cookies!', 'cookr/chip': 'Chocolate chip cookies!', 'cookr/cupcake': 'Cupcakes!', 'cookr/cake': 'A birthday cake!', 'cookr/pancake': 'Pancakes!', 'cookr/sundae': 'An ice cream sundae!', 'cookr/pbj': 'Peanut butter and jelly!', 'cookr/toastie': 'A cheese toastie!', 'cookr/sandwich': 'Build a sandwich!', 'cookr/hotdog': 'A hot dog!', 'cookr/burger': 'Build a burger!', 'cookr/pizza': 'Pizza!',
@@ -104,10 +105,24 @@
   // Purring and happy sounds for the close-up petting in Pet Care. Without a recording the game makes a soft synthesized purr.
   const PURRS = { trex: 'a low, rumbly happy growl', trike: 'a low, happy rumble', stego: 'a deep, sleepy rumble', bronto: 'a slow, deep hum', babydino: 'a squeaky happy chirp', cat: 'a long, happy purr (a real cat purring is best)', dog: 'a happy, sleepy dog groan or soft pant', bunny: 'a bunny "tooth purr", soft chattering teeth', bear: 'a low, contented hum', fox: 'a soft, chirpy fox chatter', panda: 'a gentle panda bleat or hum', frog: 'a soft, slow ribbit' };
   for (const [k, d] of Object.entries(PURRS)) SOUNDS['purr/' + k] = d;
-  // "Extra audio help" (Grown-ups > Sound, off by default): lines that only say what a touched menu item, ingredient, piece of clothing
-  // or shop item is called, or comment on what is happening. Everything that teaches or tells what to do is always spoken.
-  const EXTRA_KEYS = new Set(['cook-yum', 'cook-start']);
-  const isExtra = k => EXTRA_KEYS.has(k) || /^(cookc|cookr|cook|aq|room|clay)\//.test(k) || (/^style\//.test(k) && !/^style\/say-/.test(k));
+  // THE SHORT LIST. A grown-up is asked to record only these (about 100 lines): the cheers, the letter names and sounds, the numbers 1 to 10
+  // and one short instruction for each game, plus a greeting for each player. Every other line still exists, but it is optional ("More lines"
+  // in Grown-ups > Voices): it is spoken by the built-in voice only if it is in SPOKEN below, otherwise it stays silent unless a grown-up
+  // switches on "Extra audio help". That keeps the games calm and the recording job small.
+  const LETTERS = 'abcdefghijklmnopqrstuvwxyz'.split('');
+  const CORE = [
+    ...PRAISE, ...LETTERS.map(l => 'letter/' + l), ...LETTERS.map(l => 'sound/' + l), ...Array.from({ length: 10 }, (_, i) => 'num/' + (i + 1)),
+    'welcome', 'try-again', 'break-time',
+    'find', 'is-for', 'starts-with', 'write-name', 'count-touch', 'count-how', 'math-plus', 'math-minus', 'math-is',
+    'fire-start', 'band-start', 'band-copy', 'train-start', 'puzzle-start', 'care-start', 'care-sleep', 'hide-start', 'hide-found', 'dig-first', 'pour-water',
+    'aq-start', 'cook-add', 'cook-stir', 'cook-cut', 'cook-bake', 'cook-decorate', 'cook-serve', 'clay-start', 'fish-start', 'fish-bite'
+  ].filter(k => k in LINES);
+  const CORE_SET = new Set(CORE);
+  const isCore = k => CORE_SET.has(k) || /^(pname|player)\//.test(k);
+  // spoken whenever they come up (by a recording if there is one, otherwise the built-in voice) although they are not on the short list
+  const SPOKEN = /^(letter|sound|word|num|color|shape|name|pname|player|fish)\//;
+  // "Extra audio help" (Grown-ups > Sound, off by default) also speaks all the other lines: the names of things touched, extra hints and cheers.
+  const isExtra = k => k in LINES && !isCore(k) && !SPOKEN.test(k);
   // How the built-in voice should say a line when the written text comes out wrong. (A recording, or text a grown-up has edited, is never changed.)
   // A lone "Ay" is read like the word "eye" by phone voices; a capital letter on its own is read as the letter.
   const SAY_AS = { 'letter/a': 'A.', 'sound/x': 'kss' };
@@ -126,12 +141,13 @@
 
   const GROUPS = [
     { id: 'praise', title: 'Cheering', note: 'Said after something is done well. Turn down how often in the "Praise" setting.', test: k => PRAISE.has(k) },
-    { id: 'prompts', title: 'Prompts and instructions', note: 'Short lines that tell {her} what to do.', test: k => k in LINES && !PRAISE.has(k) && !/^(letter|sound|word|creature|style|name|cook|cookr|cookc|clay|num)\//.test(k) },
-    { id: 'numbers', title: 'Numbers (0 to 20)', note: 'Said when counting and adding: "One!", "Two!"... Say just the number.', test: k => k.startsWith('num/') },
+    { id: 'prompts', title: 'Prompts and instructions', note: 'Short lines that tell {her} what to do.', test: k => k in LINES && !PRAISE.has(k) && !/^(letter|sound|word|creature|style|name|cook|cookr|cookc|clay|fish|num)\//.test(k) },
+    { id: 'numbers', title: 'Numbers', note: 'Said when counting and adding: "One!", "Two!"... Say just the number. One to ten are on the short list; zero and eleven to twenty are optional.', test: k => k.startsWith('num/') },
     { id: 'names', title: 'Names in the name pickers', note: 'Said when a name button is touched (player nicknames and pet names) and in "Welcome home, ...".', test: k => k.startsWith('name/') },
     { id: 'style', title: 'Style Studio names', note: 'Only said when "Extra audio help" is on in Grown-ups. Said when a friend, a hairstyle or a piece of clothing is touched in the dress-up game, like "A ball gown!" or "Fairy wings!".', test: k => k.startsWith('style/') },
     { id: 'kitchen', title: 'Sprout Kitchen names', note: 'Only said when "Extra audio help" is on in Grown-ups. Said when an ingredient, a cutter shape, a recipe or a food group is touched in the cooking game: "Flour!", "Pink icing!", "A cheeseburger!".', test: k => /^(cook|cookr|cookc)\//.test(k) },
     { id: 'clay', title: 'Clay Corner names', note: 'Only said when "Extra audio help" is on in Grown-ups. Said when a clay tool, a cookie cutter, a stamp or an eye or bead is touched: "Squish!", "A heart!", "A googly eye!".', test: k => k.startsWith('clay/') },
+    { id: 'fish', title: 'Fishing Pond fish names', note: 'Said by the built-in voice when a fish is caught in the fishing game, like "A bass!" or "A goldfish!". Optional.', test: k => k.startsWith('fish/') },
     { id: 'letters', title: 'Letter names (A to Z)', note: 'Say the name of the letter: "Bee", "Cee".', test: k => k.startsWith('letter/') },
     { id: 'sounds', title: 'Letter sounds (A to Z)', note: 'Say the sound the letter makes: "buh", "kuh", "sss". Not the name.', test: k => k.startsWith('sound/') },
     { id: 'words', title: 'Picture words', note: 'The word for each letter picture: apple, bear, cat...', test: k => k.startsWith('word/') },
@@ -143,7 +159,9 @@
 
   const base = key => key.replace(/\//g, '-');
   const fileFor = (set, key) => `audio/voice/${set}/${base(key)}.mp3`;
-  const allKeys = () => [...Object.keys(LINES), ...Object.keys(SOUNDS), ...Object.keys(custom)];
+  // the short list to record (core + each player's greeting), and the optional rest
+  const allKeys = () => [...CORE, ...Object.keys(custom).filter(k => /^(pname|player)\//.test(k))];
+  const moreKeys = () => [...Object.keys(LINES).filter(k => !CORE_SET.has(k)), ...Object.keys(SOUNDS), ...Object.keys(custom).filter(k => !/^(pname|player)\//.test(k))];
   // The grown-ups can reword any line (settings.lineText); the reworded text is what the built-in voice says and what shows in the recorder.
   const textFor = key => (store.settings.lineText && store.settings.lineText[key]) || LINES[key] || SOUNDS[key] || custom[key] || key;
   const originalText = key => LINES[key] ?? SOUNDS[key] ?? custom[key] ?? key;
@@ -440,7 +458,7 @@
       store.save();
     },
     isReworded: key => !!(store.settings.lineText && store.settings.lineText[key]),
-    fileFor, allKeys, textFor, hasClip, hasDeviceClip,
+    fileFor, allKeys, moreKeys, isCore, textFor, hasClip, hasDeviceClip,
     groupOf: key => GROUPS.find(g => g.test(key)),
     // Say a line, or a list of lines one after another. Items are keys, {say: 'free text'}, or null.
     async say(...items) {

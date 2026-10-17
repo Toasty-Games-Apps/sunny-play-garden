@@ -347,7 +347,7 @@
       s.left.splice(s.left.indexOf(it.id), 1);
       const k = ++s.got[it.id], unit = it.plan[k - 1]; it.cnt.done = k; if (k >= it.plan.length) it.used = true;
       g.addMotion(it.id, tap ? it.hx : x, tap ? it.hy : y, b, () => {
-        s.done++; g.mix.items.push({ col: ICOL[it.id] || '#fff' }); g.mix.fill = Math.min(.9, .12 + s.done / s.total * .78);
+        s.done++; g.mix.items.push({ id: it.id, unit, seed: Math.floor(Math.random() * 1e9), col: ICOL[it.id] || '#fff' }); g.mix.fill = Math.min(.9, .12 + s.done / s.total * .78);
         sfx.pop(); g.fx.burst(b.x, b.y, 10, { colors: [ICOL[it.id] || '#fff', '#fff'], speed: 130, g: 300, life: .5, size: 5 });
         if (it.plan.length > 1) voice.say('num/' + k);   // counting out loud: "one, two"
         if (s.done >= s.total) g.finish(.7);

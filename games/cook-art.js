@@ -745,6 +745,57 @@
     c.fillStyle = '#f4fbff'; c.beginPath(); c.ellipse(0, -r * .02, r * .76, r * .5, 0, 0, TAU); c.fill(); c.fillStyle = 'rgba(180,210,235,.5)'; c.beginPath(); c.ellipse(0, r * .04, r * .62, r * .38, 0, 0, TAU); c.fill(); c.fillStyle = '#fff'; c.beginPath(); c.ellipse(0, -r * .04, r * .62, r * .38, 0, 0, TAU); c.fill();
     shine(c, -r * .55, -r * .3, r * .22, r * .06, -.5, .5); c.restore();
   }
+  // The real-looking contents of the mixing bowl. Each pour is one `item` { id, unit, seed }; items are laid out loosely (liquids first, then the egg,
+  // powders, butter and chips on top) and fade into the batter as it is stirred.
+  const STUFF_RANK = { milk: 0, egg: 1, flour: 2, sugar: 3, butter: 4, chips: 5 };
+  function drawBowlStuff(c, items, r, st) {
+    const list = items.map((it, i) => ({ it, i })).sort((a, b) => (STUFF_RANK[a.it.id] ?? 6) - (STUFF_RANK[b.it.id] ?? 6) || a.i - b.i);
+    for (const { it, i } of list) {
+      let sd = (it.seed || (i + 1) * 7919) >>> 0; const R = () => { sd = (sd + 0x6D2B79F5) >>> 0; let t = Math.imul(sd ^ (sd >>> 15), 1 | sd); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+      const unit = it.unit === 'half' ? .74 : it.unit === 'tbsp' ? .5 : 1, ang = i * 2.399 + R() * .6, rad = r * (items.length > 2 ? .24 + .2 * R() : .06 + .14 * R()) * (1 - st * .75), px = Math.cos(ang) * rad, py = Math.sin(ang) * rad * .52 + r * .05;
+      const s = r * (items.length > 3 ? .36 : .46) * unit * (1 - st * .3);
+      c.save(); c.globalAlpha = 1 - st * .8; c.translate(px, py);
+      const shadow = (w, h) => { c.fillStyle = 'rgba(90,70,50,.2)'; c.beginPath(); c.ellipse(s * .05, h * .35, w, h * .8, 0, 0, TAU); c.fill(); };
+      if (it.id === 'flour' || it.id === 'sugar') {
+        const sugar = it.id === 'sugar', w = s * 1.15, h = s * .62; shadow(w * 1.05, h);
+        const g = c.createRadialGradient(-w * .3, -h * .5, w * .1, 0, 0, w * 1.05); g.addColorStop(0, '#ffffff'); g.addColorStop(.55, sugar ? '#f7f4ee' : '#f6efe0'); g.addColorStop(1, sugar ? '#dcd6ca' : '#d9cdb4');
+        c.fillStyle = g; c.beginPath(); c.moveTo(-w, h * .25); c.bezierCurveTo(-w * .9, -h * .9, -w * .3, -h * 1.15, 0, -h * 1.05); c.bezierCurveTo(w * .4, -h * 1.1, w * .95, -h * .8, w, h * .25); c.bezierCurveTo(w * .6, h * .85, -w * .6, h * .85, -w, h * .25); c.fill();
+        c.fillStyle = sugar ? 'rgba(255,255,255,.95)' : 'rgba(255,255,255,.85)'; c.beginPath(); c.ellipse(-w * .25, -h * .55, w * .38, h * .2, -.4, 0, TAU); c.fill();
+        c.strokeStyle = sugar ? 'rgba(170,165,150,.18)' : 'rgba(190,170,130,.16)'; c.lineWidth = Math.max(1, r * .01); c.lineCap = 'round'; for (let k = 0; k < 2; k++) { c.beginPath(); c.arc(R() * w * .3, h * .9, w * (.5 + k * .18), Math.PI * 1.15, Math.PI * 1.7); c.stroke(); }
+        const n = sugar ? 70 : 46; for (let k = 0; k < n; k++) { const a = R() * TAU, d = Math.sqrt(R()) * 1.12, gx = Math.cos(a) * w * d, gy = Math.sin(a) * h * d * .95 - h * .1, dust = d > .92; c.fillStyle = dust ? 'rgba(255,255,250,.9)' : sugar ? (R() < .5 ? 'rgba(255,255,255,.95)' : 'rgba(190,185,175,.55)') : 'rgba(255,252,240,.7)'; c.beginPath(); c.arc(gx, gy, r * (sugar ? .011 : .008) * (.6 + R() * .8), 0, TAU); c.fill(); }
+        if (sugar) for (let k = 0; k < 4; k++) { const gx = (R() - .5) * w * 1.3, gy = (R() - .65) * h; c.fillStyle = 'rgba(255,255,255,.95)'; c.beginPath(); c.moveTo(gx, gy - r * .03); c.lineTo(gx + r * .008, gy); c.lineTo(gx, gy + r * .03); c.lineTo(gx - r * .008, gy); c.closePath(); c.moveTo(gx - r * .03, gy); c.lineTo(gx, gy + r * .008); c.lineTo(gx + r * .03, gy); c.lineTo(gx, gy - r * .008); c.closePath(); c.fill(); }
+      } else if (it.id === 'butter') {
+        const w = s * (unit > .8 ? 1.5 : 1.1), h = s * (unit > .8 ? .5 : .42), d = h * .8; c.rotate((R() - .5) * .6); shadow(w * 1.1, h * 1.3);
+        c.fillStyle = '#f0c040'; rr(c, -w / 2, -h / 2 + d * .1, w, h + d * .8, h * .22); c.fill();                          // the front face
+        let g = c.createLinearGradient(0, -h / 2 - d, 0, -h / 2 + d * .3); g.addColorStop(0, '#fff3b4'); g.addColorStop(1, '#ffe074'); c.fillStyle = g; c.beginPath(); c.moveTo(-w / 2 + h * .15, -h / 2 - d * .7); c.lineTo(w / 2 - h * .15, -h / 2 - d * .7); c.quadraticCurveTo(w / 2 + h * .1, -h / 2 - d * .6, w / 2, -h / 2 + d * .15); c.lineTo(-w / 2, -h / 2 + d * .15); c.quadraticCurveTo(-w / 2 - h * .1, -h / 2 - d * .6, -w / 2 + h * .15, -h / 2 - d * .7); c.fill();   // the top face
+        c.fillStyle = 'rgba(255,255,255,.55)'; c.beginPath(); c.ellipse(-w * .15, -h / 2 - d * .35, w * .3, d * .13, -.05, 0, TAU); c.fill();
+        c.fillStyle = 'rgba(210,150,30,.35)'; rr(c, -w / 2, h / 2 + d * .05, w, d * .35, h * .2); c.fill();
+        if (unit > .8) { c.strokeStyle = 'rgba(210,160,50,.35)'; c.lineWidth = Math.max(1, r * .01); c.beginPath(); c.moveTo(w * .18, -h / 2 - d * .6); c.lineTo(w * .18, h / 2 + d * .3); c.stroke(); }
+      } else if (it.id === 'egg') {
+        const w = s * 1.15, h = s * .72; c.rotate((R() - .5) * .8);
+        c.fillStyle = 'rgba(80,60,40,.14)'; c.beginPath(); c.ellipse(s * .05, h * .3, w * 1.05, h * .95, 0, 0, TAU); c.fill();
+        const blob = (k, a) => { c.beginPath(); for (let q = 0; q <= 14; q++) { const t = q / 14 * TAU, wob = 1 + .16 * Math.sin(t * 3 + a) + .1 * Math.sin(t * 5 + a * 2); const x = Math.cos(t) * w * k * wob, y = Math.sin(t) * h * k * wob; q ? c.lineTo(x, y) : c.moveTo(x, y); } c.closePath(); };
+        const a0 = R() * 6; blob(1.0, a0); c.fillStyle = 'rgba(244,250,255,.82)'; c.fill(); c.strokeStyle = 'rgba(200,215,230,.8)'; c.lineWidth = Math.max(1, r * .012); c.stroke();
+        blob(.74, a0 + 1); c.fillStyle = 'rgba(255,255,255,.7)'; c.fill();
+        const yr = s * .4, yg = c.createRadialGradient(-yr * .3, -yr * .35, yr * .1, 0, 0, yr * 1.1); yg.addColorStop(0, '#ffd34a'); yg.addColorStop(.6, '#ffa81c'); yg.addColorStop(1, '#e8860a'); c.fillStyle = yg; c.beginPath(); c.ellipse(w * .08, 0, yr, yr * .88, 0, 0, TAU); c.fill();
+        c.fillStyle = 'rgba(255,255,255,.85)'; c.beginPath(); c.ellipse(w * .08 - yr * .35, -yr * .38, yr * .3, yr * .16, -.5, 0, TAU); c.fill();
+        c.fillStyle = '#fbf3e4'; c.strokeStyle = '#d9c9aa'; c.lineWidth = Math.max(1, r * .01); c.beginPath(); c.moveTo(w * .72, -h * .2); c.quadraticCurveTo(w * 1.1, -h * .1, w * 1.05, h * .45); c.lineTo(w * .78, h * .35); c.lineTo(w * .86, h * .12); c.lineTo(w * .68, 0); c.closePath(); c.fill(); c.stroke();   // a piece of shell
+      } else if (it.id === 'milk') {
+        const w = s * 1.5, h = s * .8; shadow(w * 1.0, h);
+        const g = c.createRadialGradient(-w * .3, -h * .4, w * .1, 0, 0, w * 1.1); g.addColorStop(0, '#ffffff'); g.addColorStop(.7, '#eef4fb'); g.addColorStop(1, '#cfdcec'); c.fillStyle = g; c.beginPath(); for (let q = 0; q <= 16; q++) { const t = q / 16 * TAU, wob = 1 + .1 * Math.sin(t * 3 + ang) + .06 * Math.sin(t * 6); const x = Math.cos(t) * w * wob, y = Math.sin(t) * h * wob; q ? c.lineTo(x, y) : c.moveTo(x, y); } c.closePath(); c.fill();
+        c.strokeStyle = 'rgba(190,205,225,.9)'; c.lineWidth = Math.max(1, r * .012); c.stroke(); c.strokeStyle = 'rgba(255,255,255,.9)'; for (let k = 1; k <= 2; k++) { c.beginPath(); c.ellipse(w * .08, 0, w * (.28 * k), h * (.26 * k), 0, 0, TAU); c.stroke(); }
+        c.fillStyle = 'rgba(255,255,255,.95)'; c.beginPath(); c.ellipse(-w * .45, -h * .45, w * .22, h * .1, -.45, 0, TAU); c.fill();
+      } else if (it.id === 'chips') {
+        const n = Math.round(6 + 5 * unit); for (let k = 0; k < n; k++) {
+          const a = R() * TAU, d = Math.sqrt(R()) * s * 1.25, cx = Math.cos(a) * d, cy = Math.sin(a) * d * .6, cr = r * (.045 + R() * .022), rot = R() * TAU;
+          c.save(); c.translate(cx, cy); c.rotate(rot); c.fillStyle = 'rgba(60,30,15,.3)'; c.beginPath(); c.ellipse(cr * .15, cr * .5, cr * 1.1, cr * .6, 0, 0, TAU); c.fill();
+          const g = c.createLinearGradient(-cr, -cr, cr, cr); g.addColorStop(0, '#6e4630'); g.addColorStop(1, '#3d2316'); c.fillStyle = g; c.beginPath(); c.moveTo(0, -cr); c.quadraticCurveTo(cr * 1.1, -cr * .1, cr * .85, cr * .6); c.quadraticCurveTo(0, cr * 1.0, -cr * .9, cr * .55); c.quadraticCurveTo(-cr * 1.05, -cr * .2, 0, -cr); c.fill();
+          c.fillStyle = 'rgba(255,225,190,.5)'; c.beginPath(); c.ellipse(-cr * .25, -cr * .3, cr * .3, cr * .14, -.5, 0, TAU); c.fill(); c.restore();
+        }
+      } else { const w = s * 1.1, h = s * .6; shadow(w, h); c.fillStyle = it.col || '#fff'; c.beginPath(); c.ellipse(0, 0, w, h, 0, 0, TAU); c.fill(); }
+      c.restore();
+    }
+  }
   function drawBowl(c, x, y, r, mix, t, stir = 0, spoonAng = 0) {
     c.save(); c.translate(x, y);
     c.fillStyle = 'rgba(80,40,20,.2)'; c.beginPath(); c.ellipse(r * .06, r * .16, r * 1.0, r * .62, 0, 0, TAU); c.fill();
@@ -758,8 +809,10 @@
       const lv = r * (.5 - fill * .5);
       if (mix.stirred >= 1) { c.fillStyle = mix.final; c.beginPath(); c.ellipse(0, r * .06, r * .76, r * .46, 0, 0, TAU); c.fill(); shine(c, -r * .25, -r * .12, r * .22, r * .07, -.3, .3); }
       else {
-        c.fillStyle = base; c.beginPath(); c.ellipse(0, lv * .2 + r * .1, r * .74, r * .44, 0, 0, TAU); c.fill();
-        mix.items.forEach((it, i) => { const col = it.col, a = i * 2.4 + t * 0 + (mix.stirred || 0) * 6, rad = r * (.18 + .22 * (1 - (mix.stirred || 0))); c.globalAlpha = 1 - (mix.stirred || 0) * .7; c.fillStyle = col; c.beginPath(); c.ellipse(Math.cos(a) * rad, Math.sin(a) * rad * .6 + r * .05, r * (.3 - (mix.stirred || 0) * .12), r * .15, a, 0, TAU); c.fill(); }); c.globalAlpha = 1;
+        // before stirring the bowl shows what was really put in (flour, sugar, butter, a cracked egg, milk, chips); stirring brings up the wet batter
+        const st = mix.stirred || 0;
+        if (st > 0) { c.globalAlpha = Math.min(1, st * 1.4); c.fillStyle = base; c.beginPath(); c.ellipse(0, lv * .2 + r * .1, r * .74, r * .44, 0, 0, TAU); c.fill(); c.globalAlpha = 1; }
+        drawBowlStuff(c, mix.items, r, st);
         if (mix.stirred > 0) { c.strokeStyle = 'rgba(255,255,255,.55)'; c.lineWidth = r * .03; for (let k = 0; k < 3; k++) { c.beginPath(); for (let i = 0; i <= 24; i++) { const a = spoonAng + i * .25 + k * 2, rad = r * (.1 + i * .02 + k * .08); const px = Math.cos(a) * rad, py = Math.sin(a) * rad * .62; i ? c.lineTo(px, py + r * .05) : c.moveTo(px, py + r * .05); } c.stroke(); } }
       }
     }

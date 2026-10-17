@@ -17,13 +17,14 @@ Quiet recordings are levelled and silence is trimmed automatically.
 Save MP3s as `audio/voice/male/<file>.mp3` and/or `audio/voice/female/<file>.mp3` using the names below, then run
 `node tools/build-voice-manifest.mjs` and deploy. (File recordings work on every device; tablet recordings only on that tablet.)
 
-## Suggested order (most useful first)
-1. **Cheering** and **Prompts**: about 146 short lines.
-2. **Letter sounds** and **Letter names**: the heart of the letter games.
-3. **Critter noises**: make the noise yourself (bee buzz, frog ribbit).
-4. **Picture words**, **Garden friend announcements**, **Player names**.
+## What to record: the short list (100 lines)
+You only need the **100 lines in Part 1**: the cheers, every letter name and sound, the numbers 1 to 10, and one short instruction for
+each game. Everything in Part 2 is optional: those lines are said by the built-in voice, and most of them are only said when
+**Extra audio help** is turned on in Grown-ups.
 
-## Cheering
+# Part 1: the short list (100 lines)
+
+## Cheering (5)
 
 Said after something is done well. Turn down how often in the "Praise" setting.
 
@@ -35,7 +36,7 @@ Said after something is done well. Turn down how often in the "Praise" setting.
 | `amazing.mp3` | Amazing! |
 | `yay.mp3` | Yay! |
 
-## Prompts and instructions
+## Prompts and instructions (33)
 
 Short lines that tell {her} what to do.
 
@@ -43,35 +44,145 @@ Short lines that tell {her} what to do.
 |---|---|
 | `welcome.mp3` | Hi! Let's play! |
 | `try-again.mp3` | Try again! |
+| `break-time.mp3` | Time for a little rest! |
 | `find.mp3` | Can you find the letter |
-| `follow-bee.mp3` | Follow the bee! |
 | `is-for.mp3` | is for |
 | `starts-with.mp3` | Which one starts with |
 | `write-name.mp3` | Let's write your name! |
+| `count-touch.mp3` | Touch each one to count! |
+| `count-how.mp3` | How many are there? |
+| `math-plus.mp3` | plus |
+| `math-minus.mp3` | take away |
+| `math-is.mp3` | is |
+| `fire-start.mp3` | Some little fires! Spray them with water! |
+| `band-start.mp3` | Touch the friends to make music! |
+| `band-copy.mp3` | Listen... now you play! |
+| `train-start.mp3` | All aboard! Fill up the train! |
+| `puzzle-start.mp3` | Put the picture together! |
+| `care-start.mp3` | Take care of your friend! |
+| `care-sleep.mp3` | Shhh... sleepy time. |
+| `hide-start.mp3` | Who is hiding? Walk along the trail and look! |
+| `hide-found.mp3` | Found you! Come along! |
+| `dig-first.mp3` | First, dig a hole with the shovel! |
+| `pour-water.mp3` | Hold the can over the plant to water it! |
+| `aq-start.mp3` | Touch the water to feed the fish! |
+| `cook-add.mp3` | Put it in the bowl! |
+| `cook-stir.mp3` | Stir, stir, stir! |
+| `cook-cut.mp3` | Pick a cutter, then touch the dough! |
+| `cook-bake.mp3` | Into the oven! Touch the tray! |
+| `cook-decorate.mp3` | Make it pretty! |
+| `cook-serve.mp3` | Yummy! Touch it to take a bite! |
+| `clay-start.mp3` | Squish, roll and shape your clay! |
+| `fish-start.mp3` | Tap the fishing rod, then tap a spot! |
+| `fish-bite.mp3` | A bite! Tap to reel it in! |
+
+## Numbers (10)
+
+Said when counting and adding: "One!", "Two!"... Say just the number. One to ten are on the short list; zero and eleven to twenty are optional.
+
+| File | Say |
+|---|---|
+| `num-1.mp3` | One! |
+| `num-2.mp3` | Two! |
+| `num-3.mp3` | Three! |
+| `num-4.mp3` | Four! |
+| `num-5.mp3` | Five! |
+| `num-6.mp3` | Six! |
+| `num-7.mp3` | Seven! |
+| `num-8.mp3` | Eight! |
+| `num-9.mp3` | Nine! |
+| `num-10.mp3` | Ten! |
+
+## Letter names (A to Z) (26)
+
+Say the name of the letter: "Bee", "Cee".
+
+| File | Say |
+|---|---|
+| `letter-a.mp3` | Ay |
+| `letter-b.mp3` | Bee |
+| `letter-c.mp3` | Cee |
+| `letter-d.mp3` | Dee |
+| `letter-e.mp3` | Ee |
+| `letter-f.mp3` | Eff |
+| `letter-g.mp3` | Gee |
+| `letter-h.mp3` | Aitch |
+| `letter-i.mp3` | Eye |
+| `letter-j.mp3` | Jay |
+| `letter-k.mp3` | Kay |
+| `letter-l.mp3` | El |
+| `letter-m.mp3` | Em |
+| `letter-n.mp3` | En |
+| `letter-o.mp3` | Oh |
+| `letter-p.mp3` | Pee |
+| `letter-q.mp3` | Cue |
+| `letter-r.mp3` | Ar |
+| `letter-s.mp3` | Ess |
+| `letter-t.mp3` | Tee |
+| `letter-u.mp3` | You |
+| `letter-v.mp3` | Vee |
+| `letter-w.mp3` | Double you |
+| `letter-x.mp3` | Ex |
+| `letter-y.mp3` | Why |
+| `letter-z.mp3` | Zee |
+
+## Letter sounds (A to Z) (26)
+
+Say the sound the letter makes: "buh", "kuh", "sss". Not the name.
+
+| File | Say |
+|---|---|
+| `sound-a.mp3` | ah |
+| `sound-b.mp3` | buh |
+| `sound-c.mp3` | kuh |
+| `sound-d.mp3` | duh |
+| `sound-e.mp3` | eh |
+| `sound-f.mp3` | fuh |
+| `sound-g.mp3` | guh |
+| `sound-h.mp3` | huh |
+| `sound-i.mp3` | ih |
+| `sound-j.mp3` | juh |
+| `sound-k.mp3` | kuh |
+| `sound-l.mp3` | luh |
+| `sound-m.mp3` | muh |
+| `sound-n.mp3` | nuh |
+| `sound-o.mp3` | aw |
+| `sound-p.mp3` | puh |
+| `sound-q.mp3` | kwuh |
+| `sound-r.mp3` | ruh |
+| `sound-s.mp3` | sss |
+| `sound-t.mp3` | tuh |
+| `sound-u.mp3` | uh |
+| `sound-v.mp3` | vuh |
+| `sound-w.mp3` | wuh |
+| `sound-x.mp3` | ks |
+| `sound-y.mp3` | yuh |
+| `sound-z.mp3` | zzz |
+
+# Part 2: optional lines (548, nobody has to record these)
+
+## Prompts and instructions (110)
+
+Short lines that tell {her} what to do.
+
+| File | Say |
+|---|---|
+| `follow-bee.mp3` | Follow the bee! |
 | `spell-name.mp3` | Your name is spelled |
 | `catch-drops.mp3` | Catch the raindrops! |
 | `rainbow.mp3` | A rainbow! |
-| `fire-start.mp3` | Some little fires! Spray them with water! |
 | `fire-pet.mp3` | Tap the pet to help them down! |
 | `fire-done.mp3` | Everyone is safe! Hooray! |
-| `band-start.mp3` | Touch the friends to make music! |
-| `band-copy.mp3` | Listen... now you play! |
 | `band-song.mp3` | Play some notes, then touch the red button! |
-| `train-start.mp3` | All aboard! Fill up the train! |
 | `train-go.mp3` | Choo choo! Off we go! |
 | `train-wrong.mp3` | Try another one! |
-| `puzzle-start.mp3` | Put the picture together! |
 | `puzzle-done.mp3` | You made the picture! |
 | `puzzle-next.mp3` | Tap the green arrow for another puzzle! |
-| `care-start.mp3` | Take care of your friend! |
 | `care-food.mp3` | Yum! Thank you! |
 | `care-clean.mp3` | So fresh and clean! |
-| `care-sleep.mp3` | Shhh... sleepy time. |
 | `care-hungry.mp3` | Your friend is hungry! |
 | `care-dirty.mp3` | Your friend needs a bath! |
 | `care-tired.mp3` | Your friend is sleepy! |
-| `hide-start.mp3` | Who is hiding? Walk along the trail and look! |
-| `hide-found.mp3` | Found you! Come along! |
 | `hide-done.mp3` | You found everybody! |
 | `hide-gate.mp3` | You found everyone here! Follow the glowing trail to the next place! |
 | `hide-locked.mp3` | Find all your friends first! |
@@ -79,25 +190,18 @@ Short lines that tell {her} what to do.
 | `hide-home.mp3` | What a wonderful adventure! Everyone is home! |
 | `cook-pick.mp3` | What shall we cook today? |
 | `cook-start.mp3` | Let us cook! Follow the chef! |
-| `cook-add.mp3` | Put it in the bowl! |
-| `cook-stir.mp3` | Stir, stir, stir! |
 | `cook-roll.mp3` | Roll the dough flat! |
-| `cook-cut.mp3` | Pick a cutter, then touch the dough! |
 | `cook-cutsand.mp3` | Pick a cutter, then touch the sandwich! |
 | `cook-oven-on.mp3` | First, turn the oven on! Touch it! |
 | `cook-squirt.mp3` | Squeeze the sauce anywhere you like! |
 | `cook-drop.mp3` | Put some dough on the tray! |
 | `cook-pour.mp3` | Pour the batter in! |
-| `cook-bake.mp3` | Into the oven! Touch the tray! |
 | `cook-ding.mp3` | It is ready! Touch the oven! |
 | `cook-grill.mp3` | Put it on the grill! |
 | `cook-flip.mp3` | Flip it over! |
 | `cook-stack.mp3` | Stack it up! Pick the glowing one! |
 | `cook-frost.mp3` | Touch the cake with icing! |
-| `cook-decorate.mp3` | Make it pretty! |
 | `cook-slice.mp3` | Slice it with the knife! |
-| `cook-serve.mp3` | Yummy! Touch it to take a bite! |
-| `clay-start.mp3` | Squish, roll and shape your clay! |
 | `cook-pickbun.mp3` | Pick a bun! |
 | `cook-pickbread.mp3` | Pick your bread! |
 | `cook-patties.mp3` | Put patties on the grill! One, two or three! |
@@ -112,12 +216,7 @@ Short lines that tell {her} what to do.
 | `cook-yum.mp3` | Yum yum! |
 | `cook-wrong.mp3` | Try the glowing one! |
 | `cook-done.mp3` | You cooked it! Delicious! |
-| `count-touch.mp3` | Touch each one to count! |
-| `count-how.mp3` | How many are there? |
 | `count-find.mp3` | Touch the number! |
-| `math-plus.mp3` | plus |
-| `math-minus.mp3` | take away |
-| `math-is.mp3` | is |
 | `math-sum.mp3` | How many altogether? |
 | `math-left.mp3` | How many are left? |
 | `math-more.mp3` | One more makes |
@@ -131,7 +230,6 @@ Short lines that tell {her} what to do.
 | `shape-square.mp3` | Square! |
 | `shape-triangle.mp3` | Triangle! |
 | `shape-star.mp3` | Star! |
-| `aq-start.mp3` | Touch the water to feed the fish! |
 | `aq-fresh.mp3` | A fresh new fish tank! Here are some coins to buy new fish! |
 | `aq-coin.mp3` | A shiny coin! Touch it! |
 | `aq-grow.mp3` | Your fish is growing! |
@@ -166,40 +264,27 @@ Short lines that tell {her} what to do.
 | `storm-over.mp3` | The storm is over. Look, the sun! |
 | `raining-pets.mp3` | It's raining cats and dogs! |
 | `pets-safe.mp3` | You saved them all! |
-| `dig-first.mp3` | First, dig a hole with the shovel! |
 | `dig-one.mp3` | Dig! One! |
 | `dig-two.mp3` | Two! |
 | `dig-three.mp3` | Three! A perfect hole! |
 | `pat-it.mp3` | Now pat the dirt down! |
 | `bye-bye.mp3` | Bye bye, friend! Have fun! |
-| `pour-water.mp3` | Hold the can over the plant to water it! |
 | `seed-in.mp3` | Now drop in a seed! |
 | `water-me.mp3` | Tap the plant to water it! |
 | `new-friend.mp3` | A new friend! |
 | `new-seeds.mp3` | New seeds to plant! |
 | `bigger-garden.mp3` | Your garden got bigger! |
 | `confirm-bye.mp3` | Do you want to say bye-bye? Tap the soft pink button to say bye-bye, or the green one to stay. |
-| `break-time.mp3` | Time for a little rest! |
 | `hello.mp3` | Hello! |
 | `welcome-home.mp3` | Welcome home, |
 
-## Numbers (0 to 20)
+## Numbers (11)
 
-Said when counting and adding: "One!", "Two!"... Say just the number.
+Said when counting and adding: "One!", "Two!"... Say just the number. One to ten are on the short list; zero and eleven to twenty are optional.
 
 | File | Say |
 |---|---|
 | `num-0.mp3` | Zero! |
-| `num-1.mp3` | One! |
-| `num-2.mp3` | Two! |
-| `num-3.mp3` | Three! |
-| `num-4.mp3` | Four! |
-| `num-5.mp3` | Five! |
-| `num-6.mp3` | Six! |
-| `num-7.mp3` | Seven! |
-| `num-8.mp3` | Eight! |
-| `num-9.mp3` | Nine! |
-| `num-10.mp3` | Ten! |
 | `num-11.mp3` | Eleven! |
 | `num-12.mp3` | Twelve! |
 | `num-13.mp3` | Thirteen! |
@@ -211,7 +296,7 @@ Said when counting and adding: "One!", "Two!"... Say just the number.
 | `num-19.mp3` | Nineteen! |
 | `num-20.mp3` | Twenty! |
 
-## Names in the name pickers
+## Names in the name pickers (42)
 
 Said when a name button is touched (player nicknames and pet names) and in "Welcome home, ...".
 
@@ -260,7 +345,7 @@ Said when a name button is touched (player nicknames and pet names) and in "Welc
 | `name-Bean.mp3` | Bean |
 | `name-Noodle.mp3` | Noodle |
 
-## Style Studio names
+## Style Studio names (165)
 
 Only said when "Extra audio help" is on in Grown-ups. Said when a friend, a hairstyle or a piece of clothing is touched in the dress-up game, like "A ball gown!" or "Fairy wings!".
 
@@ -432,7 +517,7 @@ Only said when "Extra audio help" is on in Grown-ups. Said when a friend, a hair
 | `style-say-all.mp3` | All the nails! |
 | `style-say-clear.mp3` | Clean nails. |
 
-## Sprout Kitchen names
+## Sprout Kitchen names (115)
 
 Only said when "Extra audio help" is on in Grown-ups. Said when an ingredient, a cutter shape, a recipe or a food group is touched in the cooking game: "Flour!", "Pink icing!", "A cheeseburger!".
 
@@ -554,7 +639,7 @@ Only said when "Extra audio help" is on in Grown-ups. Said when an ingredient, a
 | `cook-pineapple.mp3` | Pineapple! |
 | `cook-basil.mp3` | Basil! |
 
-## Clay Corner names
+## Clay Corner names (30)
 
 Only said when "Extra audio help" is on in Grown-ups. Said when a clay tool, a cookie cutter, a stamp or an eye or bead is touched: "Squish!", "A heart!", "A googly eye!".
 
@@ -591,73 +676,23 @@ Only said when "Extra audio help" is on in Grown-ups. Said when a clay tool, a c
 | `clay-pearl.mp3` | A pearl! |
 | `clay-sprinkles.mp3` | Sprinkles! |
 
-## Letter names (A to Z)
+## Fishing Pond fish names (9)
 
-Say the name of the letter: "Bee", "Cee".
-
-| File | Say |
-|---|---|
-| `letter-a.mp3` | Ay |
-| `letter-b.mp3` | Bee |
-| `letter-c.mp3` | Cee |
-| `letter-d.mp3` | Dee |
-| `letter-e.mp3` | Ee |
-| `letter-f.mp3` | Eff |
-| `letter-g.mp3` | Gee |
-| `letter-h.mp3` | Aitch |
-| `letter-i.mp3` | Eye |
-| `letter-j.mp3` | Jay |
-| `letter-k.mp3` | Kay |
-| `letter-l.mp3` | El |
-| `letter-m.mp3` | Em |
-| `letter-n.mp3` | En |
-| `letter-o.mp3` | Oh |
-| `letter-p.mp3` | Pee |
-| `letter-q.mp3` | Cue |
-| `letter-r.mp3` | Ar |
-| `letter-s.mp3` | Ess |
-| `letter-t.mp3` | Tee |
-| `letter-u.mp3` | You |
-| `letter-v.mp3` | Vee |
-| `letter-w.mp3` | Double you |
-| `letter-x.mp3` | Ex |
-| `letter-y.mp3` | Why |
-| `letter-z.mp3` | Zee |
-
-## Letter sounds (A to Z)
-
-Say the sound the letter makes: "buh", "kuh", "sss". Not the name.
+Said by the built-in voice when a fish is caught in the fishing game, like "A bass!" or "A goldfish!". Optional.
 
 | File | Say |
 |---|---|
-| `sound-a.mp3` | ah |
-| `sound-b.mp3` | buh |
-| `sound-c.mp3` | kuh |
-| `sound-d.mp3` | duh |
-| `sound-e.mp3` | eh |
-| `sound-f.mp3` | fuh |
-| `sound-g.mp3` | guh |
-| `sound-h.mp3` | huh |
-| `sound-i.mp3` | ih |
-| `sound-j.mp3` | juh |
-| `sound-k.mp3` | kuh |
-| `sound-l.mp3` | luh |
-| `sound-m.mp3` | muh |
-| `sound-n.mp3` | nuh |
-| `sound-o.mp3` | aw |
-| `sound-p.mp3` | puh |
-| `sound-q.mp3` | kwuh |
-| `sound-r.mp3` | ruh |
-| `sound-s.mp3` | sss |
-| `sound-t.mp3` | tuh |
-| `sound-u.mp3` | uh |
-| `sound-v.mp3` | vuh |
-| `sound-w.mp3` | wuh |
-| `sound-x.mp3` | ks |
-| `sound-y.mp3` | yuh |
-| `sound-z.mp3` | zzz |
+| `fish-bass.mp3` | A bass! |
+| `fish-bluegill.mp3` | A bluegill! |
+| `fish-goldfish.mp3` | A goldfish! |
+| `fish-carp.mp3` | A carp! |
+| `fish-trout.mp3` | A trout! |
+| `fish-perch.mp3` | A perch! |
+| `fish-catfish.mp3` | A catfish! |
+| `fish-salmon.mp3` | A salmon! |
+| `fish-minnow.mp3` | A minnow! |
 
-## Picture words
+## Picture words (26)
 
 The word for each letter picture: apple, bear, cat...
 
@@ -690,7 +725,7 @@ The word for each letter picture: apple, bear, cat...
 | `word-y.mp3` | yarn |
 | `word-z.mp3` | zebra |
 
-## Garden friend announcements
+## Garden friend announcements (14)
 
 Said when a new garden friend appears.
 
@@ -711,7 +746,7 @@ Said when a new garden friend appears.
 | `creature-cat.mp3` | A kitty! |
 | `creature-dog.mp3` | A puppy! |
 
-## Critter noises (make the sound!)
+## Critter noises (make the sound!) (14)
 
 Played when a garden friend is tapped. Just make the noise, like a bee buzz or a frog ribbit.
 
@@ -732,7 +767,7 @@ Played when a garden friend is tapped. Just make the noise, like a bee buzz or a
 | `critter-cat.mp3` | Meow! |
 | `critter-dog.mp3` | Woof woof! |
 
-## Purring and happy sounds
+## Purring and happy sounds (12)
 
 Played while a pet is stroked in the close-up view in Pet Care (it loops while the pet is petted). If nothing is recorded the game makes a soft purr of its own. A few seconds of a real purr works best.
 
