@@ -207,7 +207,7 @@
       switch (s.tool) {
         case 'clay': {
           const step = Math.max(1, R * .22), n = Math.ceil(d / step);
-          for (let k = 1; k <= n; k++) { const u = k / n; s.dist += d / n; this.dome(s.lx + dx * u, s.ly + dy * u, R, this.colorNow(s.dist), s.base); }
+          for (let k = 1; k <= n; k++) { const u = k / n; s.dist += d / n; this.dome(s.lx + dx * u, s.ly + dy * u, R * (1 + .055 * Math.sin(s.dist * .21) + .03 * Math.sin(s.dist * .53 + 1)), this.colorNow(s.dist), s.base); }
           if (this.t - this.sndT > .12) { sfx.squish(); this.sndT = this.t; }
           break;
         }
@@ -250,48 +250,56 @@
       const H = this.H, C = this.C, x0 = Math.max(0, Math.floor(cx - r)), x1 = Math.min(G - 1, Math.ceil(cx + r)), y0 = Math.max(0, Math.floor(cy - r)), y1 = Math.min(G - 1, Math.ceil(cy + r)), r2 = r * r;
       for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) {
         const d2 = (x - cx) * (x - cx) + (y - cy) * (y - cy); if (d2 >= r2) continue;
-        const i = y * G + x, dd = Math.sqrt(d2), eg = Math.min(1, (r - dd) / 1.6), hh = Math.sqrt(r2 - d2) * eg * eg, tg = Math.min(MAXH, (base ? base[i] : H[i]) + hh * .92);
-        if (tg > H[i] + .01) { if (hh > .6 || H[i] < .3 || !base) { C[i * 3] = col[0]; C[i * 3 + 1] = col[1]; C[i * 3 + 2] = col[2]; } H[i] = tg; }
+        const i = y * G + x, dd = Math.sqrt(d2), eg = Math.min(1, (r - dd) / (1.8 * SC)), hh = Math.sqrt(r2 - d2) * .86 * eg * eg, tg = Math.min(MAXH, (base ? base[i] : H[i]) + hh);
+        if (tg > H[i] + .01) {
+          // where new clay rises well above old clay it takes its colour; near the rim the two colours mix a little, like real clay pressed together
+          let w = H[i] < .3 ? 1 : clamp((tg - H[i]) / (2.2 * SC), 0, 1); w = w * w * (3 - 2 * w);
+          C[i * 3] += (col[0] - C[i * 3]) * w; C[i * 3 + 1] += (col[1] - C[i * 3 + 1]) * w; C[i * 3 + 2] += (col[2] - C[i * 3 + 2]) * w; H[i] = tg;
+        }
       }
     }
     // press a flat tool down: clay under it above `ceil` is pushed out into the ring around it. sd(x, y) < 0 inside, between 0 and ring around.
-    flatten(x0, y0, x1, y1, sd, ring, ceil, extraOK, mr = 3, capAdd = 2.6 * SC) {
-      const H = this.H, C = this.C, mark = this.mark || (this.mark = new Uint8Array(N)); x0 = Math.max(0, Math.floor(x0)); y0 = Math.max(0, Math.floor(y0)); x1 = Math.min(G - 1, Math.ceil(x1)); y1 = Math.min(G - 1, Math.ceil(y1));
-      let excess = 0, cr = 0, cg = 0, cb = 0, cw = 0; const marked = [], rc = [];
+    // Slump: clay cannot hold a cliff. Where one cell stands more than T above its neighbour, a little flows over to it (no clay is lost),
+    // so pressed lumps spread into soft skirts and every edge ends up rounded.
+    relax(x0, y0, x1, y1, iters, T) {
+      const H = this.H, C = this.C; x0 = Math.max(1, Math.floor(x0)); y0 = Math.max(1, Math.floor(y0)); x1 = Math.min(G - 2, Math.ceil(x1)); y1 = Math.min(G - 2, Math.ceil(y1));
+      const offs = [1, G, -1, -G];
+      for (let it = 0; it < iters; it++) {
+        const flip = it & 1;
+        for (let yy = y0; yy <= y1; yy++) { const y = flip ? y1 - (yy - y0) : yy; for (let xx = x0; xx <= x1; xx++) { const x = flip ? x1 - (xx - x0) : xx, i = y * G + x, h = H[i]; if (h <= .05) continue;
+          for (let q = 0; q < 4; q++) { const j = i + offs[q], dh = h - H[j]; if (dh > T) { const m = (dh - T) * .22; if (H[j] < .3) { C[j * 3] = C[i * 3]; C[j * 3 + 1] = C[i * 3 + 1]; C[j * 3 + 2] = C[i * 3 + 2]; } H[i] -= m; H[j] += m; } } } }
+      }
+    }
+    flatten(x0, y0, x1, y1, sd, ring, ceil, extraOK) {
+      const H = this.H, C = this.C; x0 = Math.max(0, Math.floor(x0)); y0 = Math.max(0, Math.floor(y0)); x1 = Math.min(G - 1, Math.ceil(x1)); y1 = Math.min(G - 1, Math.ceil(y1));
+      let excess = 0, cr = 0, cg = 0, cb = 0, cw = 0; const rc = [];
       for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) {
         const v = sd(x, y), i = y * G + x;
-        if (v <= 0) { if (H[i] > ceil) { const e = H[i] - ceil; excess += e; cr += C[i * 3] * e; cg += C[i * 3 + 1] * e; cb += C[i * 3 + 2] * e; cw += e; H[i] = ceil; mark[i] = 1; marked.push(i); } }
-        else if (v < ring && (!extraOK || extraOK(x, y))) rc.push(i, v);
+        if (v <= 0) { if (H[i] > ceil) { const e = H[i] - ceil; excess += e; cr += C[i * 3] * e; cg += C[i * 3 + 1] * e; cb += C[i * 3 + 2] * e; cw += e; H[i] = ceil; } }
+        else if (v < ring && (!extraOK || extraOK(x, y))) rc.push(i);
       }
-      let moved = false;
-      if (excess > 0) {
-        // clay only squeezes out next to where it was pushed from, never into empty board far away
-        const near = [], vs = []; for (let k = 0; k < rc.length; k += 2) {
-          const i = rc[k], x = i % G, y = (i / G) | 0; let ok = H[i] > .3;
-          for (let dy = -mr; dy <= mr && !ok; dy++) for (let dx = -mr; dx <= mr; dx++) { const X = x + dx, Y = y + dy; if (X >= 0 && Y >= 0 && X < G && Y < G && mark[Y * G + X]) { ok = true; break; } }
-          if (ok) { near.push(i); vs.push(rc[k + 1]); }
-        }
-        if (near.length) {
-          const add = Math.min(excess / near.length, capAdd), col = [cr / cw, cg / cw, cb / cw];
-          for (let k = 0; k < near.length; k++) { const i = near[k]; if (H[i] < .5) { C[i * 3] = col[0]; C[i * 3 + 1] = col[1]; C[i * 3 + 2] = col[2]; } H[i] = Math.min(MAXH, H[i] + add * (1 - vs[k] / ring * .5)); }
-          moved = true;
-        }
+      if (excess <= 0) return false;
+      // the squeezed-out clay goes into the cells just outside, where the pressed clay reaches the edge of the tool; slumping then spreads it
+      const edge = []; for (const i of rc) { let touch = false; for (let q = 0; q < 8 && !touch; q++) { const j = i + NB[q]; if (j >= 0 && j < N && H[j] >= ceil * .9) touch = true; } if (touch || H[i] > .3) edge.push(i); }
+      if (edge.length) {
+        const add = Math.min(excess / edge.length, 3.2 * SC), col = [cr / cw, cg / cw, cb / cw];
+        for (const i of edge) { if (H[i] < .5) { C[i * 3] = col[0]; C[i * 3 + 1] = col[1]; C[i * 3 + 2] = col[2]; } H[i] = Math.min(MAXH, H[i] + add); }
       }
-      for (const i of marked) mark[i] = 0;
-      return moved || excess > 0;
+      this.relax(x0 - 2, y0 - 2, x1 + 2, y1 + 2, 10, 1.25 * SC);
+      return true;
     }
     squishAt(cx, cy, r, sink) {
       const H = this.H, x0 = Math.max(0, Math.floor(cx - r)), x1 = Math.min(G - 1, Math.ceil(cx + r)), y0 = Math.max(0, Math.floor(cy - r)), y1 = Math.min(G - 1, Math.ceil(cy + r));
       let mx = 0; for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) { if (Math.hypot(x - cx, y - cy) <= r && H[y * G + x] > mx) mx = H[y * G + x]; }
       if (mx <= FLAT + .02) return false;
-      return this.flatten(cx - r - 6, cy - r - 6, cx + r + 6, cy + r + 6, (x, y) => Math.hypot(x - cx, y - cy) - r, 5 * SC, Math.max(FLAT, mx - sink), null, 4 * SC);
+      return this.flatten(cx - r - 6, cy - r - 6, cx + r + 6, cy + r + 6, (x, y) => Math.hypot(x - cx, y - cy) - r, 3 * SC, Math.max(FLAT, mx - sink), null);
     }
     rollSeg(s, dx, dy, d, R) {
       const ux = dx / d, uy = dy / d, L = R * 2.4, back = 1.5 * SC, fwd = d + 1.5 * SC, ring = 3.5 * SC, x0 = s.lx, y0 = s.ly;
       const along = (x, y) => (x - x0) * ux + (y - y0) * uy, across = (x, y) => -(x - x0) * uy + (y - y0) * ux;
       const sd = (x, y) => { const u = along(x, y), v = Math.abs(across(x, y)); return Math.max(-back - u, u - fwd, v - L); };
       const rg = L + fwd + ring + 2;
-      this.flatten(x0 - rg, y0 - rg, x0 + rg, y0 + rg, sd, ring, FLAT, (x, y) => along(x, y) > -back, 2 * SC);
+      this.flatten(x0 - rg, y0 - rg, x0 + rg, y0 + rg, sd, ring, FLAT, (x, y) => along(x, y) > -back);
     }
     // drag clay along with a finger (backward warp: what is at the finger moves with it)
     warp(px, py, dx, dy, R) {
@@ -301,17 +309,17 @@
       const samp = (fx, fy, out) => {
         fx = clamp(fx, 0, G - 1.001); fy = clamp(fy, 0, G - 1.001); const ix = fx | 0, iy = fy | 0, ax = fx - ix, ay = fy - iy, i = iy * G + ix;
         const h = (H0[i] * (1 - ax) + H0[i + 1] * ax) * (1 - ay) + (H0[i + G] * (1 - ax) + H0[i + G + 1] * ax) * ay;
-        const near = ax < .5 ? (ay < .5 ? i : i + G) : (ay < .5 ? i + 1 : i + G + 1);
-        out[0] = h; out[1] = C0[near * 3]; out[2] = C0[near * 3 + 1]; out[3] = C0[near * 3 + 2];
+        const w00 = (1 - ax) * (1 - ay) * (H0[i] > .1 ? 1 : 0), w10 = ax * (1 - ay) * (H0[i + 1] > .1 ? 1 : 0), w01 = (1 - ax) * ay * (H0[i + G] > .1 ? 1 : 0), w11 = ax * ay * (H0[i + G + 1] > .1 ? 1 : 0), ws = w00 + w10 + w01 + w11 || 1;
+        out[0] = h; for (let ch = 0; ch < 3; ch++) out[1 + ch] = (C0[i * 3 + ch] * w00 + C0[(i + 1) * 3 + ch] * w10 + C0[(i + G) * 3 + ch] * w01 + C0[(i + G + 1) * 3 + ch] * w11) / ws;
       };
       const o = [0, 0, 0, 0];
       for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) {
         const d = Math.hypot(x - px, y - py) / rho; if (d >= 1) continue; const w = (1 - d * d) * (1 - d * d), i = y * G + x;
-        samp(x - dx * w, y - dy * w, o); H[i] = o[0] < .12 ? 0 : o[0]; if (o[0] > .3) { C[i * 3] = o[1]; C[i * 3 + 1] = o[2]; C[i * 3 + 2] = o[3]; }
+        samp(x - dx * w, y - dy * w, o); H[i] = o[0] < .7 * SC ? 0 : o[0]; if (o[0] > .3) { C[i * 3] = o[1]; C[i * 3 + 1] = o[2]; C[i * 3 + 2] = o[3]; }
       }
     }
     pinchAt(cx, cy, R, dt) {
-      const H = this.H, r = R * 1.5, sg = R * .55; let any = false;
+      const H = this.H, r = R * 1.7, sg = R * .75; let any = false;
       for (let y = Math.max(0, Math.floor(cy - r)); y <= Math.min(G - 1, Math.ceil(cy + r)); y++) for (let x = Math.max(0, Math.floor(cx - r)); x <= Math.min(G - 1, Math.ceil(cx + r)); x++) {
         const i = y * G + x; if (H[i] < .3) continue; const d2 = (x - cx) * (x - cx) + (y - cy) * (y - cy); if (d2 > r * r) continue;
         H[i] = Math.min(MAXH, H[i] + Math.exp(-d2 / (2 * sg * sg)) * 16 * SC * dt); any = true;
@@ -491,33 +499,40 @@
     }
 
     /* ---------------------------------------------------------------- drawing the clay */
+    // Looks: the height map is softened a little before it is lit (clay has no sharp walls), the light is soft with a cool fill from
+    // the other side, the surface is matte with a faint grain, crevices and the foot of tall lumps are a little darker, and the shadows
+    // are warm. Cut and rolled edges are anti-aliased from the softened shape.
+    blur(src, dst, tmp) {
+      for (let y = 0; y < G; y++) { const r = y * G; for (let x = 0; x < G; x++) { const a = src[r + Math.max(0, x - 2)], b2 = src[r + Math.max(0, x - 1)], c = src[r + x], d2 = src[r + Math.min(G - 1, x + 1)], e = src[r + Math.min(G - 1, x + 2)]; tmp[r + x] = (a + b2 * 4 + c * 6 + d2 * 4 + e) / 16; } }
+      for (let y = 0; y < G; y++) { const r0 = Math.max(0, y - 2) * G, r1 = Math.max(0, y - 1) * G, r2 = y * G, r3 = Math.min(G - 1, y + 1) * G, r4 = Math.min(G - 1, y + 2) * G; for (let x = 0; x < G; x++) dst[r2 + x] = (tmp[r0 + x] + tmp[r1 + x] * 4 + tmp[r2 + x] * 6 + tmp[r3 + x] * 4 + tmp[r4 + x]) / 16; }
+    }
     shade() {
       const H = this.H, C = this.C, d = this.imd.data, nz = this.noise;
-      const lx = -.45, ly = -.55, lz = .7, ll = Math.hypot(lx, ly, lz), Lx = lx / ll, Ly = ly / ll, Lz = lz / ll;
-      let hx = Lx, hy = Ly, hz = Lz + 1; const hl = Math.hypot(hx, hy, hz); hx /= hl; hy /= hl; hz /= hl;
+      const Hs = this.Hs || (this.Hs = new Float32Array(N)), Hb = this.Hb || (this.Hb = new Float32Array(N)), tmp = this.tmp || (this.tmp = new Float32Array(N));
+      if (!this.tex) { const tx = this.tex = new Float32Array(N), grid = (n, sd) => { const g = new Float32Array((n + 2) * (n + 2)); let q = sd; for (let i = 0; i < g.length; i++) { q = (q * 1664525 + 1013904223) >>> 0; g[i] = q / 4294967296 * 2 - 1; } return g; }, g1 = grid(Math.ceil(G / 5), 11), g2 = grid(Math.ceil(G / 13), 23), n1 = Math.ceil(G / 5) + 2, n2 = Math.ceil(G / 13) + 2;
+        const samp = (g, n, st, x, y) => { const fx = x / st, fy = y / st, ix = fx | 0, iy = fy | 0, ax = fx - ix, ay = fy - iy, sx = ax * ax * (3 - 2 * ax), sy = ay * ay * (3 - 2 * ay), i = iy * n + ix; return (g[i] * (1 - sx) + g[i + 1] * sx) * (1 - sy) + (g[i + n] * (1 - sx) + g[i + n + 1] * sx) * sy; };
+        for (let y = 0; y < G; y++) for (let x = 0; x < G; x++) tx[y * G + x] = samp(g1, n1, 5, x, y) * .6 + samp(g2, n2, 13, x, y) * .4; }
+      this.blur(H, Hs, tmp); this.blur(Hs, Hb, tmp); this.blur(Hb, tmp, this.tmp2 || (this.tmp2 = new Float32Array(N))); const Hw = tmp;   // Hw: a wide blur, for the soft shadows between lumps
+      const tex = this.tex, TA = .42 * SC;
+      const key = [-.5, -.62, .6], kl = Math.hypot(key[0], key[1], key[2]), Kx = key[0] / kl, Ky = key[1] / kl, Kz = key[2] / kl, Fx = .55, Fy = .45, Fz = .7, fl = Math.hypot(Fx, Fy, Fz);
+      let hx = Kx, hy = Ky, hz = Kz + 1; const hl = Math.hypot(hx, hy, hz); hx /= hl; hy /= hl; hz /= hl;
       for (let y = 0; y < G; y++) {
-        const ym = y > 0 ? -G : 0, yp = y < G - 1 ? G : 0, y3m = y > 2 ? -3 * G : 0, y3p = y < G - 3 ? 3 * G : 0;
         for (let x = 0; x < G; x++) {
-          const i = y * G + x, h = H[i], o = i * 4;
-          if (h < .05) {
-            // a soft halo just outside the clay, so cut and flat edges are smooth instead of stair-stepped
-            if (x > 0 && y > 0 && x < G - 1 && y < G - 1) {
-              let m = 0, best = -1, bh = 0;
-              for (let q = 0; q < 8; q++) { const j = i + NB[q]; if (H[j] >= .05) { m++; if (H[j] > bh) { bh = H[j]; best = j; } } }
-              if (m && bh >= .6) { const k2 = best * 3, sh2 = .72; d[o] = C[k2] * sh2; d[o + 1] = C[k2 + 1] * sh2; d[o + 2] = C[k2 + 2] * sh2; d[o + 3] = m / 11 * 255; continue; }
-            }
-            d[o + 3] = 0; continue;
-          }
-          const xm = x > 0 ? -1 : 0, xp = x < G - 1 ? 1 : 0;
-          const gx = (H[i + xp] - H[i + xm]) / (xp - xm || 1), gy = (H[i + yp] - H[i + ym]) / ((yp - ym) / G || 1);
-          const nl = 1 / Math.sqrt(gx * gx * .64 + gy * gy * .64 + 1), nx = -gx * .8 * nl, ny = -gy * .8 * nl, nzv = nl;
-          const diff = Math.max(0, nx * Lx + ny * Ly + nzv * Lz), sp = Math.pow(Math.max(0, nx * hx + ny * hy + nzv * hz), 16) * .16;
-          const x3m = x > 2 ? -3 : 0, x3p = x < G - 3 ? 3 : 0, avg = (H[i + x3m] + H[i + x3p] + H[i + y3m] + H[i + y3p]) * .25, ao = clamp((avg - h) * .06, 0, .3);
-          const sh = .42 + .72 * diff - ao + nz[i], k = i * 3;
-          d[o] = Math.min(255, C[k] * sh + sp * 255); d[o + 1] = Math.min(255, C[k + 1] * sh + sp * 255); d[o + 2] = Math.min(255, C[k + 2] * sh + sp * 255);
-          let al = h >= 1.1 ? 1 : Math.max(0, Math.min(1, (h - .05) / 1.05));
-          if (x > 0 && y > 0 && x < G - 1 && y < G - 1) { let n = 0; for (let q = 0; q < 8; q++) if (H[i + NB[q]] < .05) n++; if (n) al *= 1 - n / 11; }
-          d[o + 3] = al * 255;
+          const i = y * G + x, o = i * 4, hs = Hs[i];
+          if (hs < .1) { d[o + 3] = 0; continue; }
+          const inside = H[i] >= .05;
+          // colour: the clay's own, or (just outside a cut or edge) the nearest clay's
+          let k = i * 3;
+          if (!inside) { let best = -1, bh = 0; for (let q = 0; q < 8; q++) { const j = i + NB[q]; if (j >= 0 && j < N && H[j] > bh) { bh = H[j]; best = j; } } if (best < 0) { d[o + 3] = 0; continue; } k = best * 3; }
+          const xm = x > 0 ? i - 1 : i, xp = x < G - 1 ? i + 1 : i, ym = y > 0 ? i - G : i, yp = y < G - 1 ? i + G : i, m = Math.min(1, hs * .5);
+          const gx = (Hs[xp] - Hs[xm] + (tex[xp] - tex[xm]) * TA * m) * .5, gy = (Hs[yp] - Hs[ym] + (tex[yp] - tex[ym]) * TA * m) * .5;
+          const nl = 1 / Math.sqrt(gx * gx * .55 + gy * gy * .55 + 1), nx = -gx * .74 * nl, ny = -gy * .74 * nl, nzv = nl;
+          const d1 = Math.max(0, nx * Kx + ny * Ky + nzv * Kz), d2 = Math.max(0, (nx * Fx + ny * Fy + nzv * Fz) / fl), sp = Math.pow(Math.max(0, nx * hx + ny * hy + nzv * hz), 7) * .075;
+          const ao = clamp((Hw[i] - hs) * .05, 0, .3) + (hs < 1.6 ? (1.6 - hs) * .06 : 0);
+          const lit = Math.max(inside ? 0 : .62, .5 + .56 * d1 + .12 * d2 - ao + nz[i]), t = clamp((lit - .5) / .6, 0, 1);
+          const rm = lit * (.9 + .14 * t), gm = lit * (.88 + .12 * t), bm = lit * (1.02 - .1 * t);
+          d[o] = Math.min(255, C[k] * rm + sp * 255); d[o + 1] = Math.min(255, C[k + 1] * gm + sp * 255); d[o + 2] = Math.min(255, C[k + 2] * bm + sp * 255);
+          d[o + 3] = clamp((hs - .1) / .8, 0, 1) * 255;
         }
       }
       this.imgc.putImageData(this.imd, 0, 0);
@@ -525,14 +540,16 @@
     // the cutting mat and the clay (with its shadow), drawn into a square of side s at (x, y) on context c
     renderBoard(c, x, y, s, dpr) {
       c.save(); c.translate(x, y);
-      const mat = c.createLinearGradient(0, 0, 0, s); mat.addColorStop(0, '#d6f2e3'); mat.addColorStop(1, '#bfe8d2');
+      const mat = c.createLinearGradient(0, 0, 0, s); mat.addColorStop(0, '#f7eedd'); mat.addColorStop(1, '#ecdcc2');
       c.fillStyle = 'rgba(80,60,40,.22)'; rr(c, 0, s * .012, s, s, s * .04); c.fill();
       c.fillStyle = mat; rr(c, 0, 0, s, s, s * .04); c.fill();
-      c.save(); rr(c, 0, 0, s, s, s * .04); c.clip(); c.strokeStyle = 'rgba(255,255,255,.55)'; c.lineWidth = Math.max(1, s * .003);
-      for (let i = 1; i < 16; i++) { c.beginPath(); c.moveTo(i * s / 16, 0); c.lineTo(i * s / 16, s); c.moveTo(0, i * s / 16); c.lineTo(s, i * s / 16); c.stroke(); }
+      c.save(); rr(c, 0, 0, s, s, s * .04); c.clip(); c.fillStyle = 'rgba(150,115,70,.13)'; const gap = s / 22; for (let gy = 1; gy < 22; gy++) for (let gx = 1; gx < 22; gx++) { c.beginPath(); c.arc(gx * gap, gy * gap, s * .0032, 0, TAU); c.fill(); }
+      const vg = c.createRadialGradient(s / 2, s / 2, s * .35, s / 2, s / 2, s * .78); vg.addColorStop(0, 'rgba(255,255,255,0)'); vg.addColorStop(1, 'rgba(120,85,40,.12)'); c.fillStyle = vg; c.fillRect(0, 0, s, s);
       c.restore(); c.strokeStyle = 'rgba(255,255,255,.9)'; c.lineWidth = s * .008; rr(c, 0, 0, s, s, s * .04); c.stroke();
       if (this.shadowOK !== false) {
-        try { c.save(); c.shadowColor = 'rgba(55,35,25,.38)'; c.shadowBlur = s * .018 * dpr; c.shadowOffsetX = 8000 * dpr + s * .006 * dpr; c.shadowOffsetY = s * .012 * dpr; c.imageSmoothingEnabled = true; c.drawImage(this.img, -8000, 0, s, s); c.restore(); } catch (_) { this.shadowOK = false; }
+        try {
+          for (const [blur, ox, oy, col] of [[.034, .012, .024, 'rgba(90,60,30,.26)'], [.008, .003, .006, 'rgba(60,35,15,.30)']]) { c.save(); c.shadowColor = col; c.shadowBlur = s * blur * dpr; c.shadowOffsetX = 8000 * dpr + s * ox * dpr; c.shadowOffsetY = s * oy * dpr; c.imageSmoothingEnabled = true; c.drawImage(this.img, -8000, 0, s, s); c.restore(); }
+        } catch (_) { this.shadowOK = false; }
       }
       c.imageSmoothingEnabled = true; c.imageSmoothingQuality = 'high'; c.drawImage(this.img, 0, 0, s, s);
       c.restore();
