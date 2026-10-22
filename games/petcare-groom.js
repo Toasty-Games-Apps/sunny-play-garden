@@ -49,9 +49,9 @@
     const sp = (SPG.pets.SPECIES || {})[id] || {}, Z = zones(id), first = !bag.knots;
     bag.knots = bag.knots || []; bag.burrs = bag.burrs || [];
     const pick = () => { const z = Z.all[Math.floor(Math.random() * Z.all.length)]; return [z[0] + (Math.random() - .5) * .04, Math.min(-.16, z[1] + (Math.random() - .5) * .04)]; };   // never down among the toolbar buttons
-    const addK = Math.floor(mins / 10) + (first ? 3 : 0), addB = Math.floor(mins / 15) + (first ? 2 : 0);
-    if (!sp.smooth) for (let i = 0; i < addK && bag.knots.length < 6; i++) { const p = pick(); bag.knots.push({ x: p[0], y: p[1], a: 1, seed: Math.floor(Math.random() * 900) }); }
-    for (let i = 0; i < addB && bag.burrs.length < 4; i++) { const p = pick(); bag.burrs.push({ x: p[0], y: p[1], h: 1, seed: Math.floor(Math.random() * 900), shake: 0 }); }
+    const addK = Math.floor(mins / 10) + (first ? 1 : 0), addB = Math.floor(mins / 15) + (first ? 1 : 0);   // a brand-new pet is only a little scruffy
+    if (!sp.smooth) for (let i = 0; i < addK && bag.knots.length < 4; i++) { const p = pick(); bag.knots.push({ x: p[0], y: p[1], a: 1, seed: Math.floor(Math.random() * 900) }); }
+    for (let i = 0; i < addB && bag.burrs.length < 3; i++) { const p = pick(); bag.burrs.push({ x: p[0], y: p[1], h: 1, seed: Math.floor(Math.random() * 900), shake: 0 }); }
   }
 
   /* ------------------------------------------------------------ drawing (pet space: feet at 0,0, s = pet height) */
@@ -92,14 +92,14 @@
       c.fillStyle = '#7dbf5a'; c.beginPath(); c.ellipse(-r * .22, -r * .1, r * .7, r * .3, 0, 0, TAU); c.fill();
       c.strokeStyle = '#3f7a30'; c.lineWidth = Math.max(1, r * .1); c.lineCap = 'round'; for (let i = -1; i <= 1; i++) { c.beginPath(); c.moveTo(-r * .9, i * r * .22); c.quadraticCurveTo(0, i * r * .22 + r * .14, r * .9, i * r * .18); c.stroke(); }
       c.fillStyle = '#4d8a3a'; c.beginPath(); c.moveTo(r * .9, -r * .1); c.quadraticCurveTo(r * 1.35, -r * .5, r * 1.55, -r * .1); c.quadraticCurveTo(r * 1.3, r * .05, r * .9, -r * .1); c.fill();
-    } else {   // jam: sticky, glossy and bright
-      const gr = c.createRadialGradient(x - r * .25, y - r * .3, r * .1, x, y, r * 1.1); gr.addColorStop(0, '#e24b6c'); gr.addColorStop(.7, '#b3203f'); gr.addColorStop(1, '#85152f');
+    } else {   // jam: sticky, glossy grape jelly (purple, so it never looks like a hurt)
+      const gr = c.createRadialGradient(x - r * .25, y - r * .3, r * .1, x, y, r * 1.1); gr.addColorStop(0, '#b48be6'); gr.addColorStop(.7, '#7d4cc4'); gr.addColorStop(1, '#5b3496');
       c.globalAlpha = Math.min(1, a * 1.5); c.fillStyle = gr; c.beginPath(); c.moveTo(x + r, y);
       for (let i = 1; i <= 12; i++) { const an = i / 12 * TAU, rr = r * (.85 + rnd(sd + i) * .3); c.lineTo(x + Math.cos(an) * rr, y + Math.sin(an) * rr * .85); }
-      c.closePath(); c.fill(); c.strokeStyle = 'rgba(100,10,30,.35)'; c.lineWidth = Math.max(1, r * .07); c.stroke();
+      c.closePath(); c.fill(); c.strokeStyle = 'rgba(60,25,100,.35)'; c.lineWidth = Math.max(1, r * .07); c.stroke();
       c.fillStyle = 'rgba(255,255,255,.7)'; c.beginPath(); c.ellipse(x - r * .3, y - r * .3, r * .28, r * .12, -.5, 0, TAU); c.fill();
-      c.fillStyle = '#85152f'; c.beginPath(); c.ellipse(x + r * .3, y + r * 1.05 + Math.sin(t * .7 + sd) * r * .05, r * .14, r * .32, 0, 0, TAU); c.fill();   // a sticky drip
-      c.fillStyle = 'rgba(70,0,20,.7)'; for (let i = 0; i < 4; i++) { c.beginPath(); c.arc(x + (rnd(sd + 80 + i) - .5) * r * 1.1, y + (rnd(sd + 90 + i) - .5) * r * .8, r * .06, 0, TAU); c.fill(); }   // seeds
+      c.fillStyle = '#5b3496'; c.beginPath(); c.ellipse(x + r * .3, y + r * 1.05 + Math.sin(t * .7 + sd) * r * .05, r * .14, r * .32, 0, 0, TAU); c.fill();   // a sticky drip
+      c.fillStyle = 'rgba(45,20,80,.6)'; for (let i = 0; i < 4; i++) { c.beginPath(); c.arc(x + (rnd(sd + 80 + i) - .5) * r * 1.1, y + (rnd(sd + 90 + i) - .5) * r * .8, r * .06, 0, TAU); c.fill(); }   // seeds
     }
     c.restore();
   }

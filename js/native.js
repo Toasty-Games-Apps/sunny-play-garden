@@ -21,7 +21,7 @@
           const w = await Filesystem.writeFile({ path: name, data, directory: 'CACHE', recursive: true });
           await Share.share({ title: name, url: w.uri, dialogTitle: 'Save or share' });
           return true;
-        } catch (e) { return !!(e && /cancel|dismiss/i.test(String(e.message || e))) ? false : false; }
+        } catch (e) { return false; }   // cancelled, or the share sheet failed
       }
       const url = URL.createObjectURL(blob), a = document.createElement('a');
       a.href = url; a.download = name; a.style.display = 'none'; document.body.append(a); a.click(); a.remove();

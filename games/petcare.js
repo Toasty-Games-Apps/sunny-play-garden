@@ -63,10 +63,10 @@
       this.host = host;
       this.canvas = document.createElement('canvas'); this.canvas.className = 'game-canvas';
       host.append(this.canvas); this.ctx = this.canvas.getContext('2d');
-      const b = this.bag = store.bag('care', () => ({ hunger: .6, dirt: .6, tired: .5, t: Date.now(), flags: {}, cares: 0 }));
+      const b = this.bag = store.bag('care', () => ({ hunger: .6, dirt: .3, tired: .5, t: Date.now(), flags: {}, cares: 0 }));
       // time passes gently: needs creep back up, but never all the way
       const mins = clamp((Date.now() - (b.t || Date.now())) / 60000, 0, 60);
-      b.hunger = Math.min(.85, Math.max(b.hunger || 0, .35) + mins * .03); b.dirt = Math.min(.85, Math.max(b.dirt || 0, .3) + mins * .02); b.tired = Math.min(.85, Math.max(b.tired || 0, .3) + mins * .02);
+      b.hunger = Math.min(.85, Math.max(b.hunger || 0, .35) + mins * .03); b.dirt = Math.min(.55, Math.max(b.dirt || 0, .2) + mins * .02);   // never more than about eight stains: messy, not upsetting b.tired = Math.min(.85, Math.max(b.tired || 0, .3) + mins * .02);
       b.flags = b.flags || {}; b.cares = b.cares || 0; b.t = Date.now();
       const pid = this.who().id; G.seed(b, pid, b.dirt); G.furTick(b, pid, mins);   // dirt becomes real stains; matted fur and burrs come back over time
       b.wall = b.wall || 0; b.floor = b.floor || 0; b.rug = b.rug || 0; b.lamp = b.lamp || 0; b.deco = b.deco || [];

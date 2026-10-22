@@ -297,6 +297,7 @@
       current = { stop: () => { try { src.stop(); } catch (_) { /* already ended */ } resolve(); } };
       const [off, dur] = buf._trim || [0, undefined];
       src.start(0, off, dur);
+      setTimeout(resolve, ((dur ?? buf.duration - off) + .6) * 1000);   // a suspended audio context never fires onended
     });
   }
 
@@ -316,14 +317,15 @@
     return false;
   }
 
-  async function playOne(item) {
+  // live(): false once a newer line or stop() took over while this one was still loading
+  async function playOne(item, live = () => true) {
     if (!settings().voice || !item || SPG.voice.hushed) return;
     if (typeof item !== 'string') return item.say ? speak(item.say) : undefined;
     if (skip(item)) return;
     if (isExtra(item) && !settings().audioHelp) return;   // only with Extra audio help
-    await ready;
+    await ready; if (!live()) return;
     const set = A.ctx ? chooseSet(item) : null;
-    if (set) { const buf = await loadBuffer(set, item); if (buf) return playBuffer(buf); }
+    if (set) { const buf = await loadBuffer(set, item); if (!live()) return; if (buf) return playBuffer(buf); }
     if (item in SOUNDS) return; // sound-only: silent unless recorded
     const text = SAY_AS[item] && !(store.settings.lineText && store.settings.lineText[item]) ? SAY_AS[item] : textFor(item) === item ? (LINES[item] ?? custom[item]) : textFor(item);
     if (text) return speak(text);
@@ -469,7 +471,7 @@
       current?.stop();
       for (const it of list) {
         if (my !== token) return;
-        await playOne(it);
+        await playOne(it, () => my === token);
       }
     },
     // Play a critter noise if one is recorded, otherwise the spoken announcement.

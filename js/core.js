@@ -29,6 +29,9 @@
       if (store.onChange) store.onChange();
     };
     const commit = () => { rev++; flush(); if (store.onChange) store.onChange(); }; // for merges: keeps the original stamps
+    // Device settings only (play time, night mode, PIN...): saved without marking the player as changed, so an idle
+    // device never looks "newer" than one where she really played, and the cloud backup is not woken up.
+    const saveSettings = () => { if (!timer) timer = setTimeout(flush, 350); };
     addEventListener('pagehide', flush);
     document.addEventListener('visibilitychange', () => { if (document.hidden) flush(); });
 
@@ -38,6 +41,9 @@
       const rNewer = (r.t || 0) > (l.t || 0);
       const a = clone(rNewer ? r : l), b = rNewer ? l : r;
       a.data = a.data || {};
+      a.t = Math.max(l.t || 0, r.t || 0);
+      if (a.resetAt && (b.t || 0) <= a.resetAt) return a;   // the other copy is from before a grown-up reset this player: bring nothing back
+
       const bc = b.data && b.data.color;
       if (bc && bc.pics) {
         const ac = a.data.color = a.data.color || { v: 1, pics: {} }; ac.pics = ac.pics || {};
@@ -53,17 +59,29 @@
         for (const k of ['owned', 'hats']) { ap[k] = ap[k] || {}; for (const [id, v] of Object.entries(bp[k] || {})) if (!ap[k][id]) ap[k][id] = clone(v); }
         if (!ap.active && bp.active) ap.active = bp.active;
       }
-      a.t = Math.max(l.t || 0, r.t || 0);
       return a;
+    };
+    // Copy `src` into `dst` without replacing objects or arrays that are already there, so a game that is open
+    // and holds on to its saved data (this.bag) keeps writing into the real save after a background sync.
+    const plain = x => x && typeof x === 'object' && !Array.isArray(x);
+    const adopt = (dst, src) => {
+      for (const k of Object.keys(dst)) if (!(k in src)) delete dst[k];
+      for (const [k, v] of Object.entries(src)) {
+        const cur = dst[k];
+        if (cur === v || JSON.stringify(cur) === JSON.stringify(v)) continue;
+        if (plain(cur) && plain(v)) adopt(cur, v);
+        else if (Array.isArray(cur) && Array.isArray(v)) cur.splice(0, cur.length, ...v);
+        else dst[k] = v;
+      }
     };
 
     if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {}); // ask the browser to keep it
     const store = {
-      save, flush,
+      save, saveSettings, flush,
       get settings() { return data.settings; },
       get profiles() { return data.profiles; },
       get active() { return data.profiles.find(p => p.id === data.activeId) || null; },
-      setActive(id) { data.activeId = id; save(); },
+      setActive(id) { data.activeId = id; saveSettings(); },
       // extra: { gender: 'girl' | 'boy' | '', level: { mode: 'group', group } | { mode: 'age', age } } (both optional, both editable later in Grown-ups)
       addProfile(name, avatar, extra = {}) {
         const p = { id: 'p' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5), name: name.trim().slice(0, 16), avatar, stars: 0, data: {} };
@@ -77,7 +95,7 @@
       trashAdd(p, why) { data.trash = [{ p: clone(p), why, t: Date.now() }, ...(data.trash || [])].slice(0, 8); },
       restoreTrash(i) {
         const item = (data.trash || [])[i]; if (!item) return null;
-        const p = clone(item.p);
+        const p = clone(item.p); p.t = Date.now();   // the brought-back copy is the newest, so a sync keeps it
         const clash = data.profiles.findIndex(q => q.id === p.id);
         if (clash >= 0) data.profiles[clash] = p; else data.profiles.push(p);
         data.trash.splice(i, 1); if (!data.activeId) data.activeId = p.id;
@@ -85,20 +103,20 @@
       },
       resetProfile(id) {
         const p = data.profiles.find(q => q.id === id); if (!p) return;
-        store.trashAdd(p, 'reset'); p.stars = 0; p.data = {}; save();
+        store.trashAdd(p, 'reset'); p.stars = 0; p.data = {}; p.t = p.resetAt = Date.now(); save();
       },
       saveFailed: false, onChange: null,
       get rev() { return rev; },
-      flush,
       exportProfiles() { return clone(data.profiles); },
-      // Bring in players from a backup (file or cloud). Returns how many were new.
-      mergeProfiles(remote) {
-        store.snapshot();
+      // Bring in players from a backup (file or cloud). Returns how many were new. A grown-up's restore keeps an
+      // undo copy first; the quiet background sync does not (it would overwrite the copy from the last real restore).
+      mergeProfiles(remote, { undo = true } = {}) {
+        if (undo) store.snapshot();
         let added = 0;
         for (const r of remote || []) {
           if (!r || !r.id) continue;
           const i = data.profiles.findIndex(p => p.id === r.id);
-          if (i < 0) { data.profiles.push(clone(r)); added++; } else data.profiles[i] = mergeProfile(data.profiles[i], r);
+          if (i < 0) { data.profiles.push(clone(r)); added++; } else adopt(data.profiles[i], mergeProfile(data.profiles[i], r));
         }
         if (!data.activeId && data.profiles[0]) data.activeId = data.profiles[0].id;
         commit(); return { added, total: data.profiles.length };
@@ -151,7 +169,7 @@
         A.master.gain.value = SPG.night && SPG.night.on() ? .6 : .85;
         A.master.connect(A.ctx.destination);
       }
-      if (A.ctx.state === 'suspended') A.ctx.resume();
+      if (A.ctx.state !== 'running') { const p = A.ctx.resume(); p && p.catch && p.catch(() => {}); }   // 'suspended', or iOS 'interrupted' after a call
     }
   };
 
@@ -197,19 +215,16 @@
   // Night mode: 'off', 'on', or 'auto' (dark between two hours the grown-ups choose, 7 pm to 7 am by default). The whole app is toned down:
   // a dim navy veil over everything, a night-sky backdrop, night scenery in every game and quieter sound.
   SPG.night = {
-    listeners: [],
     mode() { const m = SPG.store.settings.night; return m === 'on' || m === 'auto' ? m : 'off'; },
-    override: null,   // the moon button on the games page flips this for now without losing the grown-ups' schedule
-    on() { const m = SPG.night.mode(); if (m === 'auto' && SPG.night.override !== null) return SPG.night.override; if (m === 'on') return true; if (m === 'auto') { const h = new Date().getHours(), a = SPG.night.from(), b = SPG.night.to(); return a === b ? false : a > b ? (h >= a || h < b) : (h >= a && h < b); } return false; },
+    on() { const m = SPG.night.mode(); if (m === 'on') return true; if (m === 'auto') { const h = new Date().getHours(), a = SPG.night.from(), b = SPG.night.to(); return a === b ? false : a > b ? (h >= a || h < b) : (h >= a && h < b); } return false; },
     from() { const v = SPG.store.settings.nightFrom; return Number.isInteger(v) && v >= 0 && v < 24 ? v : 19; },
     to() { const v = SPG.store.settings.nightTo; return Number.isInteger(v) && v >= 0 && v < 24 ? v : 7; },
     apply() {
       const on = SPG.night.on();
       document.body.classList.toggle('night', on);
       if (A.master) A.master.gain.value = on ? .6 : .85;
-      if (SPG.night._last !== on) { SPG.night._last = on; SPG.night.listeners.forEach(f => f(on)); }
     },
-    set(m) { SPG.night.override = null; SPG.store.settings.night = m; SPG.store.save(); SPG.night.apply(); }
+    set(m) { SPG.store.settings.night = m; SPG.store.saveSettings(); SPG.night.apply(); }
   };
 
   SPG.sfx = {
@@ -578,7 +593,7 @@
     onFullscreenLost: null,
     async keepAwake() {
       try {
-        if (!navigator.wakeLock || document.hidden) return;
+        if (!navigator.wakeLock || document.hidden || safe._lock) return;   // one lock is enough (this runs on every touch)
         safe._lock = await navigator.wakeLock.request('screen');
         safe._lock.addEventListener('release', () => { safe._lock = null; });
       } catch (_) { /* not supported or denied */ }

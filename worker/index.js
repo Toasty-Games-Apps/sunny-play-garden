@@ -44,7 +44,14 @@ export class Backups extends DurableObject {
     this.sql.exec('CREATE TABLE IF NOT EXISTS voice (k TEXT PRIMARY KEY, s INTEGER NOT NULL, n INTEGER NOT NULL, b BLOB NOT NULL)');
   }
   // ---- voice files (this object is the family's "voice:<id>" one, separate from its backup)
-  vlist() { this.tables(); return this.sql.exec('SELECT k, s, n FROM voice ORDER BY k').toArray(); }
+  // Every sync lists the voices, so a family that still uses its backup keeps its recordings (the alarm deletes them KEEP_DAYS after the last use).
+  async vlist() {
+    this.tables();
+    const items = this.sql.exec('SELECT k, s, n FROM voice ORDER BY k').toArray();
+    if (items.length && Date.now() - Number(this.meta('updated') || 0) > 864e5) await this.vtouch();
+    return items;
+  }
+  async vtouch() { const now = Date.now(); this.setMeta('updated', now); await this.ctx.storage.setAlarm(now + KEEP_DAYS * 864e5); }
   vget(k) { this.tables(); const r = this.sql.exec('SELECT b FROM voice WHERE k = ?', k).toArray(); return r.length ? r[0].b : null; }
   async vput(k, bytes, stamp) {
     this.tables();
@@ -54,7 +61,7 @@ export class Backups extends DurableObject {
     const old = this.sql.exec('SELECT n FROM voice WHERE k = ?', k).toArray(), tot = this.sql.exec('SELECT COALESCE(SUM(n), 0) AS t, COUNT(*) AS c FROM voice').toArray()[0];
     if (tot.t - (old.length ? old[0].n : 0) + bytes.byteLength > MAX_VOICE_TOTAL || (!old.length && tot.c >= MAX_VOICE_COUNT)) return { full: true };
     this.sql.exec('INSERT OR REPLACE INTO voice (k, s, n, b) VALUES (?, ?, ?, ?)', k, stamp, bytes.byteLength, bytes);
-    await this.ctx.storage.setAlarm(Date.now() + KEEP_DAYS * 864e5);
+    await this.vtouch();   // without 'updated' the alarm would delete every recording
     return { ok: true };
   }
   vdel(k) { this.tables(); this.sql.exec('DELETE FROM voice WHERE k = ?', k); }
@@ -168,7 +175,8 @@ export default {
     // The website talks to its own address; the Android app is the one other caller that is allowed.
     const origin = request.headers.get('Origin');
     const cors = corsFor(origin);
-    if (origin && !cors && new URL(origin).host !== url.host) return json({ error: 'forbidden' }, 403);
+    let sameHost = false; try { sameHost = !!origin && new URL(origin).host === url.host; } catch (_) { /* 'null' or junk */ }
+    if (origin && !cors && !sameHost) return json({ error: 'forbidden' }, 403);
     if (request.method === 'OPTIONS') return cors ? new Response(null, { status: 204, headers: cors }) : new Response(null, { status: 204 });
     const res = await route(request, env, url);
     if (!cors) return res;
