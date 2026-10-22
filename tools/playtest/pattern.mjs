@@ -61,7 +61,7 @@ for (const age of [2, 4, 7]) {
   ok(pr.head.x > 0 && pr.picks.every(q => q.x - q.r > 0 && q.x + q.r < pr.w && q.y + q.r < pr.h), 'everything fits on the screen');
   await page.evaluate(() => SPG.app.closeGame()); await page.waitForTimeout(300);
   await openGame(page, 'Caterpillars'); await page.waitForTimeout(300);
-  ok((await P()).flies >= 4, 'the butterflies are still there next time');
+  await page.waitForTimeout(2500); { const q = await P(); ok(q.flies >= 4 && q.fliesOn === q.flies, `the butterflies are still there next time and in the sky (${q.fliesOn} of ${q.flies}) ` + await page.evaluate(() => JSON.stringify(SPG.app.running().inst.flies.map(f => [f.x | 0, f.y | 0, f.tx | 0, f.ty | 0])))); }
   ok(!page.errs.length, 'errors: ' + page.errs.join(' | '));
   await page.context().close();
 }

@@ -4,15 +4,16 @@
 Little Sprout Park
 
 ## Short description (max 80)
-18 gentle games for little ones: letters, patterns, cooking, pets and coloring
+19 gentle games for little ones: letters, patterns, feelings, pets and coloring
 
 ## Full description (max 4000)
-Little Sprout Park is a calm, colourful play park made for little hands (about ages 2 to 7). Eighteen gentle games in one app, with big buttons, spoken instructions and nothing to read. No ads, no in-app purchases, no accounts and no scary bits. Nothing can be lost and there is no "game over": just play.
+Little Sprout Park is a calm, colourful play park made for little hands (about ages 2 to 7). Nineteen gentle games in one app, with big buttons, spoken instructions and nothing to read. No ads, no in-app purchases, no accounts and no scary bits. Nothing can be lost and there is no "game over": just play.
 
 LEARN
 - Letter Garden: trace letters with a friendly bee, flash cards, find the letter, match big and little letters, letter sounds, write your own name, plus counting and first adding and taking away.
 - Shape Builder: fit coloured shapes into their holes to build a house, rocket, castle and more, then watch the picture come alive.
 - Caterpillars: what comes next? Each caterpillar sings its colour pattern (red, blue, red, blue...); pick the ball that comes next and it turns into a butterfly in its colours.
+- Feeling Friends: a friend's ice cream falls, thunder booms or a present arrives. Touch the face that shows how the friend feels, then choose a way to help: a hug, a song, a night light or a big calm breath.
 - Puzzle Pond: jigsaw puzzles made from your own coloring pictures, growing from 4 pieces to 12.
 
 CREATE

@@ -223,7 +223,7 @@
       if (b.day !== today) { b.day = today; store.save(); }
       this.counter = SPG.ui.counter(host, (c, s) => { c.translate(s / 2, s / 2); coinDraw(c, s * .3, 1, 0); }, b.coins);
       this.fx = new art.Fx(); this.t = 0; this.running = false; this.idle = 0; this.tick = this.tick.bind(this);
-      this.fish = b.fish.map((f, i) => this.makeFish(f, i)); this.foods = []; this.coins = []; this.bubbles = []; this.snails = []; this.shots = [];
+      this.fish = b.fish.map((f, i) => this.makeFish(f, i)); this.foods = []; this.coins = (b.loose || []).map(q => ({ fx: q.fx, v: q.v, vy: 0, rest: false, t: Math.random() * 6 })); this.bubbles = []; this.snails = []; this.shots = [];
       this.boss = null; this.shop = 0; this.shopAnim = 0; this.wobble = 0; this.noFund = 0; this.tip = 0;
       const cv = this.canvas, at = e => { const r = cv.getBoundingClientRect(); return { x: (e.clientX - r.left) * this.w / r.width, y: (e.clientY - r.top) * this.h / r.height }; };
       cv.addEventListener('pointerdown', e => { e.preventDefault(); SPG.audio.unlock(); const p = at(e); this.press(p.x, p.y); });
@@ -233,9 +233,12 @@
     /* ---------------------------------------------------------------- layout */
     resize() {
       const r = this.canvas.getBoundingClientRect(); if (!r.width || !r.height) return;
-      this.w = r.width; this.h = r.height; const dpr = SPG.ui.dpr();
+      const ow = this.w, oh = this.h; this.w = r.width; this.h = r.height; const dpr = SPG.ui.dpr();
       this.canvas.width = Math.round(this.w * dpr); this.canvas.height = Math.round(this.h * dpr); this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       this.ui = clamp(Math.min(this.w, this.h * 1.4) / 780, .6, 1.4);
+      // coins and food are in pixels: after the phone turns they keep their place across the tank and coins settle on the new sand
+      for (const c of this.coins) { if (c.fx != null) { c.x = c.fx * this.w; c.y = this.h * .3; delete c.fx; } else if (ow) { c.x *= this.w / ow; c.y = Math.min(c.y * this.h / oh, this.h * .8); } c.rest = false; c.vy = 0; }
+      if (ow) for (const f of this.foods) { f.x *= this.w / ow; f.y *= this.h / oh; }
       this.bs = 38 * this.ui + 20;
       this.top = this.h * .07; this.floorY = this.h - this.bs * 1.65;
       this.S = Math.min(this.w, this.h * 1.25) * .085;        // a fish unit
@@ -262,7 +265,8 @@
     resume() { if (this.running) return; this.running = true; this.last = performance.now(); this.raf = requestAnimationFrame(this.tick); }
     pause() { this.running = false; cancelAnimationFrame(this.raf); this.save(); }
     destroy() { this.pause(); this.canvas.remove(); this.counter.el.remove(); }
-    save() { store.save(); }
+    // coins she has not picked up yet wait on the sand for next time (where along the sand, and how much each is worth)
+    save() { if (this.w) this.bag.loose = this.coins.slice(-30).map(c => ({ fx: +(c.x / this.w).toFixed(3), v: c.v })); store.save(); }
     setCoins(n) { this.bag.coins = n; this.counter.set(n); }
 
     /* ---------------------------------------------------------------- input */

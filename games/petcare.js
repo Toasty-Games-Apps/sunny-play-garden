@@ -66,7 +66,8 @@
       const b = this.bag = store.bag('care', () => ({ hunger: .6, dirt: .3, tired: .5, t: Date.now(), flags: {}, cares: 0 }));
       // time passes gently: needs creep back up, but never all the way
       const mins = clamp((Date.now() - (b.t || Date.now())) / 60000, 0, 60);
-      b.hunger = Math.min(.85, Math.max(b.hunger || 0, .35) + mins * .03); b.dirt = Math.min(.55, Math.max(b.dirt || 0, .2) + mins * .02);   // never more than about eight stains: messy, not upsetting b.tired = Math.min(.85, Math.max(b.tired || 0, .3) + mins * .02);
+      const away = mins >= 20;   // back after a real break: the pet wants a little care again; back after a minute: it is still as she left it
+      b.hunger = Math.min(.85, Math.max(b.hunger || 0, away ? .35 : 0) + mins * .03); b.dirt = Math.min(.55, Math.max(b.dirt || 0, away ? .2 : 0) + mins * .02);   // never more than about eight stains: messy, not upsetting b.tired = Math.min(.85, Math.max(b.tired || 0, away ? .3 : 0) + mins * .02);
       b.flags = b.flags || {}; b.cares = b.cares || 0; b.t = Date.now();
       const pid = this.who().id; G.seed(b, pid, b.dirt); G.furTick(b, pid, mins);   // dirt becomes real stains; matted fur and burrs come back over time
       b.wall = b.wall || 0; b.floor = b.floor || 0; b.rug = b.rug || 0; b.lamp = b.lamp || 0; b.deco = b.deco || [];
@@ -106,7 +107,7 @@
       return ROOMS.map((r, i) => ({ id: r.id, r, x: pad + (i % cols) * cw + gap / 2, y: top + Math.floor(i / cols) * ch + gap / 2, w: cw - gap, h: ch - gap }));
     }
     chooseRoom(id) {
-      this.picking = false; this.hold = null;
+      this.picking = false; this.dropHold();
       if (id !== this.bag.room) {
         this.bag.room = id; this.tray = this.trayItems(); this.resize();
         sfx.win(); this.fx.burst(this.w / 2, this.floorY * .5, 18, { colors: ['#ffd54a', '#fff', '#ff8aa3', '#7fd4f5'], speed: 260, g: 120, life: 1.1, size: 7 * this.ui, shape: 'star', up: 100 });
@@ -119,7 +120,7 @@
     resize() {
       const r = this.canvas.getBoundingClientRect();
       if (!r.width || !r.height) return;
-      this.w = r.width; this.h = r.height;
+      const ow = this.w; this.w = r.width; this.h = r.height;
       const dpr = SPG.ui.dpr();
       this.canvas.width = Math.round(this.w * dpr); this.canvas.height = Math.round(this.h * dpr);
       this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -139,6 +140,10 @@
       const slot = i => wide ? { x: this.w - cell * (i % 2 ? .75 : 1.95), y: this.h * .1 + cell * (Math.floor(i / 2) + .6) * 1.12 } : { x: this.w / 2 + ((i % 8) - 3.5) * cell * 1.07, y: by - this.bs * 1.35 - cell * (1.15 * (1 - Math.floor(i / 8)) + .5) };
       this.tray = this.trayItems(); this.trayPos = this.tray.map((d, i) => slot(i)); this.bin = slot(this.tray.length); this.roomBtn = slot(this.tray.length + 1);
       if (!this.pet.x) { this.pet.x = this.homeX; this.pet.y = this.feetY; }
+      else if (ow && ow !== this.w) {   // the phone turned: the pet keeps its place in the room and walks to the new bed or home spot, never off screen
+        this.pet.x = this.pet.x * this.w / ow; this.pet.y = this.feetY;
+        if (this.pet.target != null) this.pet.target = this.sleeping ? this.bedX : this.homeX;
+      }
       // close-up: the pet's feet near the bottom, big; a row of little tools along the bottom edge
       this.S2 = Math.min(this.h * .92, this.w * 1.3); this.zx = this.w / 2; this.zy = this.h * .97;
       const zids = ['hand', 'brush', 'spray', 'sponge', 'towel', 'back'], zs = Math.min(this.bs * 1.85, (this.w - 12) / zids.length);
@@ -148,8 +153,14 @@
       this.draw();
     }
     /* ---- close-up petting */
-    enterZoom() { if (this.sleeping || this.pet.moving || this.zoomOn) return; this.zoomOn = true; this.ztool = 'hand'; this.tool = null; this.hold = null; sfx.pop(); }
-    leaveZoom() { this.zoomOn = false; this.hold = null; this.stopPurr(); sfx.tap(); }
+    enterZoom() { if (this.sleeping || this.pet.moving || this.zoomOn) return; this.zoomOn = true; this.ztool = 'hand'; this.tool = null; this.dropHold(); sfx.pop(); }
+    // let go of whatever is held without losing it: a decoration picked up from the room goes back where it was, food goes back to the tray
+    dropHold() {
+      const h = this.hold; this.hold = null; if (!h) return;
+      if (h.kind === 'deco' && !h.fresh) this.st().deco.push(h.d);
+      else if (h.kind === 'food') h.f.home = true;
+    }
+    leaveZoom() { this.zoomOn = false; this.dropHold(); this.stopPurr(); sfx.tap(); }
     petBox() {   // the part of the zoomed pet that counts as fur
       const S = this.S2, cx = this.zx + this.lean.x, cy = this.zy - S * .42;
       return { cx, cy, rx: S * .3, ry: S * .5 };
@@ -174,7 +185,7 @@
     }
     start() { this.resize(); this.resume(); voice.say('care-start'); }
     resume() { if (this.running) return; this.running = true; this.last = performance.now(); this.raf = requestAnimationFrame(this.tick); }
-    pause() { this.running = false; cancelAnimationFrame(this.raf); this.hold = null; this.stopPurr(); this.save(); }
+    pause() { this.running = false; cancelAnimationFrame(this.raf); this.dropHold(); this.stopPurr(); this.save(); }
     destroy() { this.pause(); this.canvas.remove(); this.counter.el.remove(); }
     save() { this.bag.t = Date.now(); store.save(); }
 
@@ -210,9 +221,9 @@
     chooseTool(id) {
       if (this.bedLocked()) return;   // still settling into bed: nothing happens, no sounds, no lines
       sfx.tap(); this.picking = false;
-      if (id === 'bed') { this.tool = null; this.hold = null; if (this.sleeping) this.wakeUp(); else this.goSleep(); return; }
+      if (id === 'bed') { this.tool = null; this.dropHold(); if (this.sleeping) this.wakeUp(); else this.goSleep(); return; }
       if (this.sleeping) this.wakeUp();
-      this.tool = this.tool === id ? null : id; this.hold = null;
+      this.tool = this.tool === id ? null : id; this.dropHold();
       if (this.tool === 'food') this.fillFoods();
     }
     letGo() {

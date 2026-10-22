@@ -265,6 +265,7 @@
   }
 
   // One pet standing on the line y = 0 (its feet), s = about its height. o: { mood, hop, hat, wave, detail }
+  const FACES = ['sleep', 'cheer', 'sad', 'scared', 'mad', 'wow'];   // the moods the head can show (Feeling Friends uses all of them)
   function draw(c, id, s, t = 0, o = {}) {
     const sp = SPECIES[id]; if (!sp) return;
     const R = s * .27, mood = o.mood || 'happy', detail = o.detail || 1;
@@ -301,7 +302,7 @@
     const hy = sp.tall ? -s * .8 : -s * .6;
     if (sp.tall) { c.fillStyle = sp.body; c.beginPath(); c.roundRect ? c.roundRect(-s * .09, hy + R * .5, s * .18, s * .38, s * .09) : c.rect(-s * .09, hy + R * .5, s * .18, s * .38); c.fill(); }
     c.save(); c.translate(0, hy + Math.sin(t * 2.2 + .6) * s * .006); if (mood === 'sleep') c.rotate(.1);
-    art.avatar(c, sp.kind || id, R, { mood: mood === 'sleep' ? 'sleep' : mood === 'cheer' ? 'cheer' : 'happy', blink });
+    art.avatar(c, sp.kind || id, R, { mood: FACES.includes(mood) ? mood : 'happy', blink: blink && mood !== 'scared' });
     furHead(c, id, sp, R, detail);
     if (o.face) faceAcc(c, o.face, R, sp.kind || id);
     if (o.neck) neckAcc(c, o.neck, R);

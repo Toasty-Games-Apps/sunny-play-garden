@@ -105,6 +105,18 @@ for (const [kind, w, h] of [['phone', 540, 960], ['tablet', 960, 600]]) {
   }
   await shot(p, `${kind}-9i-clay`); await home(p);
 
+  // Caterpillars: a caterpillar waiting for its next ball, with butterflies from earlier patterns in the sky
+  await p.evaluate(() => { SPG.store.active.data.pattern = { done: 6, flock: [['#ff6b6b', '#5aa8f0'], ['#ffd54a', '#b58cf0', '#6fcf6f'], ['#ff8fc0', '#ffffff'], ['#ffa24d', '#5aa8f0'], ['#6fcf6f', '#ff8fc0', '#ffd54a'], ['#b58cf0', '#ffa24d']] }; SPG.store.save(); });
+  await openNamed('Caterpillars');
+  for (let i = 0; i < 40 && (await p.evaluate(() => (SPG.patternGame.probe() || {}).phase)) !== 'pick'; i++) await p.waitForTimeout(200);
+  await shot(p, `${kind}-9j-caterpillars`); await home(p);
+
+  // Feeling Friends: a friend whose balloon flew away, with the faces to choose from
+  await p.evaluate(() => { SPG.feelingsGame.next = 'balloon'; });
+  await openNamed('Feeling Friends');
+  for (let i = 0; i < 50 && (await p.evaluate(() => (SPG.feelingsGame.probe() || {}).phase)) !== 'ask'; i++) await p.waitForTimeout(200);
+  await p.waitForTimeout(500); await shot(p, `${kind}-9k-feelings`); await home(p);
+
   // Pet Shop: a friend at home with a hat
   await p.evaluate(() => { SPG.store.active.stars = 40; SPG.pets.adopt('bunny'); SPG.pets.rename('bunny', 'Biscuit'); SPG.pets.buyHat('bow'); SPG.pets.wear('bow'); SPG.store.save(); });
   await p.click('#hub-shop .shopfront', F); await p.waitForTimeout(1200); await shot(p, `${kind}-8-shop`);

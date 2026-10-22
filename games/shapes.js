@@ -211,7 +211,7 @@
       for (const it of this.items) { if (it.state === 'placed' || it.state === 'fly') continue; const d = Math.hypot(x - it.x, y - it.y), r = Math.max(this.cell * .5, 26); if (d < r && d < bd) { best = it; bd = d; } }
       if (!best) return;
       best.state = 'drag'; const lift = clamp(Math.max(extent(best.p).w, extent(best.p).h) * this.ss * .3, 18, 50);
-      this.drag = { it: best, id, x, y, lift }; best.pop = 0; sfx.pop();
+      this.drag = { it: best, id, x, y, sx: x, sy: y, t0: this.t, lift }; best.pop = 0; sfx.pop();
     }
     // the piece rides above the finger so it can be seen; near the bottom edge it comes down so every hole can still be reached
     pieceAt(d) { return { x: d.x, y: d.y - Math.min(d.lift, Math.max(0, this.h - 6 - d.y)) }; }
@@ -227,6 +227,9 @@
       }
       if (match) { this.place(it, match); return; }
       this.sendHome(it, !!near);
+      if (!near && !it.decoy && Math.hypot(d.x - d.sx, d.y - d.sy) < 14 && this.t - d.t0 < .5) {   // a tap on a piece shows where it goes
+        const q = this.openSlots().find(q => keyOf(q.p) === key); if (q) this.hint = { q, until: this.t + 2.5 };
+      }
       if (near) {   // it was dropped on a hole it does not fit: after two misses its own hole pulses
         const m = this.misses[key] = (this.misses[key] || 0) + 1;
         if (m >= 2 && !it.decoy) { const q = this.openSlots().find(q => keyOf(q.p) === key); if (q) this.hint = { q, until: this.t + 6 }; }

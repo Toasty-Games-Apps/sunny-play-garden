@@ -17,8 +17,7 @@
   const COL = { red: '#ff6b6b', orange: '#ffa24d', yellow: '#ffd54a', green: '#6fcf6f', blue: '#5aa8f0', purple: '#b58cf0', pink: '#ff8fc0' };
   const COLS = Object.keys(COL);
   const MARKS = ['plain', 'dots', 'stripes'];
-  const HEAD = '#9bd96f';
-  const PLACES = ['meadow', 'farm', 'sunset', 'autumn', 'beach'];
+    const PLACES = ['meadow', 'sunset', 'autumn', 'beach'];   // calm places: nothing big behind the branch
   const KEEP = 8;   // butterflies kept in the sky
   // a unit is one kind of ball: colour, mark and size (z = 1 big, .66 small)
   const unit = (c, m = 'plain', z = 1) => ({ c, m, z });
@@ -109,8 +108,8 @@
       c.fillStyle = tips; c.beginPath(); c.arc(tx, ty, R * .15, 0, TAU); c.fill();
     }
     c.beginPath(); c.arc(0, 0, R, 0, TAU);
-    const g = c.createRadialGradient(-R * .35, -R * .4, R * .1, 0, 0, R * 1.05); g.addColorStop(0, '#c9f0a0'); g.addColorStop(1, '#79c255');
-    c.fillStyle = g; c.fill(); c.lineWidth = Math.max(1.5, R * .06); c.strokeStyle = '#4f9a3c'; c.stroke();
+    const g = c.createRadialGradient(-R * .35, -R * .4, R * .1, 0, 0, R * 1.05); g.addColorStop(0, '#f6dcb6'); g.addColorStop(1, '#c8946a');   // tan: a colour no ball ever has, so the head is never read as part of the pattern
+    c.fillStyle = g; c.fill(); c.lineWidth = Math.max(1.5, R * .06); c.strokeStyle = '#9a6b4b'; c.stroke();
     c.translate(-R * .12, R * .08); art.face(c, R * .78, { mood, look: -.5, blink: (t % 4.3) < .14 });
     c.restore();
   }
@@ -166,8 +165,8 @@
       this.canvas.width = Math.round(this.w * dpr); this.canvas.height = Math.round(this.h * dpr);
       this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       this.ui = clamp(Math.min(this.w, this.h * 1.4) / 780, .6, 1.4);
-      if (this.round) this.layout();
-      for (const f of this.flies) { f.x = clamp(f.x, 0, this.w); f.y = clamp(f.y, 0, this.skyB()); }
+      if (this.round) this.layout(); else this.by = this.h * (this.w > this.h * 1.15 ? .5 : .47);
+      for (const f of this.flies) { f.x = clamp(f.x, 0, this.w); f.y = clamp(f.y, 20, this.skyB()); f.tx = clamp(f.tx, 30, this.w - 30); f.ty = clamp(f.ty, 26, this.skyB()); }
       this.draw();
     }
     start() { this.resize(); this.newRound(); this.resume(); voice.say('pat-start'); }
@@ -208,7 +207,7 @@
       const y = this.by + Math.sin(this.t * (crawl ? 9 : 2) - (i + 1) * .9) * this.r * (crawl ? .22 : .06);
       return { x, y };
     }
-    skyB() { return Math.max(40, this.by - this.R * 2.6); }
+    skyB() { return Math.max(40, (this.by || 300) - (this.R || (this.h || 600) * .07) * 2.6); }
 
     // the caterpillar sings its pattern: each ball bounces with its own note (all = include the finished end too)
     read(all, speed = 1) { this.reading = { i: 0, t: .15, all, dt: .36 / speed }; }
@@ -274,8 +273,8 @@
     }
 
     newFly(cols, fresh) {
-      const w = this.w || 800, top = this.skyB ? this.skyB() : 300;
-      return { cols, x: fresh ? -40 : Math.random() * w, y: fresh ? this.by || 300 : 30 + Math.random() * top, tx: Math.random() * w, ty: 30 + Math.random() * top, ph: Math.random() * 9, s: Math.max(18, 26 * (this.ui || 1)), loop: 0, wait: 0 };
+      const w = this.w || 800, top = this.by ? this.skyB() : 300;   // before the first layout the sky size is not known yet
+      return { cols, x: fresh ? -40 : 30 + Math.random() * (w - 60), y: fresh ? this.by || 300 : 30 + Math.random() * top, tx: Math.random() * w, ty: 30 + Math.random() * top, ph: Math.random() * 9, s: Math.max(18, 26 * (this.ui || 1)), loop: 0, wait: 0 };
     }
     updateFlies(dt) {
       const top = this.skyB();
@@ -396,5 +395,5 @@
     },
     create: host => new PatternGame(host)
   });
-  SPG.patternGame = { makeRound, probe: () => { const r = SPG.app && SPG.app.running(), g = r && r.inst; return g && g.round ? { phase: g.phase, picks: g.picks.map(p => ({ x: p.x, y: p.y, r: g.pr, key: keyOf(p.u) })), want: g.round.shown + g.round.filled < g.segs.length ? keyOf(g.segs[g.round.shown + g.round.filled].u) : null, done: g.bag.done, filled: g.round.filled, gaps: g.round.gaps, type: g.round.type, feat: g.round.feat, n: g.segs.length, head: g.segPos(-1), flies: g.flies.length, w: g.w, h: g.h, hint: g.picks.some(p => p.glow) } : null; } };
+  SPG.patternGame = { makeRound, probe: () => { const r = SPG.app && SPG.app.running(), g = r && r.inst; return g && g.round ? { phase: g.phase, picks: g.picks.map(p => ({ x: p.x, y: p.y, r: g.pr, key: keyOf(p.u) })), want: g.round.shown + g.round.filled < g.segs.length ? keyOf(g.segs[g.round.shown + g.round.filled].u) : null, done: g.bag.done, filled: g.round.filled, gaps: g.round.gaps, type: g.round.type, feat: g.round.feat, n: g.segs.length, head: g.segPos(-1), flies: g.flies.length, fliesOn: g.flies.filter(f => f.x >= 0 && f.x <= g.w && f.y >= 0 && f.y <= g.h).length, w: g.w, h: g.h, hint: g.picks.some(p => p.glow) } : null; } };
 })();

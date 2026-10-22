@@ -211,11 +211,23 @@
     /* ---------------------------------------------------------------- saving, undo */
     pid() { return store.active ? store.active.id : null; }
     async loadSaved() {
-      const pid = this.pid(); if (!pid) return; const rec = await dbGet(pid);
-      if (rec && rec.v === 3 && typeof rec.objs === 'string' && !this.touched) { try { const o = JSON.parse(rec.objs); if (Array.isArray(o.objs)) { this.objs = o.objs; this.nid = o.nid || this.objs.length + 1; } } catch (_) { /* an unreadable save is left alone */ } }
+      const pid = this.pid(); if (!pid) { this.loaded = true; return; } const rec = await dbGet(pid);
+      if (rec && rec.v === 3 && typeof rec.objs === 'string') {
+        try {
+          const o = JSON.parse(rec.objs);
+          if (Array.isArray(o.objs)) {
+            // if she started before the old creation had loaded (a slow tablet), it goes underneath what she has made so far; nothing is lost
+            const mine = this.touched ? this.objs : []; let nid = o.nid || o.objs.length + 1;
+            for (const q of mine) if (q.id != null) { q.id = nid++; q.v = (q.v || 0) + 1; }
+            this.objs = o.objs.concat(mine); this.nid = Math.max(nid, this.nid || 0);
+          }
+        } catch (_) { /* an unreadable save is left alone */ }
+      }
+      this.loaded = true;
     }
     pack() { return JSON.stringify({ objs: this.objs, nid: this.nid }); }
-    save() { const pid = this.pid(); if (!pid || !this.touched) return; this.saveAt = 0; dbPut({ pid, v: 3, objs: this.pack(), t: Date.now() }); }
+    save() { const pid = this.pid(); if (!pid || !this.touched || !this.loaded) return;   // never write over a creation that has not been read yet
+      this.saveAt = 0; dbPut({ pid, v: 3, objs: this.pack(), t: Date.now() }); }
     pushUndo() { this.undo.push(this.pack()); if (this.undo.length > UNDO_MAX) this.undo.shift(); this.touched = true; }
     doUndo() { const u = this.undo.pop(); if (!u) { sfx.oops && sfx.oops(); return; } try { const o = JSON.parse(u); this.objs = o.objs; this.nid = o.nid; } catch (_) { return; } this.anim.clear(); sfx.whoosh(); this.saveAt = this.t + 1.5; }
     clearAll() { this.pushUndo(); this.objs = []; this.anim.clear(); sfx.whoosh(); this.saveAt = this.t + 1.5; }
@@ -567,7 +579,7 @@
     /* ---------------------------------------------------------------- her album of clay pictures */
     async openAlbum() {
       const pid = this.pid(); if (!pid || !SPG.photos) return; this.album = { list: [], page: 0, view: -1, busy: true }; this.menu = null;
-      const rows = await SPG.photos.list(pid, 'clay'), A = this.album; if (this.album !== A) return;
+      const A = this.album; await this.saving; const rows = await SPG.photos.list(pid, 'clay'); if (this.album !== A) return;
       for (const r of rows) { try { const bm = await createImageBitmap(r.blob); A.list.push({ id: r.id, img: bm }); } catch (_) { /* skip a picture that cannot be read */ } }
       A.busy = false;
     }
@@ -581,7 +593,12 @@
       const A = this.album, L = this.albumLayout(), near = (b, k = 1.1) => Math.hypot(x - b.x, y - b.y) < L.r * k;
       if (A.view >= 0) {
         const t = { x: L.x + L.r + 10, y: L.y + L.r + 10 };
-        if (near(t)) { const it = A.list[A.view]; sfx.tap(); if (it && SPG.photos) SPG.photos.remove(it.id).then(() => { try { it.img.close && it.img.close(); } catch (_) { /* fine */ } A.list.splice(A.view, 1); A.view = -1; A.page = Math.min(A.page, Math.max(0, Math.ceil(A.list.length / L.per) - 1)); }); return; }
+        if (A.ask) {   // the bin asks first, like the big bin: a stray toddler tap never throws a picture away
+          const b = this.confirmBtns(); A.ask = false;
+          if (Math.hypot(x - b.no.x, y - b.no.y) < b.r * 1.1 || Math.hypot(x - b.yes.x, y - b.yes.y) >= b.r * 1.1) { sfx.tap(); return; }
+          const it = A.list[A.view]; sfx.whoosh(); if (it && SPG.photos) SPG.photos.remove(it.id).then(() => { try { it.img.close && it.img.close(); } catch (_) { /* fine */ } A.list.splice(A.view, 1); A.view = -1; A.page = Math.min(A.page, Math.max(0, Math.ceil(A.list.length / L.per) - 1)); }); return;
+        }
+        if (near(t)) { A.ask = true; sfx.tap(); return; }
         A.view = -1; sfx.tap(); return;
       }
       if (near(L.close)) { sfx.tap(); this.closeAlbum(); return; }
@@ -598,6 +615,7 @@
         const im = A.list[A.view].img, s = Math.min(L.pw - 40, L.ph - 40);
         c.save(); c.shadowColor = 'rgba(0,0,0,.25)'; c.shadowBlur = 14; c.fillStyle = '#fff'; rr(c, this.w / 2 - s / 2 - 8, this.h / 2 - s / 2 - 8, s + 16, s + 16, 16); c.fill(); c.restore(); c.drawImage(im, this.w / 2 - s / 2, this.h / 2 - s / 2, s, s);
         const t = { x: L.x + L.r + 10, y: L.y + L.r + 10 }; btn(t, '#ff8aa3', () => { c.save(); c.translate(t.x, t.y); c.scale(L.r / 20, L.r / 20); c.fillStyle = '#fff'; rr(c, -11, -8, 22, 22, 4); c.fill(); rr(c, -14, -13, 28, 4, 2); c.fill(); rr(c, -4, -17, 8, 5, 2); c.fill(); c.restore(); });
+        if (A.ask) this.drawConfirm(c);
         return;
       }
       btn(L.close, '#ff8aa3', () => { c.beginPath(); c.moveTo(L.close.x - L.r * .3, L.close.y - L.r * .3); c.lineTo(L.close.x + L.r * .3, L.close.y + L.r * .3); c.moveTo(L.close.x + L.r * .3, L.close.y - L.r * .3); c.lineTo(L.close.x - L.r * .3, L.close.y + L.r * .3); c.stroke(); });
@@ -621,7 +639,8 @@
         this.drawMat(q, 40, 40, S - 80); this.drawObjs(q, 40, 40, S - 80, this.board.s * this.dpr, false);
         q.fillStyle = 'rgba(90,63,94,.55)'; q.font = '700 34px Fredoka, system-ui, sans-serif'; q.textAlign = 'center'; q.fillText('Clay Corner', S / 2, S - 12);
         const small = document.createElement('canvas'); small.width = small.height = 120; small.getContext('2d').drawImage(out, 0, 0, 120, 120); this.snapA = { img: small, t: 0 };
-        out.toBlob(b => { if (b && this.pid() && SPG.photos) SPG.photos.add(this.pid(), b, { game: 'clay', recipe: 'clay', name: 'Clay' }); }, 'image/jpeg', .9);
+        // the album waits for a picture that is still being saved, so opening it right after the camera never looks empty
+        this.saving = new Promise(res => out.toBlob(async b => { try { if (b && this.pid() && SPG.photos) await SPG.photos.add(this.pid(), b, { game: 'clay', recipe: 'clay', name: 'Clay' }); } catch (_) { /* no picture this time */ } res(); }, 'image/jpeg', .9));
       } catch (_) { /* no picture this time */ }
     }
 
