@@ -39,6 +39,7 @@
     'cook-decorate': 'Make it pretty!', 'cook-slice': 'Slice it with the knife!',
     'cook-serve': 'Yummy! Touch it to take a bite!',
     'fish-start': 'Tap the fishing rod, then tap a spot!', 'fish-bite': 'A bite! Tap to reel it in!', 'fish/bass': 'A bass!', 'fish/bluegill': 'A bluegill!', 'fish/goldfish': 'A goldfish!', 'fish/carp': 'A carp!', 'fish/trout': 'A trout!', 'fish/perch': 'A perch!', 'fish/catfish': 'A catfish!', 'fish/salmon': 'A salmon!', 'fish/minnow': 'A minnow!',
+    'pat-start': 'What comes next? Touch it!', 'pat-next': 'What comes next?',
     'clay-start': 'Squish, roll and shape your clay!', 'clay/clay': 'Clay!', 'clay/hand': 'Pick it up!', 'clay/pull': 'Pull it!', 'clay/squish': 'Squish!', 'clay/roll': 'Roll it flat!', 'clay/cutters': 'Cookie cutters!', 'clay/extras': 'Eyes and beads!', 'clay/knife': 'Cut it!', 'clay/stamps': 'Stamps!', 'clay/smooth': 'Smooth it!', 'clay/pinch': 'Pinch!', 'clay/poke': 'Poke!', 'clay/dye': 'Add some color!', 'clay/circle': 'A circle!', 'clay/square': 'A square!', 'clay/heart': 'A heart!', 'clay/star': 'A star!', 'clay/flower': 'A flower!', 'clay/triangle': 'A triangle!', 'clay/bear': 'A bear!', 'clay/cat': 'A kitty!', 'clay/dots': 'Dots!', 'clay/paw': 'A paw!', 'clay/ridges': 'Stripes!', 'clay/ring': 'A ring!', 'clay/zigzag': 'A zigzag!', 'clay/eye': 'A googly eye!', 'clay/bead': 'A bead!', 'clay/pearl': 'A pearl!', 'clay/sprinkles': 'Sprinkles!',
     'cook-pickbun': 'Pick a bun!', 'cook-pickbread': 'Pick your bread!', 'cook-patties': 'Put patties on the grill! One, two or three!', 'cook-meat': 'Add the meat you like!', 'cook-cheese': 'Add some cheese, or touch the green check!', 'cook-veg': 'Add the veggies you like!', 'cook-saucetop': 'Add some sauce, then put the top on!', 'cook-scoop': 'Pick your ice cream!', 'cook-pizzasauce': 'Spread the sauce all over!', 'cook-pizzacheese': 'Sprinkle on the cheese!', 'cook-toppings': 'Put your toppings anywhere you like!', 'cook-yum': 'Yum yum!', 'cook-wrong': 'Try the glowing one!', 'cook-done': 'You cooked it! Delicious!',
     'cookr/sugar': 'Sugar cookies!', 'cookr/chip': 'Chocolate chip cookies!', 'cookr/cupcake': 'Cupcakes!', 'cookr/cake': 'A birthday cake!', 'cookr/pancake': 'Pancakes!', 'cookr/sundae': 'An ice cream sundae!', 'cookr/pbj': 'Peanut butter and jelly!', 'cookr/toastie': 'A cheese toastie!', 'cookr/sandwich': 'Build a sandwich!', 'cookr/hotdog': 'A hot dog!', 'cookr/burger': 'Build a burger!', 'cookr/pizza': 'Pizza!',
@@ -125,7 +126,7 @@
   const SPOKEN = /^(letter|sound|word|num|color|shape|name|pname|player|fish)\//;
   // Instructions that tell her what to do next: always spoken (she cannot read), although they are not on the short list to record.
   // Each one is said once at its moment (a new step, the first coin...), never on every touch.
-  const INSTRUCT = new Set(['follow-bee', 'catch-drops', 'fire-pet', 'fire-next', 'band-song', 'puzzle-next', 'hide-gate', 'hide-locked', 'count-find', 'math-sum', 'math-left',
+  const INSTRUCT = new Set(['pat-start', 'pat-next', 'follow-bee', 'catch-drops', 'fire-pet', 'fire-next', 'band-song', 'puzzle-next', 'hide-gate', 'hide-locked', 'count-find', 'math-sum', 'math-left',
     'aq-coin', 'aq-boss', 'meteor-start', 'seed-in', 'pat-it', 'water-me', 'confirm-bye',
     'cook-pick', 'cook-roll', 'cook-cutsand', 'cook-oven-on', 'cook-squirt', 'cook-drop', 'cook-pour', 'cook-ding', 'cook-grill', 'cook-flip', 'cook-stack', 'cook-frost', 'cook-slice',
     'cook-pickbun', 'cook-pickbread', 'cook-patties', 'cook-meat', 'cook-cheese', 'cook-veg', 'cook-saucetop', 'cook-scoop', 'cook-pizzasauce', 'cook-pizzacheese', 'cook-toppings']);
@@ -272,19 +273,26 @@
   if ('speechSynthesis' in window) speechSynthesis.addEventListener?.('voiceschanged', () => { voiceObj = undefined; });
   addEventListener('online', () => { voiceObj = undefined; }); addEventListener('offline', () => { voiceObj = undefined; });
 
+  // while a line is spoken the music steps back, and at night the speaking voice is quieter too (like every other sound)
+  const duck = on => { try { SPG.music && SPG.music.duck && SPG.music.duck(on); } catch (_) { /* no audio yet */ } };
+  const speechVol = () => (SPG.night && SPG.night.on() ? .7 : 1);
   function speak(text) {
+    if (text) duck(true);
+    return speak1(text).then(() => duck(false));
+  }
+  function speak1(text) {
     const T = nativeTTS();
     if (T && text) return new Promise(resolve => {
       let done = false; const fin = () => { if (!done) { done = true; resolve(); } };
       const v = pickVoice();
-      T.speak({ text, lang: (v && v.lang) || 'en-US', rate: settings().audioHelp ? .8 : .92, pitch: 1.0, volume: 1, voice: v && v.idx != null ? v.idx : undefined, queueStrategy: 0 }).then(fin, fin);
+      T.speak({ text, lang: (v && v.lang) || 'en-US', rate: settings().audioHelp ? .8 : .92, pitch: 1.0, volume: speechVol(), voice: v && v.idx != null ? v.idx : undefined, queueStrategy: 0 }).then(fin, fin);
       setTimeout(fin, 1500 + text.length * 140);
       current = { stop: () => { try { T.stop(); } catch (_) { /* ignore */ } fin(); } };
     });
     return new Promise(resolve => {
       if (!('speechSynthesis' in window) || !text) return resolve();
       const u = new SpeechSynthesisUtterance(text);
-      u.rate = settings().audioHelp ? .78 : .9; u.pitch = 1.05; u.lang = 'en-US';   // a lightly raised pitch only: a lot of it makes voices sound robotic
+      u.rate = settings().audioHelp ? .78 : .9; u.pitch = 1.05; u.lang = 'en-US'; u.volume = speechVol();   // a lightly raised pitch only: a lot of it makes voices sound robotic
       const v = pickVoice(); if (v) u.voice = v;
       let done = false;
       const fin = () => { if (!done) { done = true; resolve(); } };
@@ -296,6 +304,7 @@
   }
 
   function playBuffer(buf) {
+    duck(true);
     return new Promise(resolve => {
       const src = A.ctx.createBufferSource(); src.buffer = buf;
       const g = A.ctx.createGain(); g.gain.value = buf._gain || 1;
@@ -304,7 +313,7 @@
       const [off, dur] = buf._trim || [0, undefined];
       src.start(0, off, dur);
       setTimeout(resolve, ((dur ?? buf.duration - off) + .6) * 1000);   // a suspended audio context never fires onended
-    });
+    }).then(() => duck(false));
   }
 
   const settings = () => store.settings;

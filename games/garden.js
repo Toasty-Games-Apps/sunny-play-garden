@@ -42,7 +42,7 @@
       this.scenic = SPG.scenery.fader(this.sceneAt(this.bag.blooms));   // the garden moves through the seasons and times of day as it grows
       this.plots = Array.from({ length: SLOTS_MAX }, (_, i) => fromSaved(this.bag.plots[i]));
       this.tool = 'shovel'; this.seed = 'sunflower';
-      this.canMode = this.bag.canMode || 'grab'; this.can = null; this.recentKinds = [];
+      this.canMode = this.bag.canMode || 'grab'; this.can = null; this.quickTaps = 0; this.recentKinds = [];
       this.creatures = []; this.pal = null; this.fx = new art.Fx(); this.banners = []; this.banner = null;
       this.t = 0; this.running = false; this.nudge = 0; this.said = {}; this.ambientUntil = 0;
       this.canvas = el('canvas', 'game-canvas'); host.append(this.canvas);
@@ -315,6 +315,7 @@
       cr.sndT = 8 + Math.random() * 10; // each animal speaks up only now and then
       this.ambientUntil = now + 700; // reserve the slot straight away
       voice.ambient('critter/' + cr.kind, .2).then(len => {
+        if (!len && !this.running) return;   // she left the garden while the clip was loading
         if (!len) len = sfx.critter(cr.kind);
         this.ambientUntil = performance.now() + (len + .35) * 1000;
       });
@@ -406,7 +407,7 @@
       if (this.can && !this.can.released) return;
       try { this.canvas.setPointerCapture(e.pointerId); } catch (_) { /* optional */ }
       const near = this.thirsty().sort((a, b) => Math.hypot(a.x - x, a.top - y) - Math.hypot(b.x - x, b.top - y))[0];
-      this.can = { id: e.pointerId, x, y, fx: x, fy: y, vxs: 0, tilt: -.05, tiltV: 0, dir: near && near.x > x ? 1 : -1, released: false, fade: 0, drops: [], emit: 0, sfxT: 0, size: this.ps * .34 };
+      this.can = { id: e.pointerId, x, y, fx: x, fy: y, vxs: 0, tilt: -.05, tiltV: 0, dir: near && near.x > x ? 1 : -1, released: false, fade: 0, drops: [], emit: 0, sfxT: 0, size: this.ps * .34, t0: performance.now(), sx: x, sy: y };
       sfx.pop();
       if ((this.bag.blooms || 0) < 3) this.sayOnce('pour', 'pour-water');
     }
@@ -415,7 +416,15 @@
       if (!cn || cn.released || e.pointerId !== cn.id) return;
       const r = this.canvas.getBoundingClientRect(); cn.fx = e.clientX - r.left; cn.fy = e.clientY - r.top;
     }
-    dropCan(e) { const cn = this.can; if (cn && !cn.released && e.pointerId === cn.id) { cn.released = true; cn.fade = 0; } }
+    dropCan(e) {
+      const cn = this.can; if (!cn || cn.released || e.pointerId !== cn.id) return;
+      cn.released = true; cn.fade = 0;
+      // a quick tap on a thirsty plant is too short to pour: after two of those the plant is watered for her (as in tap mode)
+      if (performance.now() - cn.t0 < 400 && Math.hypot(cn.fx - cn.sx, cn.fy - cn.sy) < this.ps * .4) {
+        const t = this.thirsty().find(q => Math.abs(cn.fx - q.x) < this.ps * .6 && cn.fy > q.top - this.ps * .8 && cn.fy < q.ground + this.ps * .2);
+        if (t && ++this.quickTaps >= 2 && !t.p.water) { t.p.water = .0001; sfx.water(); }
+      }
+    }
 
     // She moves the can; it leans and pours because of how she moves it (assisted: it is pulled toward a thirsty plant).
     updateCan(dt) {
@@ -452,7 +461,7 @@
         d.vy += this.h * 1.5 * dt; d.x += d.vx * dt; d.y += d.vy * dt; d.dead = false;
         for (const t of th) {
           if (Math.abs(d.x - t.x) < this.ps * .3 && d.y > t.top - this.ps * .12 && d.y < t.ground) {
-            d.dead = true; t.p.meter += 1 / [0, 20, NEED_DROPS, 45][SPG.level.tier('garden')];
+            d.dead = true; this.quickTaps = 0; t.p.meter += 1 / [0, 20, NEED_DROPS, 45][SPG.level.tier('garden')];
             this.fx.burst(d.x, d.y, 2, { colors: ['#9be0ff', '#fff'], speed: 70, g: 300, life: .35, size: 4 });
             if (t.p.meter >= 1) { t.p.meter = 0; this.grow(t.i); }
             break;

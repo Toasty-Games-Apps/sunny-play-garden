@@ -159,9 +159,9 @@ Say the sound the letter makes: "buh", "kuh", "sss". Not the name.
 | `sound-y.mp3` | yuh |
 | `sound-z.mp3` | zzz |
 
-# Part 2: optional lines (562, nobody has to record these)
+# Part 2: optional lines (564, nobody has to record these)
 
-## Prompts and instructions (121)
+## Prompts and instructions (123)
 
 Short lines that tell {her} what to do.
 
@@ -202,6 +202,8 @@ Short lines that tell {her} what to do.
 | `cook-stack.mp3` | Stack it up! Pick the glowing one! |
 | `cook-frost.mp3` | Touch the cake with icing! |
 | `cook-slice.mp3` | Slice it with the knife! |
+| `pat-start.mp3` | What comes next? Touch it! |
+| `pat-next.mp3` | What comes next? |
 | `cook-pickbun.mp3` | Pick a bun! |
 | `cook-pickbread.mp3` | Pick your bread! |
 | `cook-patties.mp3` | Put patties on the grill! One, two or three! |

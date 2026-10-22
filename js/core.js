@@ -477,7 +477,10 @@
   };
   // The background music has its own volume ("bus") so one song can fade out and the next fade in.
   let bus = null;
-  const musicBus = () => { if (!A.ctx) return null; if (!bus) { bus = A.ctx.createGain(); bus.gain.value = 1; bus.connect(A.master); } return bus; };
+  // ...and goes through "duckG", which turns it down while a line is being spoken, so instructions are easy to hear over the music
+  let duckG = null;
+  const musicBus = () => { if (!A.ctx) return null; if (!bus) { duckG = A.ctx.createGain(); duckG.gain.value = 1; duckG.connect(A.master); bus = A.ctx.createGain(); bus.gain.value = 1; bus.connect(duckG); } return bus; };
+  const duck = on => { if (!duckG) return; const t = A.ctx.currentTime; duckG.gain.cancelScheduledValues(t); duckG.gain.setTargetAtTime(on ? .3 : 1, t, on ? .06 : .35); };
   const musicWrap = fn => () => { outBus = musicBus(); try { fn(); } finally { outBus = null; } };
   // Shuffle: when the menu music is on it plays the songs from across the games, one after another in a random order, each for
   // three to five minutes, fading out and in so the change is gentle.
@@ -500,7 +503,7 @@
     shuffleTimer = setTimeout(play, 4200);                                                                                                          // ...then the next one fades in
   }
   SPG.music = {
-    song: () => shuffleSong, skip: () => shuffleNext(false),   // (for tests and for a future skip button)
+    song: () => shuffleSong, skip: () => shuffleNext(false), duck,   // (for tests and for a future skip button)
     rest(on) {
       resting = !!on; clearInterval(restTimer); restTimer = 0; restStep = 0;
       if (resting && SPG.store.settings.sound) { lullStep(); restTimer = setInterval(lullStep, 560); }

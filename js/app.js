@@ -148,7 +148,7 @@
   SPG.ui.press($('hub-who'), () => { voice.stop(); renderWho(); });
   SPG.ui.press($('hub-lock'), () => askGate(openParent));
 
-  const tints = { letters: ['#ffe3ec', '#f5b8cb'], fruit: ['#ffe9c7', '#f5c98a'], rain: ['#d8efff', '#a8d3f2'], fire: ['#ffe1d6', '#f5a58f'], band: ['#ffe3f0', '#f2a9c9'], shapes: ['#e3f0ff', '#9cc5f0'], puzzle: ['#e6f7ec', '#98d4ae'], care: ['#fff0d9', '#f2c88c'], hide: ['#e8f6d8', '#a7d78a'], garden: ['#dff5d0', '#a9d98f'], color: ['#efe4ff', '#cdbcf7'], pets: ['#ffe8ef', '#f6b9cc'], style: ['#ffe3f1', '#f7a8cf'], aquarium: ['#d8f2ff', '#7fc8ec'], cook: ['#fff0dc', '#f5c690'], clay: ['#ffe9d4', '#f2b98c'], fishing: ['#d8f2ff', '#8ccbe8'] };
+  const tints = { letters: ['#ffe3ec', '#f5b8cb'], fruit: ['#ffe9c7', '#f5c98a'], rain: ['#d8efff', '#a8d3f2'], fire: ['#ffe1d6', '#f5a58f'], band: ['#ffe3f0', '#f2a9c9'], shapes: ['#e3f0ff', '#9cc5f0'], puzzle: ['#e6f7ec', '#98d4ae'], care: ['#fff0d9', '#f2c88c'], hide: ['#e8f6d8', '#a7d78a'], garden: ['#dff5d0', '#a9d98f'], color: ['#efe4ff', '#cdbcf7'], pets: ['#ffe8ef', '#f6b9cc'], style: ['#ffe3f1', '#f7a8cf'], aquarium: ['#d8f2ff', '#7fc8ec'], cook: ['#fff0dc', '#f5c690'], clay: ['#ffe9d4', '#f2b98c'], fishing: ['#d8f2ff', '#8ccbe8'], pattern: ['#eafbe0', '#a6dc7e'] };
   function renderCards() {
     const all = SPG.games.slice().sort((a, b) => a.order - b.order);
     const games = orderedGames(all.filter(g => !g.shop)), shops = all.filter(g => g.shop);
@@ -627,6 +627,7 @@
       pinSection(),
       deviceAuthSection(),
       nightSection(),
+      learnSection(),
       levelSection(),
       photoSection(),
       backupSection(),
@@ -647,7 +648,8 @@
   }
 
   /* ------------------------------------------------------------ daily play time */
-  const dayKey = () => { const d = new Date(); return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`; };
+  const dayKey = (d = new Date()) => `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
+  const dayNum = k => { const [y, m, d] = k.split('-').map(Number); return new Date(y, m - 1, d).getTime(); };
   const playLog = () => {
     const s = store.settings;
     if (!s.playLog || s.playLog.day !== dayKey()) s.playLog = { day: dayKey(), sec: 0 };
@@ -706,6 +708,8 @@
   setInterval(() => {
     if (document.hidden || (current !== 'hub' && current !== 'stage') || anyOverlay()) return;
     if (++playLog().sec % 10 === 0) store.saveSettings();   // the save on hide or close keeps the last seconds
+    // each player's own minutes per day (the last two weeks), for Grown-ups > Learning and play; written without stamping the player
+    if (store.active) { const pl = store.bag('play', () => ({})), k = dayKey(); pl[k] = (pl[k] || 0) + 1; if (Object.keys(pl).length > 14) delete pl[Object.keys(pl).sort((a, b) => dayNum(a) - dayNum(b))[0]]; }
     if (limitReached()) showBreak();
   }, 1000);
 
@@ -753,6 +757,37 @@
       };
       sec.append(picker('Night starts at', 'nightFrom', [17, 18, 19, 20, 21], 19), picker('Night ends at', 'nightTo', [5, 6, 7, 8, 9], 7),
         h('p', {}, `Right now: ${SPG.night.on() ? 'night' : 'day'}. Night runs from ${hourLabel(SPG.night.from())} to ${hourLabel(SPG.night.to())}.`));
+    }
+    return sec;
+  }
+
+  // Learning and play: what each player has done in the games (read straight from the saved progress) and how long they played this week
+  function learnSection() {
+    const sec = h('section', {}, h('h3', {}, 'Learning and play'), h('p', { class: 'fine' }, 'What each player has done in the games on this device, and how long they played.'));
+    const mins = sec => { if (sec > 0 && sec < 60) return 'less than 1 min'; const m = Math.round(sec / 60); return m < 60 ? `${m} min` : `${Math.floor(m / 60)} h ${m % 60} min`; };
+    for (const p of store.profiles) {
+      const d = p.data || {}, g = k => d[k] || {}, L = g('letters'), done = L.done || {};
+      const traced = 'abcdefghijklmnopqrstuvwxyz'.split('').filter(c => done[c] || done[c.toUpperCase()]);
+      const play = d.play || {}, week = Array.from({ length: 7 }, (_, i) => play[dayKey(new Date(Date.now() - i * 864e5))] || 0);
+      const rows = [
+        ['Letters traced', traced.length ? `${traced.length} of 26: ${traced.join(' ').toUpperCase()}` : 'none yet'],
+        ['Letter games answered right', L.correct || 0],
+        ['Counting questions right', L.numOk || 0],
+        ['Adding and taking away right', L.mathOk || 0],
+        ['Patterns finished (Caterpillars)', g('pattern').done || 0],
+        ['Shape pictures built', g('shapes').built || 0],
+        ['Puzzles solved', g('puzzle').solved || 0],
+        ['Tunes copied (Bunny Band)', g('band').wins || 0],
+        ['Coloring pictures finished', Object.values(g('color').pics || {}).filter(r => r && r.done).length],
+        ['Recipes cooked', g('cook').total || 0],
+        ['Kinds of fish caught', Object.keys(g('fishing').caught || {}).length ? `${Object.keys(g('fishing').caught).length} of 9` : 0],
+        ['Flowers grown', g('garden').blooms || 0],
+        ['Friends found (Hide and Seek)', g('hide').found || 0]
+      ].filter(([, v], i) => i === 0 || v);
+      const time = week.some(Boolean) ? `${mins(week[0])} today, ${mins(week.reduce((a, b) => a + b, 0))} in the last 7 days` : 'No play time recorded yet';
+      sec.append(h('details', { class: 'lvl-block learn' },
+        h('summary', {}, h('span', { class: 'lvl-head' }, avatarCanvas(p.avatar, 104), h('span', { class: 'name' }, p.name, h('span', { class: 'stat' }, `${p.stars} stars \u00b7 ${time}`))), h('span', { class: 'learn-more' }, 'More')),
+        ...rows.map(([k, v]) => h('div', { class: 'lvl-line' }, h('b', {}, k), h('span', { class: 'fine' }, String(v))))));
     }
     return sec;
   }

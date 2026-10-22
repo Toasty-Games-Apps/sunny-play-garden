@@ -106,7 +106,7 @@
       this.petS = bs * 2.5; this.petX = clamp(w * .17, this.petS * .6, w * .35); this.petY = h - this.dockH * .62;
       this.tip = { x: this.petX + this.petS * .55, y: this.petY - this.petS * 1.0 };
       this.pos = this.spots.map(sp => { const y = this.waterTop + (this.waterBot - this.waterTop) * (.14 + sp.y * .72); return { sp, x: w * (.1 + sp.x * .8), y, s: .7 + (y - this.waterTop) / (this.waterBot - this.waterTop) * .6 }; });
-      this.swim = this.swim.filter(f => f.hook); for (const f of this.swim) if (f.home) f.home = this.pos.find(q => q.sp === f.home.sp) || null;
+      this.swim = this.swim.filter(f => f.hook); for (const f of [...this.swim, ...this.respawn]) if (f.home) f.home = this.pos.find(q => q.sp === f.home.sp) || null;
       this.draw();
     }
     start() { this.resize(); this.resume(); voice.say('fish-start'); }
@@ -120,6 +120,8 @@
       SPG.audio.unlock(); const near = (b, k = 1.15) => Math.hypot(x - b.x, y - b.y) < b.r * k;
       if (this.mode === 'book') { this.mode = this.prevMode || 'idle'; sfx.tap(); return; }
       if (this.mode === 'card') { this.leaveCard(); return; }
+      // while a fish is on its way in the book cannot open (the button is right beside the rod she is tapping): a tap there reels instead
+      if (/^(cast|wait|bite|reel|jump)$/.test(this.mode)) { if (this.mode === 'bite' || this.mode === 'reel') this.reelTap(); return; }
       if (near(this.book)) { sfx.tap(); this.prevMode = this.mode === 'idle' || this.mode === 'ready' ? this.mode : 'idle'; this.mode = 'book'; return; }
       if (near(this.rod)) {
         if (this.mode === 'idle') { this.mode = 'ready'; sfx.pop(); this.rodAng = -.2; return; }
@@ -174,7 +176,10 @@
     updateLife(dt) {
       const w = this.w, h = this.h, bs = this.bs, night = this.isNight();
       if (!this.pool) this.pool = [...new Set(this.spots.flatMap(q => q.fish))];
-      if (!this.swim.length && !this.respawn.length) { for (const p of this.pos) this.swim.push(this.newFish(p)); for (let i = 0; i < 3; i++) { const f = this.newFish(null); f.x = w * (.1 + Math.random() * .8); this.swim.push(f); } }
+      // keep one fish living at every spot and three travellers (also after the phone is turned, which empties the pond)
+      const first = !this.swim.length && !this.respawn.length, lives = sp => this.swim.some(f => f.home && f.home.sp === sp) || this.respawn.some(r => r.home && r.home.sp === sp);
+      for (const p of this.pos) if (!lives(p.sp)) this.swim.push(this.newFish(p));
+      for (let i = this.swim.filter(f => !f.home).length + this.respawn.filter(r => !r.home).length; i < 3; i++) { const f = this.newFish(null); if (first) f.x = w * (.1 + Math.random() * .8); this.swim.push(f); }
       if (this.nightLast !== night) { this.nightLast = night; this.bugs = []; }
       const want = night ? { firefly: 8, moth: 2 } : { fly: 4, butterfly: 2, dragonfly: 1 };
       const have = {}; for (const b of this.bugs) have[b.k] = (have[b.k] || 0) + 1;
