@@ -85,6 +85,23 @@ for (const [kind, w, h] of [['phone', 540, 960], ['tablet', 960, 600]]) {
 
   // The newer games, one picture each
   for (const [n, tag] of [[9, '9-band'], [10, '9b-shapes'], [7, '9c-puzzle'], [11, '9d-hide'], [12, '9e-style']]) { await openGame(p, n); await p.waitForTimeout(1600); await shot(p, `${kind}-${tag}`); await home(p); }
+  const openNamed = async n => { await p.click(`.card[aria-label="${n}"]`, F); await p.waitForTimeout(900); };
+  for (const [n, tag] of [['Sprout Kitchen', '9f-kitchen'], ['Fishing Pond', '9g-fishing'], ['Fish Tank', '9h-fishtank']]) { await openNamed(n); await p.waitForTimeout(2500); await shot(p, `${kind}-${tag}`); await home(p); }
+
+  // Clay Corner: a few lumps and a rainbow rope made with the clay tool
+  await openNamed('Clay Corner'); await p.waitForTimeout(900);
+  {
+    const pr = await p.evaluate(() => SPG.clayGame.probe()), it = (k, id) => pr.items.find(i => i.kind === k && i.id === id);
+    const at = (x, y) => [pr.board.x + x * pr.board.s, pr.board.y + y * pr.board.s];
+    const click = async (k, id) => { await p.mouse.click(it(k, id).x, it(k, id).y); await p.waitForTimeout(90); };
+    const size = n => p.evaluate(n => { SPG.clayGame.size = n; }, n);
+    await click('tool', 'clay');
+    for (const [col, sz, x, y] of [[0, 2, .25, .3], [2, 1, .5, .25], [6, 2, .74, .32], [9, 1, .35, .55], [4, 0, .62, .55]]) { await click('color', col); await size(sz); await p.mouse.click(...at(x, y)); await p.waitForTimeout(150); }
+    await click('color', 13); await size(1); await p.mouse.move(...at(.12, .78)); await p.mouse.down();
+    for (const [x, y] of [[.3, .72], [.5, .84], [.7, .74], [.88, .8]]) await p.mouse.move(...at(x, y), { steps: 10 });
+    await p.mouse.up(); await p.waitForTimeout(600);
+  }
+  await shot(p, `${kind}-9i-clay`); await home(p);
 
   // Pet Shop: a friend at home with a hat
   await p.evaluate(() => { SPG.store.active.stars = 40; SPG.pets.adopt('bunny'); SPG.pets.rename('bunny', 'Biscuit'); SPG.pets.buyHat('bow'); SPG.pets.wear('bow'); SPG.store.save(); });

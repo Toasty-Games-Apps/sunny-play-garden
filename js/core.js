@@ -6,7 +6,7 @@
   /* ---------------------------------------------------------------- store */
   // Release settings. Set recorder to false to remove every use of the microphone (e.g. for a simpler
   // store review); the games then use only the built-in voice and any audio files added to audio/voice/.
-  SPG.version = '1.0.0';
+  SPG.version = (window.SPG_APP && window.SPG_APP.version) || '1.0.0';   // the Android build passes the name Play shows
   SPG.config = { recorder: true };
 
   SPG.store = (() => {

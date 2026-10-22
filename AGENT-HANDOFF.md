@@ -27,7 +27,7 @@ Rules that matter: big touch targets, spoken prompts, no reading needed, nothing
 - `.github/workflows/android.yml` ("Build Android app") builds in about 3 minutes. It runs on pushes to `claude-android-app` (which no longer exists) or by hand: Actions > Build Android app > Run workflow, pick the branch, give a version name and a version code higher than the last (the last test builds used 3 and 4; Play's first upload was 1). Or trigger it from an agent with the GitHub tool `actions_run_trigger` (`workflow_id` `android.yml`, `ref` the branch, inputs `version_name`, `version_code`).
 - Artifacts on the run page: `app-debug-apk` (installable on a phone: unzip, tap the .apk; uninstall the Play version first because the signature differs, back up first) and `app-release-bundle` (the .aab for Play; unsigned until the owner adds `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`, `ANDROID_KEY_PASSWORD` and the variable `SPG_API_BASE`).
 - Build 22 (commit a6dcb45, version 1.0.0-test2) passed. The app and the website do not share saved data (use the backup file or family code).
-- `SPG.version` (js/core.js) says 1.0.0 while Gradle's default version name is 1.0.0-alpha2: they should be brought together before a Play release.
+- Version: the workflow's `version_name` input (default 1.0.0) goes to Gradle and, through `SPG_VERSION_NAME` in `build-web.mjs`, to `SPG.version` (Grown-ups > About), so Play and the app show the same name. Default version code is now 5 (above the test builds 3 and 4).
 
 ## Known small issues / ideas queued
 - `native.js` `saveFile` returns false for both a cancelled share and a real failure.

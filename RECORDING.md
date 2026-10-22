@@ -189,14 +189,14 @@ Short lines that tell {her} what to do.
 | `hide-new.mp3` | A new place to explore! |
 | `hide-home.mp3` | What a wonderful adventure! Everyone is home! |
 | `cook-pick.mp3` | What shall we cook today? |
-| `cook-start.mp3` | Let us cook! Follow the chef! |
+| `cook-start.mp3` | Let's cook! Follow the chef! |
 | `cook-roll.mp3` | Roll the dough flat! |
 | `cook-cutsand.mp3` | Pick a cutter, then touch the sandwich! |
 | `cook-oven-on.mp3` | First, turn the oven on! Touch it! |
 | `cook-squirt.mp3` | Squeeze the sauce anywhere you like! |
 | `cook-drop.mp3` | Put some dough on the tray! |
 | `cook-pour.mp3` | Pour the batter in! |
-| `cook-ding.mp3` | It is ready! Touch the oven! |
+| `cook-ding.mp3` | It's ready! Touch the oven! |
 | `cook-grill.mp3` | Put it on the grill! |
 | `cook-flip.mp3` | Flip it over! |
 | `cook-stack.mp3` | Stack it up! Pick the glowing one! |
@@ -220,8 +220,8 @@ Short lines that tell {her} what to do.
 | `math-sum.mp3` | How many altogether? |
 | `math-left.mp3` | How many are left? |
 | `math-more.mp3` | One more makes |
-| `math-start.mp3` | Let us add and take away! |
-| `count-start.mp3` | Let us count! |
+| `math-start.mp3` | Let's add and take away! |
+| `count-start.mp3` | Let's count! |
 | `color-red.mp3` | Red! |
 | `color-blue.mp3` | Blue! |
 | `color-yellow.mp3` | Yellow! |

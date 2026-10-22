@@ -17,13 +17,13 @@ on:
   workflow_dispatch:
     inputs:
       version_name:
-        description: 'Version name shown to people (for example 1.0.0-alpha2)'
+        description: 'Version name shown to people (for example 1.0.0, then 1.0.1 for a fix)'
         required: false
-        default: '1.0.0-alpha2'
+        default: '1.0.0'
       version_code:
         description: 'Version code: a whole number higher than every version already uploaded to Play (the first upload was 1)'
         required: false
-        default: '2'
+        default: '5'
   push:
     branches: [claude-android-app]
     paths: ['android-app/**', 'js/**', 'games/**', 'index.html', 'styles.css', 'fonts/**', 'audio/**', 'icons/**', '.github/workflows/android.yml']
@@ -38,7 +38,7 @@ jobs:
         with: { distribution: temurin, java-version: 21 }
       - name: Install and pack the game into the app
         working-directory: android-app
-        env: { SPG_API_BASE: '${{ vars.SPG_API_BASE }}' }
+        env: { SPG_API_BASE: '${{ vars.SPG_API_BASE }}', SPG_VERSION_NAME: '${{ github.event.inputs.version_name }}' }
         run: |
           npm ci
           node build-web.mjs

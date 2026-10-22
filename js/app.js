@@ -121,17 +121,19 @@
     const name = input.value.trim() || (nickGrid && nickGrid.value) || '';
     if (!name) { const t = $('nick-pick'); t.animate([{ transform: 'translateX(-8px)' }, { transform: 'translateX(8px)' }, { transform: 'none' }], { duration: 250 }); SPG.sfx.oops(); return; }
     input.blur();
-    const first = store.profiles.length === 0, p = store.addProfile(name, pickedAvatar, { gender: pickedGender, level: pickedAge ? { mode: 'age', age: pickedAge } : null });
-    // the very first time, grown-ups are asked to choose the family voices (5-10 people) before play starts
-    if (first && SPG.config.recorder && !store.settings.voiceIntroDone) {
-      store.settings.voiceIntroDone = true; store.saveSettings();
-      SPG.studio.intro($('vintro-body'), (act, id) => {
-        closeOverlay(overlays.vintro); choose(p);
-        if (act === 'record' && id) { SPG.studio.begin(id); openStudio(); }
-      });
-      openOverlay(overlays.vintro);
-    } else choose(p);
+    choose(store.addProfile(name, pickedAvatar, { gender: pickedGender, level: pickedAge ? { mode: 'age', age: pickedAge } : null }));
   });
+  // The first time a grown-up opens their panel they are invited to choose the family voices (5-10 people).
+  // It waits until then, so a new player goes straight from setup to the games.
+  function voiceIntro() {
+    if (!SPG.config.recorder || store.settings.voiceIntroDone) return;
+    store.settings.voiceIntroDone = true; store.saveSettings();
+    SPG.studio.intro($('vintro-body'), (act, id) => {
+      closeOverlay(overlays.vintro);
+      if (act === 'record' && id) { SPG.studio.begin(id); openStudio(); } else renderParent();
+    });
+    openOverlay(overlays.vintro);
+  }
 
   /* ------------------------------------------------------------ hub */
   function refreshHub() {
@@ -432,7 +434,7 @@
   let installPrompt = null;
   addEventListener('beforeinstallprompt', e => { e.preventDefault(); installPrompt = e; });
 
-  function openParent() { renderParent(); openOverlay(overlays.parent); }
+  function openParent() { renderParent(); openOverlay(overlays.parent); voiceIntro(); }
   function closeParent() {
     closeOverlay(overlays.parent);
     if ((current === 'setup' || current === 'who') && store.profiles.length) { renderWho(); return; } // e.g. players were just restored from a backup
