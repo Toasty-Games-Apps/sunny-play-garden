@@ -33,7 +33,8 @@ android {
     buildTypes {
         release {
             if (System.getenv('SPG_KEYSTORE')) signingConfig signingConfigs.release
-            minifyEnabled false
+            // Generate the Play Console deobfuscation file in every release bundle.
+            minifyEnabled true
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }

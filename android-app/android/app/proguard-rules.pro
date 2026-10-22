@@ -1,4 +1,8 @@
 # Add project specific ProGuard rules here.
+# Keep native behavior unchanged while R8 generates a mapping file for Play.
+-dontshrink
+-dontoptimize
+-dontobfuscate
 # You can control the set of applied configuration files using the
 # proguardFiles setting in build.gradle.
 #

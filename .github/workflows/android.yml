@@ -59,6 +59,7 @@ jobs:
           if [ -z "$VC" ]; then VC=$((100 + GITHUB_RUN_NUMBER)); VN="1.0.0-build$GITHUB_RUN_NUMBER"; fi
           chmod +x gradlew
           ./gradlew --no-daemon bundleRelease assembleDebug -PspgVersionCode=$VC -PspgVersionName=$VN
+          unzip -l app/build/outputs/bundle/release/app-release.aab | grep -q 'BUNDLE-METADATA/com.android.tools.build.obfuscation/proguard.map'
       - uses: actions/upload-artifact@v4
         with: { name: app-release-bundle, path: android-app/android/app/build/outputs/bundle/release/*.aab }
       - uses: actions/upload-artifact@v4
