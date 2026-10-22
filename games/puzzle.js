@@ -133,8 +133,8 @@
         const k = old ? p.k : p.k, row = Math.floor(k / cols), col = k % cols, inRow = Math.min(cols, n - row * cols);
         const homeX = tx + tw / 2 + (col - (inRow - 1) / 2) * this.pw * ts * 1.1, homeY = ty + th / 2 + (row - (best - 1) / 2) * this.ph * ts * 1.1;
         if (p.locked) { p.x = p.tx; p.y = p.ty; }
-        else if (!old) { p.x = homeX; p.y = homeY; }
-        else { p.x = clamp(p.x, this.pw * .5, w - this.pw * .5); p.y = clamp(p.y, this.ph * .5, h - this.ph * .5); }
+        else if (this.drag && this.drag.p === p) { p.x = clamp(p.x, this.pw * .5, w - this.pw * .5); p.y = clamp(p.y, this.ph * .5, h - this.ph * .5); }
+        else { p.x = homeX; p.y = homeY; p.sc = ts; }   // after a turn of the screen loose pieces go back to the tray instead of piling up where the old layout had them
       });
     }
     drawNext(c) {
@@ -174,7 +174,7 @@
         const hw = this.pw * p.sc * .62, hh = this.ph * p.sc * .62;
         if (Math.abs(x - p.x) < hw && Math.abs(y - p.y) < hh) {
           this.pieces.splice(i, 1); this.pieces.push(p);
-          this.drag = { p, id, x, y, dx: p.x - x, dy: p.y - y }; p.lift = 1; sfx.pop(); this.idle = 0; return;
+          this.drag = { p, id, x, y, sx: x, sy: y, t0: this.t, dx: p.x - x, dy: p.y - y }; p.lift = 1; sfx.pop(); this.idle = 0; return;
         }
       }
     }
@@ -182,6 +182,7 @@
       const d = this.drag; this.drag = null; if (!d) return;
       const p = d.p; p.lift = 0;
       if (Math.hypot(p.x - p.tx, p.y - p.ty) < Math.min(this.pw, this.ph) * .5) this.lock(p);
+      else if (Math.hypot(d.x - d.sx, d.y - d.sy) < 14 && this.t - d.t0 < .5) { p.peek = 2.2; sfx.plink && sfx.plink(2); }   // a tap on a piece shows where it goes
       else { p.x = clamp(p.x, this.pw * .5, this.w - this.pw * .5); p.y = clamp(p.y, this.ph * .5, this.h - this.ph * .5); }
     }
     lock(p) {
@@ -209,7 +210,7 @@
       if (!this.running) return;
       const dt = Math.min(.05, (now - this.last) / 1000); this.last = now; this.t += dt; this.stateT += dt; this.idle += dt; this.scenic.update(dt);
       if (this.drag) { const d = this.drag; d.p.x = d.x + d.dx; d.p.y = d.y + d.dy; d.p.sc = lerp(d.p.sc, 1, Math.min(1, dt * 14)); }
-      for (const p of this.pieces) p.flash = Math.max(0, p.flash - dt * 2);
+      for (const p of this.pieces) { p.flash = Math.max(0, p.flash - dt * 2); if (p.peek) p.peek = Math.max(0, p.peek - dt); }
       this.fx.update(dt);
       this.draw(); this.raf = requestAnimationFrame(this.tick);
     }
@@ -227,7 +228,7 @@
       if (this.state === 'play') {
         for (const p of this.pieces) {
           if (p.locked) continue;
-          const glow = this.drag && this.drag.p === p;
+          const glow = this.drag && this.drag.p === p || p.peek > 0;
           this.tracePath(c, p, p.tx - this.pw / 2, p.ty - this.ph / 2);
           if (glow) { c.fillStyle = 'rgba(255,224,102,.4)'; c.fill(); }
           c.setLineDash([9, 7]); c.strokeStyle = glow ? `rgba(255,170,30,${.75 + Math.sin(this.t * 8) * .25})` : 'rgba(90,63,94,.28)'; c.lineWidth = glow ? 5 : 2.5; c.stroke(); c.setLineDash([]);

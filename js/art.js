@@ -22,14 +22,31 @@
     else if (mood === 'sleep' || blink || mood === 'cheer') {
       c.strokeStyle = INK; c.lineWidth = Math.max(1.6, r * .06);
       for (const s of [-1, 1]) { c.beginPath(); c.arc(s * ex, ey + er * .5, er, Math.PI * 1.12, Math.PI * 1.88); c.stroke(); }
+    } else if (mood === 'scared') {   // big round eyes with a white ring and small pupils
+      for (const s of [-1, 1]) {
+        c.fillStyle = '#fff'; c.strokeStyle = INK; c.lineWidth = Math.max(1.2, r * .045); c.beginPath(); c.arc(s * ex, ey, er * 1.35, 0, TAU); c.fill(); c.stroke();
+        c.fillStyle = INK; c.beginPath(); c.arc(s * ex, ey + er * .1, er * .55, 0, TAU); c.fill();
+      }
     } else {
       for (const s of [-1, 1]) {
         c.fillStyle = INK; c.beginPath(); c.ellipse(s * ex + look * er * .5, ey, er * .85, er * 1.2, 0, 0, TAU); c.fill();
         c.fillStyle = '#fff'; c.beginPath(); c.arc(s * ex + look * er * .5 - er * .25, ey - er * .45, er * .38, 0, TAU); c.fill();
       }
     }
+    // eyebrows tell most of a feeling: sad = inner ends up, mad = inner ends down, scared and surprised = high and round
+    if (!noEyes && (mood === 'sad' || mood === 'mad' || mood === 'scared' || mood === 'wow')) {
+      c.strokeStyle = INK; c.lineWidth = Math.max(1.6, r * .065);
+      const by = ey - er * (mood === 'scared' || mood === 'wow' ? 2.5 : 1.9);
+      for (const s of [-1, 1]) {
+        c.beginPath();
+        if (mood === 'sad') { c.moveTo(s * (ex + er * 1.1), by + er * .35); c.lineTo(s * (ex - er * 1.0), by - er * .35); }
+        else if (mood === 'mad') { c.moveTo(s * (ex + er * 1.1), by - er * .45); c.lineTo(s * (ex - er * 1.0), by + er * .4); }
+        else c.arc(s * ex, by + er * .9, er * 1.1, Math.PI * 1.2, Math.PI * 1.8);
+        c.stroke();
+      }
+    }
     if (cheeks) {
-      c.fillStyle = 'rgba(255,110,140,.32)';
+      c.fillStyle = mood === 'mad' ? 'rgba(255,90,90,.42)' : 'rgba(255,110,140,.32)';
       for (const s of [-1, 1]) { c.beginPath(); c.ellipse(s * r * .62, r * .2, r * .14, r * .085, 0, 0, TAU); c.fill(); }
     }
     c.strokeStyle = INK; c.lineWidth = Math.max(1.6, r * .06);
@@ -40,6 +57,11 @@
       else c.arc(0, r * .16, r * .2, 0, Math.PI);
       c.fill();
       if (mood === 'cheer') { c.fillStyle = '#ff8aa3'; c.beginPath(); c.arc(0, r * .32, r * .1, Math.PI, 0); c.fill(); }
+    } else if (mood === 'sad' || mood === 'mad') {   // a frown (mad is flatter and tighter) and, when sad, a tear
+      c.beginPath(); if (mood === 'sad') c.arc(0, r * .42, r * .2, Math.PI * 1.2, Math.PI * 1.8); else c.arc(0, r * .5, r * .26, Math.PI * 1.3, Math.PI * 1.7); c.stroke();
+      if (mood === 'sad') { c.fillStyle = '#7fc8f5'; c.beginPath(); c.moveTo(ex + er * .3, ey + er * 1.2); c.quadraticCurveTo(ex + er * 1.0, ey + er * 2.3, ex + er * .3, ey + er * 2.5); c.quadraticCurveTo(ex - er * .4, ey + er * 2.3, ex + er * .3, ey + er * 1.2); c.fill(); }
+    } else if (mood === 'scared') {   // a small wobbly mouth
+      c.beginPath(); c.moveTo(-r * .2, r * .3); for (let i = 1; i <= 4; i++) c.quadraticCurveTo(-r * .2 + (i - .5) * r * .1, r * (i % 2 ? .22 : .38), -r * .2 + i * r * .1, r * .3); c.stroke();
     } else {
       c.beginPath(); c.arc(0, r * .1, r * .2, Math.PI * .18, Math.PI * .82); c.stroke();
     }

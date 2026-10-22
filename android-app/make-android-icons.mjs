@@ -7,7 +7,7 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 const here = dirname(fileURLToPath(import.meta.url)), res = join(here, 'android/app/src/main/res'), icons = join(here, '..', 'icons');
 const b64 = f => 'data:image/png;base64,' + readFileSync(join(icons, f)).toString('base64');
-const browser = await chromium.launch(), page = await browser.newPage();
+const browser = await chromium.launch({ executablePath: process.env.CHROME_PATH || undefined }), page = await browser.newPage();
 await page.goto('about:blank');
 const draw = (spec) => page.evaluate(async ({ spec, plain, mask }) => {
   const load = src => new Promise(r => { const i = new Image(); i.onload = () => r(i); i.src = src; });

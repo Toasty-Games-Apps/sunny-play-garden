@@ -1,7 +1,7 @@
 // Release pre-flight. Run from the repo root:  node tools/check-release.mjs
 // Prints PASS / WARN / FAIL lines and exits 1 if anything FAILs.
 // WARNs are things only the owner can fill in (contact details, signing fingerprints).
-import { readFileSync, existsSync } from 'node:fs';
+import { readFileSync, existsSync, readdirSync } from 'node:fs';
 
 let fails = 0, warns = 0;
 const pass = m => console.log('  PASS  ' + m);
@@ -80,7 +80,13 @@ for (const f of ['store/icon-512.png', 'store/feature-graphic.png']) existsSync(
 const fg = existsSync('store/feature-graphic.png') && pngSize('store/feature-graphic.png');
 if (fg) (fg[0] === 1024 && fg[1] === 500) ? pass('feature graphic 1024x500') : fail(`feature graphic must be 1024x500 (found ${fg.join('x')})`);
 for (const f of ['store/listing.md', 'store/PLAY-STORE-GUIDE.md', 'store/twa-manifest.template.json']) existsSync(f) ? pass(f) : fail(`${f} is missing`);
-existsSync('store/screenshots/phone-1-hub.png') && existsSync('store/screenshots/tablet-1-hub.png') ? pass('store screenshots present (regenerate with node tools/make-store-assets.mjs)') : fail('store screenshots missing; run node tools/make-store-assets.mjs');
+for (const [dev, w, h] of [['phone', 1080, 1920], ['tablet7', 1080, 1920], ['tablet10', 2560, 1440]]) {
+  const dir = `store/screenshots/${dev}`, files = existsSync(dir) ? readdirSync(dir).filter(f => f.endsWith('.png')) : [];
+  if (files.length < 4 || files.length > 8) { fail(`${dir}: ${files.length} screenshots (Play wants 4 to 8 for promotion); run node tools/make-store-assets.mjs`); continue; }
+  const bad = files.filter(f => { const b = readFileSync(`${dir}/${f}`); return b.readUInt32BE(16) !== w || b.readUInt32BE(20) !== h || b[25] !== 2; });   // PNG width, height, colour type 2 = RGB, no alpha
+  bad.length ? fail(`${dir}: ${bad.join(', ')} not ${w}x${h} RGB without alpha`) : pass(`${dir}: ${files.length} screenshots at ${w}x${h}, no alpha`);
+}
+if (existsSync('store/feature-graphic.png')) { const b = readFileSync('store/feature-graphic.png'); b.readUInt32BE(16) === 1024 && b.readUInt32BE(20) === 500 && b[25] === 2 ? pass('feature graphic 1024x500, no alpha') : fail('store/feature-graphic.png must be 1024x500 without alpha'); }
 
 console.log(`\n${fails} failed, ${warns} to-do for the owner.`);
 process.exit(fails ? 1 : 0);

@@ -42,6 +42,7 @@
     SPG.sfx.chime?.();
   }
   function show(name) {
+    if (name !== 'stage' && running) stopGame();   // leaving the game screen any way at all (setup from the rest screen...) ends the game
     current = name; document.body.dataset.screen = name; applyBackdrop();
     for (const [id, el] of Object.entries(screens)) el.classList.toggle('hidden', id !== name);
     if (name === 'hub') requestAnimationFrame(drawCards);
@@ -49,7 +50,7 @@
 
   const anyOverlay = () => Object.values(overlays).some(o => !o.classList.contains('hidden'));
   function syncPause() {
-    if (!running) return;
+    if (!running || !running.inst) return;
     const stop = anyOverlay() || document.hidden;
     if (stop === running.paused) return;
     running.paused = stop;
@@ -120,17 +121,19 @@
     const name = input.value.trim() || (nickGrid && nickGrid.value) || '';
     if (!name) { const t = $('nick-pick'); t.animate([{ transform: 'translateX(-8px)' }, { transform: 'translateX(8px)' }, { transform: 'none' }], { duration: 250 }); SPG.sfx.oops(); return; }
     input.blur();
-    const first = store.profiles.length === 0, p = store.addProfile(name, pickedAvatar, { gender: pickedGender, level: pickedAge ? { mode: 'age', age: pickedAge } : null });
-    // the very first time, grown-ups are asked to choose the family voices (5-10 people) before play starts
-    if (first && SPG.config.recorder && !store.settings.voiceIntroDone) {
-      store.settings.voiceIntroDone = true; store.save();
-      SPG.studio.intro($('vintro-body'), (act, id) => {
-        closeOverlay(overlays.vintro); choose(p);
-        if (act === 'record' && id) { SPG.studio.begin(id); openStudio(); }
-      });
-      openOverlay(overlays.vintro);
-    } else choose(p);
+    choose(store.addProfile(name, pickedAvatar, { gender: pickedGender, level: pickedAge ? { mode: 'age', age: pickedAge } : null }));
   });
+  // The first time a grown-up opens their panel they are invited to choose the family voices (5-10 people).
+  // It waits until then, so a new player goes straight from setup to the games.
+  function voiceIntro() {
+    if (!SPG.config.recorder || store.settings.voiceIntroDone) return;
+    store.settings.voiceIntroDone = true; store.saveSettings();
+    SPG.studio.intro($('vintro-body'), (act, id) => {
+      closeOverlay(overlays.vintro);
+      if (act === 'record' && id) { SPG.studio.begin(id); openStudio(); } else renderParent();
+    });
+    openOverlay(overlays.vintro);
+  }
 
   /* ------------------------------------------------------------ hub */
   function refreshHub() {
@@ -145,7 +148,7 @@
   SPG.ui.press($('hub-who'), () => { voice.stop(); renderWho(); });
   SPG.ui.press($('hub-lock'), () => askGate(openParent));
 
-  const tints = { letters: ['#ffe3ec', '#f5b8cb'], fruit: ['#ffe9c7', '#f5c98a'], rain: ['#d8efff', '#a8d3f2'], fire: ['#ffe1d6', '#f5a58f'], band: ['#ffe3f0', '#f2a9c9'], shapes: ['#e3f0ff', '#9cc5f0'], puzzle: ['#e6f7ec', '#98d4ae'], care: ['#fff0d9', '#f2c88c'], hide: ['#e8f6d8', '#a7d78a'], garden: ['#dff5d0', '#a9d98f'], color: ['#efe4ff', '#cdbcf7'], pets: ['#ffe8ef', '#f6b9cc'], style: ['#ffe3f1', '#f7a8cf'], aquarium: ['#d8f2ff', '#7fc8ec'], cook: ['#fff0dc', '#f5c690'], clay: ['#ffe9d4', '#f2b98c'], fishing: ['#d8f2ff', '#8ccbe8'] };
+  const tints = { letters: ['#ffe3ec', '#f5b8cb'], fruit: ['#ffe9c7', '#f5c98a'], rain: ['#d8efff', '#a8d3f2'], fire: ['#ffe1d6', '#f5a58f'], band: ['#ffe3f0', '#f2a9c9'], shapes: ['#e3f0ff', '#9cc5f0'], puzzle: ['#e6f7ec', '#98d4ae'], care: ['#fff0d9', '#f2c88c'], hide: ['#e8f6d8', '#a7d78a'], garden: ['#dff5d0', '#a9d98f'], color: ['#efe4ff', '#cdbcf7'], pets: ['#ffe8ef', '#f6b9cc'], style: ['#ffe3f1', '#f7a8cf'], aquarium: ['#d8f2ff', '#7fc8ec'], cook: ['#fff0dc', '#f5c690'], clay: ['#ffe9d4', '#f2b98c'], fishing: ['#d8f2ff', '#8ccbe8'], pattern: ['#eafbe0', '#a6dc7e'], feelings: ['#fff1f6', '#f5b8cb'] };
   function renderCards() {
     const all = SPG.games.slice().sort((a, b) => a.order - b.order);
     const games = orderedGames(all.filter(g => !g.shop)), shops = all.filter(g => g.shop);
@@ -248,13 +251,13 @@
       h('button', { class: 'btn go', type: 'button', id: 'hub-edit-done' }, icon('check'), ' Done'));
     $('hub').append(bar);
     SPG.ui.press($('hub-edit-done'), exitHubEdit);
-    SPG.ui.press($('hub-edit-reset'), () => { delete store.settings.hubOrder; store.save(); SPG.sfx.tap(); renderCards(); });
+    SPG.ui.press($('hub-edit-reset'), () => { delete store.settings.hubOrder; store.saveSettings(); SPG.sfx.tap(); renderCards(); });
     renderCards();
   }
   function exitHubEdit() {
     if (!hubEdit) return; hubEdit = null; document.body.classList.remove('hub-editing');
     const bar = $('hub-editbar'); if (bar) bar.remove(); document.querySelectorAll('.card-ghost').forEach(n => n.remove());
-    store.save(); renderCards(); SPG.sfx.chime();
+    store.saveSettings(); renderCards(); SPG.sfx.chime();
   }
   function startHubDrag(e, g, card) {
     const r = card.getBoundingClientRect(), src = card.querySelector('canvas'), ghost = h('div', { class: 'card-ghost', style: `width:${r.width}px;height:${r.height}px;--tint:${(tints[g.id] || ['#fff'])[0]};--edge:${(tints[g.id] || [0, '#ddd'])[1]}` });
@@ -277,7 +280,7 @@
     };
     const end = () => {
       document.removeEventListener('pointermove', move); document.removeEventListener('pointerup', end); document.removeEventListener('pointercancel', end);
-      ghost.remove(); if (hubEdit && hubEdit.drag === D) { hubEdit.drag = null; store.save(); SPG.sfx.pop(); renderCards(); }
+      ghost.remove(); if (hubEdit && hubEdit.drag === D) { hubEdit.drag = null; store.saveSettings(); SPG.sfx.pop(); renderCards(); }
     };
     document.addEventListener('pointermove', move); document.addEventListener('pointerup', end); document.addEventListener('pointercancel', end);
   }
@@ -294,6 +297,7 @@
 
   /* ------------------------------------------------------------ games */
   function openGame(g) {
+    if (current === 'stage') return;   // a second finger lifting off another (now hidden) app
     voice.stop(); SPG.sfx.tap();
     show('stage');
     $('stage-stars').textContent = store.active.stars;
@@ -301,16 +305,20 @@
     host.replaceChildren();
     document.body.classList.toggle('in-canvas', !g.dom);
     running = { game: g, inst: null, paused: false };
-    running.inst = g.create(host);
-    running.inst.start?.();
+    try { running.inst = g.create(host); running.inst.start?.(); }
+    catch (e) { console.error(e); closeGame(); return; }   // never leave her on a blank screen
     syncPause();
   }
-  function closeGame() {
-    if (!running) return;
-    running.inst.destroy?.();
-    running = null; document.body.classList.remove('in-canvas');
+  function stopGame() {
+    const r = running; running = null;
+    document.body.classList.remove('in-canvas');
     voice.stop();
+    try { r && r.inst && r.inst.destroy?.(); } catch (e) { console.error(e); }
     $('game-host').replaceChildren();
+  }
+  function closeGame() {
+    if (!running && current !== 'stage') return;
+    stopGame();
     refreshHub();
     show('hub');
     requestAnimationFrame(drawCards);
@@ -400,7 +408,7 @@
       if (g.mode === 'recover') {
         if (!ok) { wrong(); setTimeout(() => { if (gateState === g) { g.right = 0; newRecover(); } }, 350); return; }
         if (++g.right < 2) { SPG.sfx.chime(); newRecover(); return; }
-        store.settings.pin = ''; store.save(); ok = true;
+        store.settings.pin = ''; store.saveSettings(); ok = true;
       }
       if (ok) {
         const cb = g.onPass; gateState = null;
@@ -409,7 +417,7 @@
       } else {
         wrong();
         if (g.mode === 'pin') setTimeout(() => { if (gateState === g) { g.entry = ''; paintGate(); } }, 350);
-        else setTimeout(newQuestion, 350);
+        else setTimeout(() => { if (gateState === g) newQuestion(); }, 350);   // unless the gate was closed meanwhile
       }
     }
   })();
@@ -426,7 +434,7 @@
   let installPrompt = null;
   addEventListener('beforeinstallprompt', e => { e.preventDefault(); installPrompt = e; });
 
-  function openParent() { renderParent(); openOverlay(overlays.parent); }
+  function openParent() { renderParent(); openOverlay(overlays.parent); voiceIntro(); }
   function closeParent() {
     closeOverlay(overlays.parent);
     if ((current === 'setup' || current === 'who') && store.profiles.length) { renderWho(); return; } // e.g. players were just restored from a backup
@@ -442,7 +450,7 @@
   function toggle(label, key) {
     const sw = h('button', { class: 'switch', type: 'button', role: 'switch', 'aria-checked': String(!!store.settings[key]), 'aria-label': label });
     sw.addEventListener('click', () => {
-      store.settings[key] = !store.settings[key]; store.save();
+      store.settings[key] = !store.settings[key]; store.saveSettings();
       sw.setAttribute('aria-checked', String(store.settings[key]));
       SPG.music.sync();
       if (store.settings[key] && (key === 'sound' || key === 'voice')) { key === 'sound' ? SPG.sfx.chime() : voice.say('hello'); }
@@ -619,6 +627,7 @@
       pinSection(),
       deviceAuthSection(),
       nightSection(),
+      learnSection(),
       levelSection(),
       photoSection(),
       backupSection(),
@@ -639,7 +648,8 @@
   }
 
   /* ------------------------------------------------------------ daily play time */
-  const dayKey = () => { const d = new Date(); return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`; };
+  const dayKey = (d = new Date()) => `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
+  const dayNum = k => { const [y, m, d] = k.split('-').map(Number); return new Date(y, m - 1, d).getTime(); };
   const playLog = () => {
     const s = store.settings;
     if (!s.playLog || s.playLog.day !== dayKey()) s.playLog = { day: dayKey(), sec: 0 };
@@ -650,9 +660,8 @@
   // The rest screen: the pets she owns dance under the moon while a soft lullaby plays (no owned pets: three friends dance).
   let restRaf = 0, restT = 0;
   function restCast() {
-    const P = SPG.pets, own = P.PETS.filter(p => P.owns(p.id));
-    const act = P.active();
-    let list = own.map(p => ({ id: p.id, hat: (store.bag('pets', () => ({ owned: {} })).owned[p.id] || {}).hat || null, face: (store.bag('pets', () => ({ owned: {} })).owned[p.id] || {}).face || null, neck: (store.bag('pets', () => ({ owned: {} })).owned[p.id] || {}).neck || null }));
+    const P = SPG.pets, owned = store.bag('pets', () => ({ owned: {} })).owned || {};
+    let list = P.PETS.filter(p => P.owns(p.id)).map(p => { const o = owned[p.id] || {}; return { id: p.id, hat: o.hat || null, face: o.face || null, neck: o.neck || null }; });
     if (!list.length) list = ['bunny', 'cat', 'bear'].map(id => ({ id, hat: null }));
     return list.slice(0, 6);
   }
@@ -698,7 +707,9 @@
   SPG.ui.press($('break-adult'), () => askGate(() => { stopRest(); closeOverlay(overlays.brk); openParent(); }));
   setInterval(() => {
     if (document.hidden || (current !== 'hub' && current !== 'stage') || anyOverlay()) return;
-    playLog().sec++; store.save();
+    if (++playLog().sec % 10 === 0) store.saveSettings();   // the save on hide or close keeps the last seconds
+    // each player's own minutes per day (the last two weeks), for Grown-ups > Learning and play; written without stamping the player
+    if (store.active) { const pl = store.bag('play', () => ({})), k = dayKey(); pl[k] = (pl[k] || 0) + 1; if (Object.keys(pl).length > 14) delete pl[Object.keys(pl).sort((a, b) => dayNum(a) - dayNum(b))[0]]; }
     if (limitReached()) showBreak();
   }, 1000);
 
@@ -716,8 +727,8 @@
     const b = h('button', { class: 'btn small go', type: 'button' }, 'Record and choose voices');
     b.addEventListener('click', openStudio);
     return h('section', {}, h('h3', {}, 'Voices'),
-      h('p', {}, 'Record your own voice for the games (a male and a female voice can be mixed), switch off lines you don\u2019t want, and choose how often the games cheer.'),
-      h('p', { class: 'fine' }, `Recorded so far: male ${n('male')}, female ${n('female')} of ${keys.length} lines.`), b);
+      h('p', {}, 'Record your family\u2019s voices for the games (everyone\u2019s recordings can be mixed), choose the built-in voice, switch off lines you don\u2019t want, and choose how often the games cheer.'),
+      h('p', { class: 'fine' }, 'Recorded so far: ' + voice.SETS.map(v => `${v.name} ${n(v.id)}`).join(', ') + ` of ${keys.length} lines.`), b);
   }
 
   // Fruit Splash for older kids: naughty water balloons that shake the screen, spray water and take points away.
@@ -730,7 +741,7 @@
       seg.append(b);
     }
     const sec = h('section', {}, h('h3', {}, 'Night mode'),
-      h('p', {}, 'Tones everything down for bedtime: a night sky behind the games, softer colors and quieter sounds. Choose Day or Night yourself, or Auto to switch on by a schedule. There is also a moon button on the games page.'),
+      h('p', {}, 'Tones everything down for bedtime: a night sky behind the games, softer colors and quieter sounds. Choose Day or Night yourself, or Auto to switch on by a schedule.'),
       seg);
     if (cur === 'auto') {
       const hourLabel = n => (n % 12 || 12) + (n < 12 ? ' am' : ' pm');
@@ -739,13 +750,45 @@
         const now = key === 'nightFrom' ? SPG.night.from() : SPG.night.to();
         for (const n of hours) {
           const b = h('button', { type: 'button', class: 'seg-btn', 'aria-pressed': String(now === n) }, hourLabel(n));
-          b.addEventListener('click', () => { store.settings[key] = n; store.save(); SPG.night.apply(); renderParent(); });
+          b.addEventListener('click', () => { store.settings[key] = n; store.saveSettings(); SPG.night.apply(); renderParent(); });
           row.append(b);
         }
         return h('div', {}, h('p', {}, h('b', {}, title)), row);
       };
       sec.append(picker('Night starts at', 'nightFrom', [17, 18, 19, 20, 21], 19), picker('Night ends at', 'nightTo', [5, 6, 7, 8, 9], 7),
         h('p', {}, `Right now: ${SPG.night.on() ? 'night' : 'day'}. Night runs from ${hourLabel(SPG.night.from())} to ${hourLabel(SPG.night.to())}.`));
+    }
+    return sec;
+  }
+
+  // Learning and play: what each player has done in the games (read straight from the saved progress) and how long they played this week
+  function learnSection() {
+    const sec = h('section', {}, h('h3', {}, 'Learning and play'), h('p', { class: 'fine' }, 'What each player has done in the games on this device, and how long they played.'));
+    const mins = sec => { if (sec > 0 && sec < 60) return 'less than 1 min'; const m = Math.round(sec / 60); return m < 60 ? `${m} min` : `${Math.floor(m / 60)} h ${m % 60} min`; };
+    for (const p of store.profiles) {
+      const d = p.data || {}, g = k => d[k] || {}, L = g('letters'), done = L.done || {};
+      const traced = 'abcdefghijklmnopqrstuvwxyz'.split('').filter(c => done[c] || done[c.toUpperCase()]);
+      const play = d.play || {}, week = Array.from({ length: 7 }, (_, i) => play[dayKey(new Date(Date.now() - i * 864e5))] || 0);
+      const rows = [
+        ['Letters traced', traced.length ? `${traced.length} of 26: ${traced.join(' ').toUpperCase()}` : 'none yet'],
+        ['Letter games answered right', L.correct || 0],
+        ['Counting questions right', L.numOk || 0],
+        ['Adding and taking away right', L.mathOk || 0],
+        ['Patterns finished (Caterpillars)', g('pattern').done || 0],
+        ['Friends helped (Feeling Friends)', g('feelings').helped || 0],
+        ['Shape pictures built', g('shapes').built || 0],
+        ['Puzzles solved', g('puzzle').solved || 0],
+        ['Tunes copied (Bunny Band)', g('band').wins || 0],
+        ['Coloring pictures finished', Object.values(g('color').pics || {}).filter(r => r && r.done).length],
+        ['Recipes cooked', g('cook').total || 0],
+        ['Kinds of fish caught', Object.keys(g('fishing').caught || {}).length ? `${Object.keys(g('fishing').caught).length} of 9` : 0],
+        ['Flowers grown', g('garden').blooms || 0],
+        ['Friends found (Hide and Seek)', g('hide').found || 0]
+      ].filter(([, v], i) => i === 0 || v);
+      const time = week.some(Boolean) ? `${mins(week[0])} today, ${mins(week.reduce((a, b) => a + b, 0))} in the last 7 days` : 'No play time recorded yet';
+      sec.append(h('details', { class: 'lvl-block learn' },
+        h('summary', {}, h('span', { class: 'lvl-head' }, avatarCanvas(p.avatar, 104), h('span', { class: 'name' }, p.name, h('span', { class: 'stat' }, `${p.stars} stars \u00b7 ${time}`))), h('span', { class: 'learn-more' }, 'More')),
+        ...rows.map(([k, v]) => h('div', { class: 'lvl-line' }, h('b', {}, k), h('span', { class: 'fine' }, String(v))))));
     }
     return sec;
   }
@@ -776,7 +819,7 @@
   function photoSection() {
     const app = SPG.native && SPG.native.isApp, ios = safe.isIOS && !app;
     const sw = h('button', { class: 'switch', type: 'button', role: 'switch', 'aria-checked': String(!!store.settings.photoSave), 'aria-label': 'Save kitchen photos to this device' });
-    sw.addEventListener('click', () => { store.settings.photoSave = !store.settings.photoSave; store.save(); sw.setAttribute('aria-checked', String(store.settings.photoSave)); });
+    sw.addEventListener('click', () => { store.settings.photoSave = !store.settings.photoSave; store.saveSettings(); sw.setAttribute('aria-checked', String(store.settings.photoSave)); });
     const count = h('p', { class: 'fine' }, 'Counting photos…');
     if (SPG.photos) SPG.photos.count('kitchen').then(n => { count.textContent = `${n} photo${n === 1 ? '' : 's'} in the kitchen album on this device (the newest 60 for each player are kept).`; });
     const clear = confirmButton('Delete all kitchen photos', 'danger', async () => { if (SPG.photos) await SPG.photos.clear('kitchen'); renderParent(); });
@@ -798,13 +841,13 @@
     const set = h('button', { class: 'btn small go', type: 'button' }, has ? 'Change PIN' : 'Set a PIN');
     const setNew = () => askPin(first => askPin(again => {
       if (again !== first) { SPG.sfx.oops(); pinNote = 'Those two did not match. Please try again.'; renderParent(); return; }
-      hashPin(first).then(hx => { store.settings.pin = hx; store.save(); pinNote = 'PIN saved. Remember it: it opens the rest screen and this panel.'; renderParent(); });
+      hashPin(first).then(hx => { store.settings.pin = hx; store.saveSettings(); pinNote = 'PIN saved. Remember it: it opens the rest screen and this panel.'; renderParent(); });
     }, { capture: true, title: 'Type it again', prompt: 'Type the same PIN again', hint: 'Just to be sure' }), { capture: true, title: has ? 'New PIN' : 'Choose a PIN', prompt: 'Choose 4 numbers', hint: 'Pick numbers only you know' });
     set.addEventListener('click', () => { if (has) askPin(setNew); else setNew(); });
     const kids = [set];
     if (has) {
       const off = h('button', { class: 'btn small quiet', type: 'button' }, 'Remove PIN');
-      off.addEventListener('click', () => askPin(() => { store.settings.pin = ''; store.save(); pinNote = 'PIN removed. The grown-up question is used again.'; renderParent(); }));
+      off.addEventListener('click', () => askPin(() => { store.settings.pin = ''; store.saveSettings(); pinNote = 'PIN removed. The grown-up question is used again.'; renderParent(); }));
       kids.push(off);
     }
     const note = pinNote; pinNote = '';
@@ -821,9 +864,9 @@
     const on = !!store.settings.deviceAuth;
     const btn = h('button', { class: 'btn small ' + (on ? 'quiet' : 'go'), type: 'button' }, on ? 'Turn off' : 'Turn on');
     btn.addEventListener('click', async () => {
-      if (on) { store.settings.deviceAuth = ''; store.save(); pinNote = 'Fingerprint / phone lock is off.'; renderParent(); return; }
+      if (on) { store.settings.deviceAuth = ''; store.saveSettings(); pinNote = 'Fingerprint / phone lock is off.'; renderParent(); return; }
       const tok = await SPG.native.deviceAuth.enroll();
-      if (tok) { store.settings.deviceAuth = tok; store.save(); pinNote = 'Done. The grown-up screens now also have a "Use fingerprint or phone lock" button. The PIN still works too.'; } else pinNote = 'That did not work, so it was not turned on.';
+      if (tok) { store.settings.deviceAuth = tok; store.saveSettings(); pinNote = 'Done. The grown-up screens now also have a "Use fingerprint or phone lock" button. The PIN still works too.'; } else pinNote = 'That did not work, so it was not turned on.';
       renderParent();
     });
     return h('section', {}, h('h3', {}, 'Fingerprint or phone lock'),
@@ -836,12 +879,12 @@
     const seg = h('div', { class: 'seg', role: 'group', 'aria-label': 'Daily play time' });
     for (const m of [0, 15, 30, 45, 60]) {
       const b = h('button', { type: 'button', class: 'seg-btn', 'aria-pressed': String(cur === m) }, m ? `${m} min` : 'No limit');
-      b.addEventListener('click', () => { store.settings.timer = m; store.save(); renderParent(); });
+      b.addEventListener('click', () => { store.settings.timer = m; store.saveSettings(); renderParent(); });
       seg.append(b);
     }
     const used = Math.floor(playLog().sec / 60);
     const reset = h('button', { class: 'btn small quiet', type: 'button' }, 'Give more time today');
-    reset.addEventListener('click', () => { playLog().sec = 0; store.save(); renderParent(); });
+    reset.addEventListener('click', () => { playLog().sec = 0; store.saveSettings(); renderParent(); });
     return h('section', {}, h('h3', {}, 'Play time'),
       h('p', {}, 'When the daily limit is reached, a friendly rest screen appears. It can only be closed by a grown-up.'),
       seg, h('p', { class: 'fine' }, `Played today: ${used} min`), reset);
@@ -854,7 +897,7 @@
     if (!overlays.studio.classList.contains('hidden')) { closeStudio(); return; }
     if (!overlays.parent.classList.contains('hidden')) { closeParent(); return; }
     if (!overlays.fs.classList.contains('hidden') || !overlays.brk.classList.contains('hidden')) return;
-    if (current === 'stage') { if (!running.inst.back || !running.inst.back()) closeGame(); }
+    if (current === 'stage') { if (!running?.inst?.back?.()) closeGame(); }
     else if (current === 'setup' && store.profiles.length) renderWho();
   };
   safe.onFullscreenLost = () => openOverlay(overlays.fs);
@@ -863,7 +906,7 @@
   document.addEventListener('visibilitychange', syncPause);
   let resizeTimer = 0;
   const onResize = () => { hubFrozen = true; clearTimeout(resizeTimer); resizeTimer = setTimeout(() => {
-    running?.inst.resize?.();
+    running?.inst?.resize?.();
     // turning the phone changes how many fit on a page: rebuild the pages and stay on the same games
     if (perPage() !== hubPer && $('hub-games').firstChild) { hubPage = Math.floor(hubFirst / perPage()); renderCards(); }
     drawCards();

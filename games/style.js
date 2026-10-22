@@ -158,8 +158,8 @@
     }
     later(fn, ms) { const id = setTimeout(() => { this.timers.delete(id); fn(); }, ms); (this.timers || (this.timers = new Set())).add(id); }
     start() { this.running = true; this.last = performance.now(); this.raf = requestAnimationFrame(this.tick = this.tick.bind(this)); this.fit(); }
-    pause() { this.running = false; cancelAnimationFrame(this.raf); }
-    resume() { if (!this.running && !this.salon) this.start(); }
+    pause() { this.running = false; cancelAnimationFrame(this.raf); if (this.salon) this.salon.pause(); }   // the salon on top rests too (hidden tab, grown-up sheet)
+    resume() { if (this.salon) this.salon.start(); else if (!this.running) this.start(); }
     resize() { this.fit(); this.renderPanel(); }
     destroy() { this.salon && this.salon.close(); this.pause(); this.ro && this.ro.disconnect(); (this.timers || []).forEach(clearTimeout); this.saveNow(); document.body.classList.remove('st-open'); this.root.remove(); }
 

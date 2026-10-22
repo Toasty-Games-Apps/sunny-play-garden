@@ -26,7 +26,7 @@
   // Append new colors at the end only: saved pictures store the position in this list.
   const PALETTE = ['#ff6b81', '#ff9d4d', '#ffd54a', '#a6e05a', '#59b96e', '#6fd6b8', '#7fd4f5', '#4f8fe8', '#9a7be8', '#ff9db8', '#ffd2a6', '#b9805a', '#d9d2e0', '#5a3f5e'];
   const BRUSH = 34, ERASER = 64;
-  const FILL = 0, BRUSHOP = 1, ERASE = 2, CLEAR = 3, ALL = 4;
+  const FILL = 0, BRUSHOP = 1, ERASE = 2, CLEAR = 3, ALL = 4, MAX_OPS = 1200;
   const NS = 'http://www.w3.org/2000/svg';
 
   const el = (tag, cls, ...kids) => { const e = document.createElement(tag); if (cls) e.className = cls; e.append(...kids.filter(k => k != null)); return e; };
@@ -135,7 +135,11 @@
       out.push(op);
       if (op[0] === FILL || op[0] === CLEAR) covered.add(op[1]);
     }
-    return out.reverse();
+    out.reverse();
+    // months of scribbling on one page must not fill the device's storage (that would stop every game from saving):
+    // past MAX_OPS the oldest brush and eraser strokes, which later paint mostly covers, are let go; fills are tiny and stay
+    for (let i = 0, extra = out.length - MAX_OPS; extra > 0 && i < out.length; i++) if (out[i][0] === BRUSHOP || out[i][0] === ERASE) { out.splice(i--, 1); extra--; }
+    return out;
   }
   const hasPaint = ops => ops.some(op => op[0] !== ALL);
 
@@ -536,8 +540,11 @@
       const badge = el('div', 'cb-cele', el('div', 'cb-rosette', icon('rosette')));
       SPG.ui.press(badge, () => this.endCelebration());
       this.editor.append(badge); this.celeEl = badge;
+      let n = 0;
       const burst = () => {
         if (!this.celebrating) return;
+        if (this.paused) { this.later(burst, 420); return; }   // the party waits while the screen is hidden or a grown-up sheet is open
+        if (++n > 8) { this.endCelebration(); return; }
         const w = innerWidth, h = innerHeight;
         this.fx.burst(w * (.15 + Math.random() * .7), h * (.15 + Math.random() * .4), 26, { colors: PALETTE, speed: 420, g: 520, life: 1.5, size: 9, shape: Math.random() < .5 ? 'confetti' : 'star', up: 260 });
         this.fx.burst(w * (.2 + Math.random() * .6), h * (.3 + Math.random() * .3), 8, { colors: ['#ff9db8', '#ff7a8a'], speed: 260, g: 200, life: 1.6, size: 12, shape: 'heart', up: 220 });
@@ -545,7 +552,6 @@
         this.later(burst, 420);
       };
       burst();
-      this.later(() => this.endCelebration(), 3200);
     }
     endCelebration() {
       if (!this.celebrating) return;

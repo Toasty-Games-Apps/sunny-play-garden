@@ -1,4 +1,11 @@
 # Add project specific ProGuard rules here.
+# Keep native behavior unchanged while R8 generates a mapping file for Play.
+-dontshrink
+-dontoptimize
+-dontobfuscate
+# errorprone's compile-time annotation refers to JDK compiler types that are
+# intentionally absent from Android. It is not used by the app at runtime.
+-dontwarn javax.lang.model.element.Modifier
 # You can control the set of applied configuration files using the
 # proguardFiles setting in build.gradle.
 #

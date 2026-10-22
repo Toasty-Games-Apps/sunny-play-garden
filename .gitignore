@@ -9,3 +9,5 @@ android-app/android/local.properties
 *.keystore
 *.jks
 .claude/
+store/screenshots/raw/
+release/

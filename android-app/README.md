@@ -33,7 +33,7 @@ Cloudflare Worker secret `RESEND_API_KEY`. Never put this key in GitHub, app fil
 is hidden outside the Android app and does not add a sign-in SDK or Android permission.
 
 Version code: every upload to Play needs a number higher than the last. The first upload was **1**; the workflow asks for it when run by hand
-(default 2).
+(default 5, above the test builds 3 and 4). The version name you type (default 1.0.0) is shown on Play and in Grown-ups > About.
 
 On your own computer: `cd android-app && npm install && SPG_API_BASE=https://... npm run sync`, then open `android/` in Android Studio
 (or `cd android && ./gradlew bundleRelease`).

@@ -289,11 +289,19 @@
       const rows = side ? 2 : h > w * 1.2 ? 4 : 3;
       let k = Math.min(availH / (rows * rowU), panelW / (pairW * 1.6));
       const pairs = Math.max(1, Math.floor((panelW - 40 * k) / (pairW * k)));
+      const regrid = this.cells && this.cells.length && (rows !== this.rows || pairs !== this.pairs);
       this.k = k; this.rows = rows; this.pairs = pairs; this.pairW = pairW; this.rowU = rowU;
       const pageW = pairs * pairW * k, pageH = rows * rowU * k;
       this.page = { x: (w - pageW) / 2, y: top + (availH - pageH) / 2, w: pageW, h: pageH };
       this.panel = { x: this.page.x - 22, y: this.page.y - 16, w: pageW + 44, h: pageH + 32 };
-      this.cells.forEach(cl => this.place(cl));
+      if (regrid) this.regrid(); else this.cells.forEach(cl => this.place(cl));
+    }
+    // the phone turned and the page now has a different number of rows or pairs: lay out a new page, keeping how many she has done
+    regrid() {
+      const done = Math.min(this.cells.filter(cl => cl.done).length, this.rows * this.pairs * 2 - 1);
+      this.fresh();
+      for (let i = 0; i < done; i++) { const cl = this.cells[i]; cl.done = true; cl.si = cl.g.strokes.length; cl.prog = 0; }
+      this.cur = done; this.pid = null; this.engaged = false;
     }
     place(cl) {
       const { k, rowU, pairW } = this, P = this.page, g = cl.g, x0 = P.x + (cl.pair * pairW + (cl.up ? 0 : pairW / 2) + 0) * k, cellW = pairW / 2;
@@ -412,17 +420,18 @@
       this.host = host;
       this.bag = store.bag('letters', () => ({ done: {}, case: 'upper', correct: 0, seen: 0 }));
       this.root = el('div', 'lg'); host.append(this.root);
-      this.timers = new Set(); this.tracer = null; this.paused = false; this.introCount = 0;
+      this.timers = new Set(); this.held = []; this.tracer = null; this.paused = false; this.introCount = 0;
     }
     start() { this.menu(); }
-    later(fn, ms) { const id = setTimeout(() => { this.timers.delete(id); if (!this.paused) fn(); }, ms); this.timers.add(id); return id; }
+    // a step that comes due while the game is paused (screen off, an overlay) waits and runs on resume, so a quiz never freezes half way
+    later(fn, ms) { const id = setTimeout(() => { this.timers.delete(id); if (this.paused) this.held.push(fn); else fn(); }, ms); this.timers.add(id); return id; }
     reset(cls) {
-      this.timers.forEach(clearTimeout); this.timers.clear();
+      this.timers.forEach(clearTimeout); this.timers.clear(); this.held = [];
       this.tracer?.destroy(); this.tracer = null; voice.stop(); this.numRaf && cancelAnimationFrame(this.numRaf); this.numRaf = 0;
       this.root.replaceChildren(); this.root.className = 'lg ' + (cls || '');
     }
     pause() { this.paused = true; this.tracer?.pause(); }
-    resume() { this.paused = false; this.tracer?.resume(); }
+    resume() { this.paused = false; this.tracer?.resume(); const held = this.held; this.held = []; held.forEach(fn => fn()); }
     resize() { this.tracer?.resize(); }
     destroy() { this.reset(); this.root.remove(); }
     backButton() { const b = btn('lg-back lg-btn', 'Back', icon('back')); SPG.ui.press(b, () => { sfx.tap(); this.menu(); }); return b; }
@@ -909,7 +918,7 @@
         this.numberButtons(area, this.numChoices(N, 1, Math.max(hi(), N + 1), tier === 1 ? 3 : tier === 3 ? 4 : (bag.numOk || 0) >= 5 ? 4 : 3), 1, choose);
         say.classList.add('wiggle'); voice.say(this.numIntro++ < 2 ? 'count-touch' : 'count-how');
       };
-      const autoCount = () => { for (let i = 0; i < N; i++) setTimeout(() => { if (card.isConnected) { counted[i] = performance.now() / 1000; sfx.pop(); } }, 250 + i * 550); voice.say(...Array.from({ length: N }, (_, i) => 'num/' + (i + 1))); };
+      const autoCount = () => { const mine = counted; for (let i = 0; i < N; i++) this.later(() => { if (card.isConnected && counted === mine) { counted[i] = performance.now() / 1000; sfx.pop(); } }, 250 + i * 550); voice.say(...Array.from({ length: N }, (_, i) => 'num/' + (i + 1))); };
       const choose = (n, b) => {
         if (locked) return;
         if (n === N) {

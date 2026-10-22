@@ -311,7 +311,11 @@
       this.ui = clamp(Math.min(this.w, this.h * 1.4) / 780, .6, 1.4);
       this.S = clamp(Math.min(this.w, this.h) * .28, 80, 240);
       const side = Math.max(this.w * 2.3, this.h * 2.6, this.S * 12.5);
-      this.WW = this.WH = side;   // every place is a square
+      const was = this.WW; this.WW = this.WH = side;   // every place is a square
+      if (this.loaded && was && was !== side) {   // the phone turned: the world is a new size, so she and her friends keep their place in it
+        const k = side / was, sc = o => { if (o) { o.x *= k; o.y *= k; } };
+        [this.me, this.goal, this.cam, ...this.team, ...this.snake].forEach(sc);
+      }
       if (!this.loaded) { this.loaded = true; this.loadMap(this.mi, this.pendingFrom); } else this.place();
       this.draw();
     }
@@ -413,7 +417,7 @@
     }
     mapDone() {
       this.progress.done = true; this.gateOpen = 0; this.state = 'celebrate'; this.stateT = 0; store.addStars(1); store.save();
-      setTimeout(() => { sfx.cheer(); voice.say(this.mi === MAPS.length - 1 ? 'hide-done' : 'hide-gate'); }, 700);
+      setTimeout(() => { if (!this.running) return; sfx.cheer(); voice.say(this.mi === MAPS.length - 1 ? 'hide-done' : 'hide-gate'); }, 700);
     }
     // through a gate to the next (or the previous) place; the last gate leads home, and then the whole adventure starts again with everyone hiding anew
     leave(dir) {
@@ -421,7 +425,7 @@
       if (dir > 0 && !this.progress.done) { this.bounce(dir); return; }
       if (dir < 0 && this.mi === 0) { this.bounce(dir); return; }
       sfx.whoosh();
-      if (dir > 0 && this.mi === MAPS.length - 1) { this.fadeTo = { home: true, delay: 3.4 }; this.state = 'party'; this.stateT = 0; sfx.cheer(); voice.say('hide-home'); store.addStars(2); this.fx.burst(this.w / 2, this.h * .4, 40, { colors: RAINBOW, speed: 380, g: 300, life: 1.6, size: 8 * this.ui, shape: 'confetti', up: 220 }); return; }
+      if (dir > 0 && this.mi === MAPS.length - 1) { this.fadeTo = { home: true, delay: 3.4 }; this.state = 'party'; this.stateT = 0; this.bag.loop++; this.bag.team = []; this.bag.maps = {}; this.bag.map = 0; store.save(); sfx.cheer(); voice.say('hide-home'); store.addStars(2); this.fx.burst(this.w / 2, this.h * .4, 40, { colors: RAINBOW, speed: 380, g: 300, life: 1.6, size: 8 * this.ui, shape: 'confetti', up: 220 }); return; }
       this.fadeTo = { map: this.mi + dir, from: dir > 0 ? 'west' : 'east' };
     }
     bounce(dir) {
@@ -444,7 +448,7 @@
         this.fade = Math.min(1, this.fade + dt * 2.2);
         if (this.fade >= 1) {
           const f = this.fadeTo; this.fadeTo = null;
-          if (f.home) { this.bag.loop++; this.bag.team = []; this.bag.maps = {}; this.state = 'play'; this.loadMap(0, 'start'); }
+          if (f.home) { this.state = 'play'; this.loadMap(0, 'start'); }   // the new adventure was already saved when she reached home
           else this.loadMap(f.map, f.from);
         }
       } else if (this.fade > 0) this.fade = Math.max(0, this.fade - dt * 1.8);

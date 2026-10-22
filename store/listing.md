@@ -4,51 +4,51 @@
 Little Sprout Park
 
 ## Short description (max 80)
-Gentle games for little ones: letters, fruit, rain, fire rescue, a garden, coloring, puzzles, pet care, music, shape building and hide and seek.
+Gentle games for little ones. Buy once: every game and every update included.
 
 ## Full description (max 4000)
-Little Sprout Park is a calm, colourful collection of games made for little hands (about ages 2 to 6). No ads, no accounts, no scary bits: just gentle play that a child can enjoy on their own, with big buttons and no reading needed.
+Little Sprout Park is a calm, colourful play park made for little hands (about ages 2 to 7). A whole park of gentle games in one app, with big buttons, spoken instructions and nothing to read. No ads, no in-app purchases, no accounts and no scary bits. Nothing can be lost and there is no "game over": just play.
 
-LETTER GARDEN
-Trace letters with a finger while a friendly bee shows the way, flip flash cards with pictures and sounds, find the letter that was asked for, match big and little letters, pick the picture that starts with a sound, and write their very own name.
+BUY ONCE, GET EVERYTHING
+Little Sprout Park was built by a dad of one, for the little one at home. It started because the big companies kept charging so much for simple learning games: subscriptions, coin packs, ads and paywalls in the middle of play. This app is different. You pay once ($2.99 in the US) and you get everything: every game in the park today, every new game added later and every update, free. No subscriptions, no ads, no in-app purchases, no upsells. Ever.
 
-FRUIT SPLASH
-Swipe or tap the happy, floating fruit. Up to five fingers at once! There is no timer and nothing to lose, just a counter that goes up and up.
+LEARN
+- Letter Garden: trace letters with a friendly bee, flash cards, find the letter, letter sounds, write your own name, plus counting and first sums.
+- Shape Builder: fit coloured shapes into their holes to build a house, rocket, castle and more, then watch the picture come alive.
+- Caterpillars: what comes next? Each caterpillar sings its colour pattern; pick the next ball and it turns into a butterfly.
+- Feeling Friends: a friend's ice cream falls or thunder booms. Touch the face that shows how the friend feels, then choose a way to help: a hug, a song or a big calm breath.
+- Puzzle Pond: jigsaw puzzles made from your own coloring pictures, growing from 4 pieces to 12.
 
-RAIN BUCKET
-Slide the bucket to catch the raindrops from smiling clouds and make a rainbow. Every few rainbows it starts raining cats and dogs: two firefighter friends hold a safety net while cats and dogs float down on parachutes, bounce, and walk off happily.
+CREATE
+- Coloring Book: 59 pictures in six collections (animal friends, garden, Halloween, Thanksgiving and fall, Christmas, dinosaurs). Tap to fill, paint with a brush that stays inside the lines, undo anything, and save your pictures.
+- Clay Corner: squish, roll, stretch, pinch and cut soft play-dough, add googly eyes and take photos of your creations.
+- Sprout Kitchen: 12 recipes from cookies, cupcakes and pancakes to build-your-own burgers, sandwiches and pizza. Measure, stir, roll, cut, bake, decorate, then eat it bite by bite.
+- Style Studio: dress up girls and boys in princess gowns, crowns and wings, do make-up and nails, cut and brush hair in the Hair Salon, then walk the runway.
+- Bunny Band: six animal musicians to play, little tunes to copy, and your own song to record.
 
-Fire Rescue: spray the friendly little flames with the hose, then help the pets climb down the ladder. Nothing bad ever happens, and if nobody is playing the fire just fades away by itself.
+CARE
+- Pet Shop: earn stars by playing and choose from 21 pets (kittens, puppies, unicorns, dinosaurs and more) and 28 hats, glasses and bows. Stars are only ever earned by playing.
+- Pet Care: feed, bath, brush and tuck in your pet, and decorate its room (castle, space, seaside and more).
+- Fish Tank: feed your fish, watch them grow, collect their coins and meet friendly visitors.
+- Grow a Garden: dig, plant, pat and water, step by step, and meet 14 garden friends.
 
-Puzzle Pond: put together jigsaw puzzles made from your own coloring pictures.
+PLAY
+- Fruit Splash: swipe floating fruit with up to five fingers.
+- Rain Bucket: catch raindrops for rainbows, with gentle storms, shooting stars and pets parachuting into a safety net.
+- Fire Rescue: spray friendly flames with the hose and help the pets down the ladder.
+- Hide and Seek: walk a little world, find hiding friends and bring them all home.
+- Fishing Pond: cast from the dock with your pet, reel in nine kinds of fish and fill your fish book.
 
-Pet Care: feed, wash and tuck in your Pet Shop friend.
-
-Bunny Band: touch the animal friends to make music, copy little tunes, and record your own song.
-
-Shape Builder: build pictures from colored shapes by fitting each piece into its hole, then watch the picture come alive.
-
-Hide and Seek: walk around a map and find the garden friends hiding behind the bushes.
-Style Studio: dress up girls and boys in princess gowns, crowns and wings, do their hair and make-up, paint their nails and send them down the runway.
-
-GROW A GARDEN
-Learn how plants grow, step by step: dig the hole with the shovel, drop in a seed, pat the dirt down, then pour water from the can. Watch it grow, unlock new seeds, and meet garden friends like bees, bunnies, frogs and hedgehogs.
-
-COLORING BOOK
-Fifty friendly pictures to color, in five collections: animal friends, garden, Halloween, Thanksgiving and fall, and Christmas. Tap to fill a shape, paint with the brush (paint stays inside the lines), rub out mistakes, and undo as many times as you like. Finish a picture to win a golden frame, and save any picture to keep.
-
-PET SHOP
-Collect stars while you play, then take a pet home from the Pet Shop: a bunny, kitten, bear cub, fox pup, froggy or panda. Give it a name, dress it up with hats, and it keeps you company while you color. Stars are earned by playing; nothing in the app is ever bought with money.
-
-SEASONS
-The Coloring Book has collections for Halloween, Thanksgiving and fall, and Christmas, each with its own calm instrumental music.
+GROWS WITH YOUR CHILD
+Choose an age from 2 to 7 and every game adjusts: bigger helps for toddlers, small challenges for older children.
 
 FOR GROWN-UPS
-- No ads, no in-app purchases, no accounts, no tracking. Everything stays on the device.
-- A grown-up check protects settings, and there are no links out of the app.
-- Set a daily play-time limit with a gentle "time for a rest" screen.
-- Record your own voice (a male and a female voice can be mixed) or use the built-in voice, and choose how chatty the games are.
-- Works offline once installed. Several children can each have their own player.
+- No ads, no in-app purchases, no tracking, no links out of the app.
+- Grown-up settings are behind a grown-up check or your own PIN.
+- A daily play-time limit with a gentle "time for a rest" screen.
+- Record your family's voices (parents, grandparents, siblings) and the games mix them, or use the phone's built-in voice.
+- Night mode for calm bedtime play, several players with their own progress, and an optional encrypted backup between your devices.
+- Works fully offline.
 
 ## Category
 Education (or Family > Educational). Tags: kids, preschool, letters, alphabet, learning.
@@ -57,9 +57,10 @@ Education (or Family > Educational). Tags: kids, preschool, letters, alphabet, l
 Website: https://YOUR-DOMAIN/    Email: [your contact email]
 Privacy policy: https://YOUR-DOMAIN/privacy.html
 
-## Graphics (already generated, in this folder)
-- icon-512.png            (512x512 app icon)
-- feature-graphic.png     (1024x500)
-- screenshots/phone-*.png (1080x1920, use 4 to 8)
-- screenshots/tablet-*.png (1920x1200, for 7" and 10" tablet slots)
-Regenerate any time with: node tools/make-store-assets.mjs
+## Graphics (already generated, in this folder; see PLAY-STORE-GUIDE.md section 5 for the slot each one goes in)
+- icon-512.png                       (512x512 app icon: the sprout friend in its flower pot)
+- feature-graphic.png                (1024x500, no transparency)
+- screenshots/phone/1-8              (8 x 1080x1920, captioned)
+- screenshots/tablet7/1-8            (8 x 1080x1920, captioned, 7-inch tablets)
+- screenshots/tablet10/1-8           (8 x 2560x1440, captioned, 10-inch tablets and Chromebooks)
+Regenerate any time with: node tools/make-icons.mjs && node tools/make-store-assets.mjs

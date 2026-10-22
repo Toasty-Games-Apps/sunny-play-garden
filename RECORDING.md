@@ -159,9 +159,9 @@ Say the sound the letter makes: "buh", "kuh", "sss". Not the name.
 | `sound-y.mp3` | yuh |
 | `sound-z.mp3` | zzz |
 
-# Part 2: optional lines (562, nobody has to record these)
+# Part 2: optional lines (596, nobody has to record these)
 
-## Prompts and instructions (121)
+## Prompts and instructions (155)
 
 Short lines that tell {her} what to do.
 
@@ -189,19 +189,53 @@ Short lines that tell {her} what to do.
 | `hide-new.mp3` | A new place to explore! |
 | `hide-home.mp3` | What a wonderful adventure! Everyone is home! |
 | `cook-pick.mp3` | What shall we cook today? |
-| `cook-start.mp3` | Let us cook! Follow the chef! |
+| `cook-start.mp3` | Let's cook! Follow the chef! |
 | `cook-roll.mp3` | Roll the dough flat! |
 | `cook-cutsand.mp3` | Pick a cutter, then touch the sandwich! |
 | `cook-oven-on.mp3` | First, turn the oven on! Touch it! |
 | `cook-squirt.mp3` | Squeeze the sauce anywhere you like! |
 | `cook-drop.mp3` | Put some dough on the tray! |
 | `cook-pour.mp3` | Pour the batter in! |
-| `cook-ding.mp3` | It is ready! Touch the oven! |
+| `cook-ding.mp3` | It's ready! Touch the oven! |
 | `cook-grill.mp3` | Put it on the grill! |
 | `cook-flip.mp3` | Flip it over! |
 | `cook-stack.mp3` | Stack it up! Pick the glowing one! |
 | `cook-frost.mp3` | Touch the cake with icing! |
 | `cook-slice.mp3` | Slice it with the knife! |
+| `pat-start.mp3` | What comes next? Touch it! |
+| `pat-next.mp3` | What comes next? |
+| `feel-start.mp3` | Hello! Can you tell how I feel? |
+| `feel-how.mp3` | How do I feel? Touch the face. |
+| `feel-look.mp3` | Hmm. Look at my face! |
+| `feel-s-present.mp3` | A present, just for me! |
+| `feel-s-cake.mp3` | A big birthday cake for me! |
+| `feel-s-pal.mp3` | My best friend came to play! |
+| `feel-s-icecream.mp3` | Oh no! My ice cream fell down. |
+| `feel-s-balloon.mp3` | Oh no! My balloon flew away. |
+| `feel-s-rain.mp3` | It is raining. No playing outside today. |
+| `feel-s-thunder.mp3` | Boom! The thunder is so loud! |
+| `feel-s-dark.mp3` | The lights went out. It is so dark! |
+| `feel-s-tower.mp3` | Hey! The ball knocked my tower down! |
+| `feel-s-splash.mp3` | Hey! Mud splashed all over me! |
+| `feel-s-jack.mp3` | Pop! What was that? |
+| `feel-s-party.mp3` | Surprise! A party! |
+| `feel-s-yawn.mp3` | I played all day long. Yawn! |
+| `feel-happy.mp3` | Yes! I feel happy! |
+| `feel-sad.mp3` | Yes. I feel sad. |
+| `feel-scared.mp3` | Yes. I feel scared. |
+| `feel-mad.mp3` | Yes! I feel mad! |
+| `feel-wow.mp3` | Yes! I feel surprised! |
+| `feel-sleep.mp3` | Yes. I feel sleepy. |
+| `feel-help.mp3` | What would help me feel better? |
+| `feel-help-sleep.mp3` | What helps me go to sleep? |
+| `feel-joy.mp3` | Let's have fun together! Pick one! |
+| `feel-breathe.mp3` | Let's take a big breath in, and blow it out slowly. |
+| `feel-better.mp3` | Thank you! I feel much better now! |
+| `feel-fun.mp3` | That was so much fun! Thank you! |
+| `feel-night.mp3` | Thank you. Good night! |
+| `shop-stars.mp3` | That one needs more stars. Keep playing to get more! |
+| `shop-first.mp3` | Take a friend home first! |
+| `shop-worn.mp3` | Another friend is wearing that one. |
 | `cook-pickbun.mp3` | Pick a bun! |
 | `cook-pickbread.mp3` | Pick your bread! |
 | `cook-patties.mp3` | Put patties on the grill! One, two or three! |
@@ -220,8 +254,8 @@ Short lines that tell {her} what to do.
 | `math-sum.mp3` | How many altogether? |
 | `math-left.mp3` | How many are left? |
 | `math-more.mp3` | One more makes |
-| `math-start.mp3` | Let us add and take away! |
-| `count-start.mp3` | Let us count! |
+| `math-start.mp3` | Let's add and take away! |
+| `count-start.mp3` | Let's count! |
 | `color-red.mp3` | Red! |
 | `color-blue.mp3` | Blue! |
 | `color-yellow.mp3` | Yellow! |

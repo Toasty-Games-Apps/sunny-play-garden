@@ -109,11 +109,13 @@
     button(id) {
       if (TOOLS.includes(id)) { this.tool = id; sfx.tap(); const k = { brush: 'comb', scissors: null, spray: 'spray', dryer: 'dryer' }[id]; if (k && voice.LINES['style/tool-' + k]) voice.say('style/tool-' + k); return; }
       if (id === 'undo') { if (this.undo.length) { this.hair = H.unpack(this.undo.pop()); P.cuts.live = this.hair; sfx.undo(); } else sfx.tap(); return; }
-      if (id === 'close') { sfx.tap(); this.mode = 'pick'; this.hair = null; delete P.cuts.live; this.pieces = []; this.resize(); return; }
+      if (id === 'close') {   // going back keeps her work: the card she picked now shows the hair as she left it, so one stray tap loses nothing
+        const c = this.card; if (c && this.cards.includes(c) && this.undo.length) { c.hair = this.hair; P.cuts['pk' + this.cards.indexOf(c)] = c.hair; }
+        sfx.tap(); this.mode = 'pick'; this.hair = null; delete P.cuts.live; this.pieces = []; this.resize(); return; }
       if (id === 'done') this.finish();
     }
     choose(c) {
-      sfx.chime(); this.mode = 'edit'; this.hair = H.clone(c.hair); P.cuts.live = this.hair; this.hairCol = c.col; this.look.hairCol = c.col; this.undo = []; this.pieces = []; this.mist = []; this.best = 0; this.praised = false; this.tool = 'scissors'; this.resize();
+      sfx.chime(); this.mode = 'edit'; this.card = c; this.hair = H.clone(c.hair); P.cuts.live = this.hair; this.hairCol = c.col; this.look.hairCol = c.col; this.undo = []; this.pieces = []; this.mist = []; this.best = 0; this.praised = false; this.tool = 'scissors'; this.resize();
     }
     pushUndo() { this.undo.push(H.pack(this.hair)); if (this.undo.length > 14) this.undo.shift(); }
     local(x, y) { const c = this.headC(), R = this.headR(); return [(x - c.x) / R, (y - c.y) / R]; }

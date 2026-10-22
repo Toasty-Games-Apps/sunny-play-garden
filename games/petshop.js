@@ -93,7 +93,7 @@
       const cur = a ? (slot === 'head' ? a.hat : a[slot]) : null;
       const none = btn('ps-card ps-hook ps-none' + (a && !cur ? ' active' : ''), 'Nothing, take it off', el('canvas'), icon('x'), el('span', 'ps-label', 'None'));
       none._cv = none.firstChild; none._type = 'none';
-      tap(none, () => { if (!a) { this.nope(none, 'Take a friend home first, then pick something to wear!'); return; } P.unwear(slot); sfx.tap(); this.hop = .6; this.render(); });
+      tap(none, () => { if (!a) { this.nope(none, 'Take a friend home first, then pick something to wear!', 'shop-first'); return; } P.unwear(slot); sfx.tap(); this.hop = .6; this.render(); });
       wrap.append(none);
       const mine = list.filter(h => P.ownsHat(h.id)), rest = list.filter(h => !P.ownsHat(h.id));
       const add = item => {
@@ -197,20 +197,23 @@
 
     /* -------------------------------------------------------------- shopping */
     say(text) { this.hint.textContent = text; clearTimeout(this.hintT); this.hintT = setTimeout(() => { if (this.hint.textContent === text) this.hint.textContent = P.active() ? '' : 'Pick a friend from the shelf to take home!'; }, 3500); }
-    nope(b, text) { sfx.oops(); b.classList.remove('nope'); void b.offsetWidth; b.classList.add('nope'); if (text) this.say(text); }
+    nope(b, text, line) {   // she cannot read the hint, so the reason is also said out loud (not again within a few seconds)
+      sfx.oops(); b.classList.remove('nope'); void b.offsetWidth; b.classList.add('nope'); if (text) this.say(text);
+      const now = performance.now(); if (line && (line !== this.noped || now - this.nopeT > 5000)) { this.noped = line; this.nopeT = now; voice.say(line); }
+    }
     tapCard(item, type, b) {
       const a = P.active();
       if (type === 'pet') {
         if (P.owns(item.id)) { P.setActive(item.id); sfx.pop(); this.hop = 1; this.render(); return; }
-        if (!P.canAfford(item.price)) return this.nope(b, `${item.name} costs ${item.price} stars. Keep playing to collect more!`);
+        if (!P.canAfford(item.price)) return this.nope(b, `${item.name} costs ${item.price} stars. Keep playing to collect more!`, 'shop-stars');
         this.confirm(item, 'pet');
       } else {
-        if (!a) return this.nope(b, 'Take a friend home first, then pick something to wear!');
+        if (!a) return this.nope(b, 'Take a friend home first, then pick something to wear!', 'shop-first');
         if (P.ownsHat(item.id)) {
           const other = P.wornBy(item.id);
-          if (other) return this.nope(b, `The ${item.name.toLowerCase()} is on ${P.nameOf(other)} right now.`);
+          if (other) return this.nope(b, `The ${item.name.toLowerCase()} is on ${P.nameOf(other)} right now.`, 'shop-worn');
           const cur = item.slot === 'head' ? a.hat : a[item.slot]; if (cur === item.id) P.unwear(item.slot); else P.wear(item.id); sfx.pop(); this.hop = 1; this.render(); return; }
-        if (!P.canAfford(item.price)) return this.nope(b, `${item.name} costs ${item.price} stars. Keep playing to collect more!`);
+        if (!P.canAfford(item.price)) return this.nope(b, `${item.name} costs ${item.price} stars. Keep playing to collect more!`, 'shop-stars');
         this.confirm(item, 'hat');
       }
     }

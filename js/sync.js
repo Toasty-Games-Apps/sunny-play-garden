@@ -151,7 +151,8 @@
   const tell = () => listeners.forEach(fn => fn(sync.info()));
 
   // Download, merge, upload. Repeats if another device saved in between.
-  function run() {
+  // undo: keep a copy to undo first (when a grown-up joins a family code; never for the quiet background sync)
+  function run(undo = false) {
     if (busy) return busy;
     busy = (async () => {
       const st = load(); if (!st.code) return fail('nocode');
@@ -164,7 +165,7 @@
           if (got.status === 200) {
             const j = await got.json(); rev = j.rev;
             let remote; try { remote = JSON.parse(await open(key, j.blob)); } catch (_) { return fail('badcode'); }
-            added = store.mergeProfiles(remote.profiles).added;
+            added = store.mergeProfiles(remote.profiles, { undo }).added;
           } else if (got.status !== 404) return fail('failed');
           const sealed = await seal(key, JSON.stringify({ v: 1, t: Date.now(), profiles: store.exportProfiles() }));
           const put = await api('PUT', id, { rev, blob: sealed });
@@ -206,7 +207,7 @@
     async create() {
       const code = makeCode();
       keep({ code, rev: 0, last: 0 });
-      const r = await run();
+      const r = await run(true);
       if (!r.ok) keep({ code: '', rev: 0 });
       return r.ok ? { ok: true, code: pretty(code) } : r;
     },
@@ -222,7 +223,7 @@
         try { await open(key, (await got.json()).blob); } catch (_) { return fail('badcode'); }
       } catch (e) { return problem(e); }
       keep({ code, rev: 0, last: 0 });
-      const r = await run();
+      const r = await run(true);
       if (!r.ok) keep({ code: '' });
       return r;
     },
