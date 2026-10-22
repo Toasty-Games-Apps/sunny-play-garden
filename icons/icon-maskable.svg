@@ -1,25 +1,55 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Little Sprout Park: a sprout friend in a flower pot under a rainbow. Source for every icon size (tools/make-icons.mjs). -->
   <defs>
-    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#a9e1f3"/><stop offset=".72" stop-color="#e9f8ee"/></linearGradient>
-    <radialGradient id="mound" cx=".35" cy=".25" r=".9"><stop offset="0" stop-color="#b98a62"/><stop offset="1" stop-color="#8d6544"/></radialGradient>
-    <radialGradient id="glow" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#ffe98a" stop-opacity=".9"/><stop offset="1" stop-color="#ffe98a" stop-opacity="0"/></radialGradient>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#6fcaf4"/><stop offset=".62" stop-color="#bfeafc"/><stop offset="1" stop-color="#e8f9ff"/></linearGradient>
+    <radialGradient id="sun" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#fff3a6"/><stop offset=".55" stop-color="#ffe066" stop-opacity=".9"/><stop offset="1" stop-color="#ffe066" stop-opacity="0"/></radialGradient>
+    <radialGradient id="head" cx=".38" cy=".3" r=".8"><stop offset="0" stop-color="#b6f07f"/><stop offset=".6" stop-color="#7fd95a"/><stop offset="1" stop-color="#55b844"/></radialGradient>
+    <linearGradient id="leafL" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#8ee35f"/><stop offset="1" stop-color="#3fa447"/></linearGradient>
+    <linearGradient id="leafR" x1="1" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#a6ef6e"/><stop offset="1" stop-color="#4cb24a"/></linearGradient>
+    <linearGradient id="hill1" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#9fe07a"/><stop offset="1" stop-color="#6cc35a"/></linearGradient>
+    <linearGradient id="hill2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#7fd26a"/><stop offset="1" stop-color="#4fae54"/></linearGradient>
+    <linearGradient id="pot" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#d86a3c"/><stop offset=".45" stop-color="#f08a52"/><stop offset="1" stop-color="#c85c34"/></linearGradient>
+    <linearGradient id="rim" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffab73"/><stop offset="1" stop-color="#e8804a"/></linearGradient>
   </defs>
   <rect width="512" height="512" fill="url(#sky)"/>
-  <g transform="translate(256 262) scale(.8) translate(-256 -262)"><circle cx="412" cy="112" r="92" fill="url(#glow)"/><circle cx="412" cy="112" r="44" fill="#ffd95a"/><circle cx="402" cy="102" r="30" fill="#ffe98a"/>
-  <path d="M0 392C110 344 200 366 300 390s160 10 212-24V512H0z" fill="#a9dc94"/>
-  <path d="M0 448C140 418 300 438 512 426V512H0z" fill="#93d087"/>
-  <!-- the sprout -->
-  <path d="M256 330V236" stroke="#4fae5f" stroke-width="20" stroke-linecap="round" fill="none"/>
-  <path d="M256 250C298 168 398 158 432 198C402 290 302 302 256 250Z" fill="#7ed957"/>
-  <path d="M256 250C312 214 372 202 408 200" stroke="#5fbf4a" stroke-width="9" stroke-linecap="round" fill="none"/>
-  <path d="M256 272C214 200 134 190 102 226C128 298 212 310 256 272Z" fill="#5fbf4a"/>
-  <path d="M256 272C204 240 150 228 118 226" stroke="#3f9a5a" stroke-width="9" stroke-linecap="round" fill="none"/>
-  <ellipse cx="350" cy="196" rx="30" ry="12" transform="rotate(-18 350 196)" fill="#fff" opacity=".35"/>
-  <!-- a little hill with a face -->
-  <path d="M112 440C112 336 400 336 400 440Z" fill="url(#mound)"/>
-  <ellipse cx="200" cy="410" rx="15" ry="20" fill="#5a3f5e"/><ellipse cx="312" cy="410" rx="15" ry="20" fill="#5a3f5e"/>
-  <circle cx="195" cy="402" r="6" fill="#fff"/><circle cx="307" cy="402" r="6" fill="#fff"/>
-  <path d="M232 428q24 26 48 0" stroke="#5a3f5e" stroke-width="9" stroke-linecap="round" fill="none"/>
-  <ellipse cx="170" cy="432" rx="18" ry="11" fill="#ff8aa3" opacity=".5"/><ellipse cx="342" cy="432" rx="18" ry="11" fill="#ff8aa3" opacity=".5"/>
-
-</g></svg>
+  <circle cx="404" cy="104" r="78" fill="url(#sun)"/>
+  <!-- rainbow -->
+  <g fill="none" stroke-width="15" stroke-linecap="round">
+    <path d="M58 372A198 198 0 0 1 454 372" stroke="#ff6b81"/>
+    <path d="M73 372A183 183 0 0 1 439 372" stroke="#ffa64d"/>
+    <path d="M88 372A168 168 0 0 1 424 372" stroke="#ffe066"/>
+    <path d="M103 372A153 153 0 0 1 409 372" stroke="#7ed957"/>
+    <path d="M118 372A138 138 0 0 1 394 372" stroke="#5cc8f2"/>
+    <path d="M133 372A123 123 0 0 1 379 372" stroke="#a48cf5"/>
+  </g>
+  <!-- clouds -->
+  <g fill="#fff"><circle cx="92" cy="138" r="26"/><circle cx="122" cy="126" r="32"/><circle cx="154" cy="140" r="24"/><rect x="70" y="138" width="104" height="26" rx="13"/></g>
+  <!-- hills -->
+  <path d="M0 400C90 352 180 360 256 384S420 380 512 352V512H0z" fill="url(#hill1)"/>
+  <path d="M0 452C120 420 250 428 512 418V512H0z" fill="url(#hill2)"/>
+  <g fill="#fff" opacity=".9"><circle cx="70" cy="452" r="7"/><circle cx="446" cy="440" r="7"/><circle cx="410" cy="470" r="5"/></g>
+  <g fill="#ffd54a"><circle cx="70" cy="452" r="3"/><circle cx="446" cy="440" r="3"/><circle cx="410" cy="470" r="2.4"/></g>
+  <g transform="translate(256 278) scale(.7) translate(-256 -278)">
+  <!-- the sprout friend in its pot -->
+  <g transform="translate(0 -14)">
+  <ellipse cx="256" cy="470" rx="112" ry="14" fill="#2f7a3a" opacity=".3"/>
+  <path d="M256 196C252 168 254 146 262 124" stroke="#3f9a45" stroke-width="16" stroke-linecap="round" fill="none"/>
+  <path d="M262 132C232 78 156 66 120 102C150 164 226 172 262 132Z" fill="url(#leafL)" stroke="#2f8a3e" stroke-width="7" stroke-linejoin="round"/>
+  <path d="M258 130C222 114 180 102 140 102" stroke="#2f8a3e" stroke-width="6" stroke-linecap="round" fill="none" opacity=".7"/>
+  <path d="M262 128C286 66 366 44 404 80C380 150 300 168 262 128Z" fill="url(#leafR)" stroke="#2f8a3e" stroke-width="7" stroke-linejoin="round"/>
+  <path d="M266 126C304 102 348 86 388 82" stroke="#2f8a3e" stroke-width="6" stroke-linecap="round" fill="none" opacity=".7"/>
+  <ellipse cx="342" cy="86" rx="24" ry="9" transform="rotate(-20 342 86)" fill="#fff" opacity=".45"/>
+  <path d="M256 186C328 186 364 236 364 292C364 352 316 392 256 392S148 352 148 292C148 236 184 186 256 186Z" fill="url(#head)" stroke="#2f8a3e" stroke-width="8"/>
+  <ellipse cx="214" cy="228" rx="30" ry="15" transform="rotate(-25 214 228)" fill="#fff" opacity=".45"/>
+  <ellipse cx="218" cy="290" rx="18" ry="24" fill="#3b2a40"/><ellipse cx="294" cy="290" rx="18" ry="24" fill="#3b2a40"/>
+  <circle cx="211" cy="280" r="7.5" fill="#fff"/><circle cx="287" cy="280" r="7.5" fill="#fff"/>
+  <circle cx="224" cy="301" r="3.4" fill="#fff" opacity=".8"/><circle cx="300" cy="301" r="3.4" fill="#fff" opacity=".8"/>
+  <ellipse cx="184" cy="322" rx="18" ry="11" fill="#ff86a6" opacity=".8"/><ellipse cx="328" cy="322" rx="18" ry="11" fill="#ff86a6" opacity=".8"/>
+  <path d="M232 326Q256 354 280 326Q256 337 232 326Z" fill="#d64a6a" stroke="#3b2a40" stroke-width="7" stroke-linejoin="round"/>
+  <path d="M150 386H362L344 470Q342 478 334 478H178Q170 478 168 470Z" fill="url(#pot)" stroke="#9e4524" stroke-width="7" stroke-linejoin="round"/>
+  <rect x="134" y="358" width="244" height="40" rx="14" fill="url(#rim)" stroke="#9e4524" stroke-width="7"/>
+  <rect x="150" y="365" width="120" height="9" rx="4.5" fill="#fff" opacity=".35"/>
+  <path d="M256 456C226 436 222 414 238 408C248 404 254 410 256 416C258 410 264 404 274 408C290 414 286 436 256 456Z" fill="#fff4ec"/>
+  </g>
+  </g>
+</svg>

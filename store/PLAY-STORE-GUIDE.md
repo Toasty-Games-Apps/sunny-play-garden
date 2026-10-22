@@ -1,9 +1,9 @@
 # Publishing Little Sprout Park on Google Play
 
-The app is a web app that installs like an app (a PWA). For Google Play it is wrapped as a **Trusted Web Activity
-(TWA)**: a tiny Android app that opens the website full screen with no browser bars. Because the game files are
-served from your website, updates go live by deploying the website; you only re-upload to Play for changes to the
-wrapper itself.
+The Play Store app is the **Capacitor app in `android-app/`**: the game files are copied inside the app at build time,
+so it runs fully offline with no website. How to build, sign and number versions is in `android-app/README.md`; the
+Data safety answers for it are there too. The Trusted Web Activity steps further down (sections 1 and 4) were the
+first plan and are kept only for reference: with the Capacitor app you skip them.
 
 > Store rules change. Treat this as a checklist and double-check anything marked (verify) in the Play Console help.
 
@@ -37,7 +37,10 @@ bubblewrap build
 `store/twa-manifest.template.json` shows the settings we recommend (fullscreen, no notifications).
 
 ## 2. Create the app in Play Console
-- All apps > Create app: name, default language, **App**, **Free**, accept the declarations.
+- All apps > Create app: name, default language, **App**, **Paid** (the planned price is $2.99), accept the declarations.
+- **Free or paid is permanent once the app is published**: Google does not let a free app become paid later. If the app was created
+  as Free for the test uploads, check Monetize > Products > App pricing before the first production release. Selling a paid app also
+  needs a payments profile (Setup > Payments profile) linked to the developer account, and tax details.
 - Category **Education**. Contact details and the privacy policy URL `https://YOUR-DOMAIN/privacy.html`.
 
 ## 3. Kids / Families settings (this is a children's app)
@@ -56,7 +59,20 @@ This removes the browser address bar.
 4. Install the internal test build on a phone. It should open full screen with no address bar. If a bar appears, the fingerprint or package name in assetlinks.json does not match.
 
 ## 5. Store listing
-Use `store/listing.md` for the text and the images in `store/` (icon, feature graphic, phone and tablet screenshots).
+Use `store/listing.md` for the text and these images (Grow users > Store presence > Main store listing):
+
+| Play Console slot | File(s) | Size | Notes |
+| --- | --- | --- | --- |
+| App icon | `store/icon-512.png` | 512 x 512 PNG | full square; Play rounds the corners itself |
+| Feature graphic | `store/feature-graphic.png` | 1024 x 500 PNG, no transparency | shown at the top of the listing |
+| Phone screenshots | `store/screenshots/phone/1-...8-*.png` | 8 x 1080 x 1920 | upload in number order; 1080 px or more makes them eligible for promotion |
+| 7-inch tablet screenshots | `store/screenshots/tablet7/*.png` | 8 x 1080 x 1920 (9:16) | |
+| 10-inch tablet screenshots | `store/screenshots/tablet10/*.png` | 8 x 2560 x 1440 (16:9) | both sides at least 1080 px, as Play asks |
+
+Every screenshot is the real game with a short caption above it; none has transparency. Chromebook screenshots are optional (the 10-inch set fits them too).
+Regenerate everything with `node tools/make-icons.mjs` (icons) and `node tools/make-store-assets.mjs` (screenshots and feature graphic);
+`ONLY=phone` (or `tablet7`, `tablet10`, `feature`) makes one part, `FRAME_ONLY=1` only re-writes the captions (edit `CAPTION` in the script).
+After changing the logo, also run `node android-app/make-android-icons.mjs` so the phone's launcher icon and splash screen match.
 
 ## 6. Testing requirements and release
 - Run an **Internal test** (up to 100 testers) to check everything works.

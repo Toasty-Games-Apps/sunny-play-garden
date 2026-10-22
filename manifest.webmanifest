@@ -63,7 +63,7 @@
     },
     {
       "src": "screenshots/tablet-1-garden.png",
-      "sizes": "1920x1200",
+      "sizes": "2560x1440",
       "type": "image/png",
       "form_factor": "wide",
       "label": "Grow a garden"

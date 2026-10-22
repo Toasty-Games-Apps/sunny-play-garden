@@ -54,9 +54,10 @@ Education (or Family > Educational). Tags: kids, preschool, letters, alphabet, l
 Website: https://YOUR-DOMAIN/    Email: [your contact email]
 Privacy policy: https://YOUR-DOMAIN/privacy.html
 
-## Graphics (already generated, in this folder)
-- icon-512.png            (512x512 app icon)
-- feature-graphic.png     (1024x500)
-- screenshots/phone-*.png (1080x1920, use 4 to 8)
-- screenshots/tablet-*.png (1920x1200, for 7" and 10" tablet slots)
-Regenerate any time with: node tools/make-store-assets.mjs
+## Graphics (already generated, in this folder; see PLAY-STORE-GUIDE.md section 5 for the slot each one goes in)
+- icon-512.png                       (512x512 app icon: the sprout friend in its flower pot)
+- feature-graphic.png                (1024x500, no transparency)
+- screenshots/phone/1-8              (8 x 1080x1920, captioned)
+- screenshots/tablet7/1-8            (8 x 1080x1920, captioned, 7-inch tablets)
+- screenshots/tablet10/1-8           (8 x 2560x1440, captioned, 10-inch tablets and Chromebooks)
+Regenerate any time with: node tools/make-icons.mjs && node tools/make-store-assets.mjs
