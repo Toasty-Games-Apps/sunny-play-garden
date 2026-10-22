@@ -44,7 +44,7 @@ const DEVICES = [
 ];
 // Captions are for the grown-up choosing the app, so they talk about what the child does, briefly.
 const CAPTION = {
-  hub: ['19 gentle games for ages 2 to 7', 'No ads. No in-app purchases. Works offline.'],
+  hub: ['Gentle games for ages 2 to 7', 'Buy once. No ads. No in-app purchases.'],
   trace: ['Trace letters with a friendly bee'], find: ['Find the letter, hear its sound'],
   kitchen: ['Cook, build and decorate, then eat it up!'], color: ['59 pictures to color, inside the lines'],
   feelings: ['Name feelings and help friends feel better'], shop: ['Earn stars by playing, adopt a pet'],
@@ -273,7 +273,7 @@ if (want('feature')) {
     // the name
     c.textBaseline = 'alphabetic'; c.lineJoin = 'round';
     for (const [txt, y] of [['Little Sprout', 168], ['Park', 252]]) { c.font = '700 86px Fredoka, system-ui'; c.lineWidth = 16; c.strokeStyle = '#fff'; c.strokeText(txt, 372, y); c.fillStyle = '#4a3350'; c.fillText(txt, 372, y); }
-    c.font = '600 32px Fredoka, system-ui'; c.lineWidth = 9; c.strokeStyle = '#fff'; c.strokeText('19 gentle games for little ones', 376, 312); c.fillStyle = '#4a3350'; c.fillText('19 gentle games for little ones', 376, 312);
+    c.font = '600 32px Fredoka, system-ui'; c.lineWidth = 9; c.strokeStyle = '#fff'; c.strokeText('Gentle games for little ones', 376, 312); c.fillStyle = '#4a3350'; c.fillText('Gentle games for little ones', 376, 312);
     // what grown-ups look for, in little pills
     let x = 376; c.font = '600 22px Fredoka, system-ui';
     for (const [txt, col] of [['No ads', '#ff8aa3'], ['No in-app purchases', '#5cc8f2'], ['Ages 2-7', '#7ed957']]) {

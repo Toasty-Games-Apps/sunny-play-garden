@@ -4,16 +4,19 @@
 Little Sprout Park
 
 ## Short description (max 80)
-19 gentle games for little ones: letters, patterns, feelings, pets and coloring
+Gentle games for little ones. Buy once: every game and every update included.
 
 ## Full description (max 4000)
-Little Sprout Park is a calm, colourful play park made for little hands (about ages 2 to 7). Nineteen gentle games in one app, with big buttons, spoken instructions and nothing to read. No ads, no in-app purchases, no accounts and no scary bits. Nothing can be lost and there is no "game over": just play.
+Little Sprout Park is a calm, colourful play park made for little hands (about ages 2 to 7). A whole park of gentle games in one app, with big buttons, spoken instructions and nothing to read. No ads, no in-app purchases, no accounts and no scary bits. Nothing can be lost and there is no "game over": just play.
+
+BUY ONCE, GET EVERYTHING
+Little Sprout Park was built by a dad of one, for the little one at home. It started because the big companies kept charging so much for simple learning games: subscriptions, coin packs, ads and paywalls in the middle of play. This app is different. You pay once ($2.99 in the US) and you get everything: every game in the park today, every new game added later and every update, free. No subscriptions, no ads, no in-app purchases, no upsells. Ever.
 
 LEARN
-- Letter Garden: trace letters with a friendly bee, flash cards, find the letter, match big and little letters, letter sounds, write your own name, plus counting and first adding and taking away.
+- Letter Garden: trace letters with a friendly bee, flash cards, find the letter, letter sounds, write your own name, plus counting and first sums.
 - Shape Builder: fit coloured shapes into their holes to build a house, rocket, castle and more, then watch the picture come alive.
-- Caterpillars: what comes next? Each caterpillar sings its colour pattern (red, blue, red, blue...); pick the ball that comes next and it turns into a butterfly in its colours.
-- Feeling Friends: a friend's ice cream falls, thunder booms or a present arrives. Touch the face that shows how the friend feels, then choose a way to help: a hug, a song, a night light or a big calm breath.
+- Caterpillars: what comes next? Each caterpillar sings its colour pattern; pick the next ball and it turns into a butterfly.
+- Feeling Friends: a friend's ice cream falls or thunder booms. Touch the face that shows how the friend feels, then choose a way to help: a hug, a song or a big calm breath.
 - Puzzle Pond: jigsaw puzzles made from your own coloring pictures, growing from 4 pieces to 12.
 
 CREATE
@@ -37,7 +40,7 @@ PLAY
 - Fishing Pond: cast from the dock with your pet, reel in nine kinds of fish and fill your fish book.
 
 GROWS WITH YOUR CHILD
-Choose an age from 2 to 7 and every game adjusts: fewer choices and bigger helps for toddlers, more pieces and small challenges for older children.
+Choose an age from 2 to 7 and every game adjusts: bigger helps for toddlers, small challenges for older children.
 
 FOR GROWN-UPS
 - No ads, no in-app purchases, no tracking, no links out of the app.
