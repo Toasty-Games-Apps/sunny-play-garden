@@ -10,3 +10,4 @@ android-app/android/local.properties
 *.jks
 .claude/
 store/screenshots/raw/
+release/
