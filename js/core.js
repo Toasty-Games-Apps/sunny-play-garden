@@ -610,9 +610,10 @@
       // No long-press menus, text selection, drag ghosts or pinch zoom.
       const block = e => e.preventDefault();
       ['contextmenu', 'selectstart', 'dragstart', 'gesturestart', 'gesturechange'].forEach(t => document.addEventListener(t, block));
-      document.addEventListener('touchstart', e => { if (e.touches.length > 1) e.preventDefault(); }, { passive: false });
+      // (touch-action: none already stops scrolling and zooming on the games; the browser then marks touches as not cancelable)
+      document.addEventListener('touchstart', e => { if (e.cancelable && e.touches.length > 1) e.preventDefault(); }, { passive: false });
       document.addEventListener('touchmove', e => {
-        if (e.touches.length > 1 || !e.target.closest?.('[data-scroll], #hub-games .pages')) e.preventDefault();   // the games strip swipes natively
+        if (e.cancelable && (e.touches.length > 1 || !e.target.closest?.('[data-scroll], #hub-games .pages'))) e.preventDefault();   // the games strip swipes natively
       }, { passive: false });
       document.addEventListener('wheel', e => { if (e.ctrlKey) e.preventDefault(); }, { passive: false });
 

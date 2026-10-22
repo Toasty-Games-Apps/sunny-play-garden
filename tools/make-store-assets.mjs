@@ -86,6 +86,8 @@ for (const [kind, w, h] of [['phone', 540, 960], ['tablet', 960, 600]]) {
   // The newer games, one picture each
   for (const [n, tag] of [[9, '9-band'], [10, '9b-shapes'], [7, '9c-puzzle'], [11, '9d-hide'], [12, '9e-style']]) { await openGame(p, n); await p.waitForTimeout(1600); await shot(p, `${kind}-${tag}`); await home(p); }
   const openNamed = async n => { await p.click(`.card[aria-label="${n}"]`, F); await p.waitForTimeout(900); };
+  // a lived-in fish tank: grown fish of every kind, decorations, a snail helper
+  await p.evaluate(() => { const fish = ['guppy', 'clown', 'angel', 'puffer', 'guppy', 'clown', 'angel'].map((sp, i) => ({ sp, stage: i % 3 === 0 ? 1 : 2, meals: 12 })); SPG.store.active.data.aquarium = { coins: 40, fish, food: 1, more: 1, snail: 1, power: 0, decor: ['castle', 'chest', 'weed', 'shell'], defeated: 1, since: 0, seen: 1, firstCoin: 1 }; SPG.store.save(); });
   for (const [n, tag] of [['Sprout Kitchen', '9f-kitchen'], ['Fishing Pond', '9g-fishing'], ['Fish Tank', '9h-fishtank']]) { await openNamed(n); await p.waitForTimeout(2500); await shot(p, `${kind}-${tag}`); await home(p); }
 
   // Clay Corner: a few lumps and a rainbow rope made with the clay tool
