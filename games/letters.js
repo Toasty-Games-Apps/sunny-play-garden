@@ -448,15 +448,22 @@
       return b;
     }
 
-    // Pick a letter from `source`, avoiding the last few so the games keep mixing things up.
+    // Pick a letter from `source`, avoiding the last few so the games keep mixing things up. A letter she has been missing
+    // (`need`) is picked more often and may come back after three others instead of nine, so practice goes where it helps.
     pickLetter(source) {
       this.recent = this.recent || [];
-      let choices = source.filter(l => !this.recent.includes(l));
+      const need = l => this.need(l), last3 = this.recent.slice(-3);
+      let choices = source.filter(l => !this.recent.includes(l) || (need(l) > 0 && !last3.includes(l)));
       if (!choices.length) choices = source;
-      const l = choices[Math.floor(Math.random() * choices.length)];
+      const wts = choices.map(l => 1 + need(l)); let r = Math.random() * wts.reduce((a, b) => a + b, 0), i = 0;
+      while (i < choices.length - 1 && (r -= wts[i]) > 0) i++;
+      const l = choices[i];
       this.recent.push(l); if (this.recent.length > 9) this.recent.shift();
       return l;
     }
+    // how each letter goes in the find-it games: bag.lt[letter] = [right first time, needed another try]
+    mark(l, first) { const t = this.bag.lt = this.bag.lt || {}, k = l.toLowerCase(), r = t[k] = t[k] || [0, 0]; r[first ? 0 : 1]++; }
+    need(l) { const r = (this.bag.lt || {})[l.toLowerCase()]; return r ? Math.max(0, Math.min(4, r[1] * 2 - r[0] * .5)) : 0; }
 
     /* ---------------- menu ---------------- */
     menu() {
@@ -743,7 +750,7 @@
         if (locked) return;
         if (ch === target) {
           locked = true; sfx.win(); store.addStars(1);
-          this.bag.correct++; store.save();
+          this.bag.correct++; this.mark(target, wrong === 0); store.save();
           [...area.children].forEach(o => o.classList.toggle('fade', o !== b));
           b.classList.add('right');
           const r = b.getBoundingClientRect(); this.burst(r.left + r.width / 2, r.top + r.height / 2);
@@ -791,7 +798,7 @@
       const choose = (ch, b) => {
         if (locked) return;
         if (ch === target) {
-          locked = true; sfx.win(); store.addStars(1); this.bag.correct++; store.save();
+          locked = true; sfx.win(); store.addStars(1); this.bag.correct++; this.mark(target, wrong === 0); store.save();
           [...area.children].forEach(o => o.classList.toggle('fade', o !== b)); b.classList.add('right');
           const r = b.getBoundingClientRect(); this.burst(r.left + r.width / 2, r.top + r.height / 2);
           voice.say('great-job', 'sound/' + target, 'word/' + target);

@@ -67,6 +67,13 @@ for (const tier of tiers) {
     played++;
   }
 }
+// tap a piece, then tap its hole: it goes in (for fingers that find dragging hard)
+{
+  await page.evaluate(() => { const g = SPG.shapesGame; g.loadPic('house'); g.intro = 1; }); await page.waitForTimeout(200);
+  let p = await P(); const it = p.items.find(i => !i.decoy), q = p.slots.find(s => s.open && s.key === it.key), open0 = p.open;
+  await page.mouse.click(it.hx, it.hy); await page.waitForTimeout(300); await page.mouse.click(q.x, q.y); await page.waitForTimeout(900);
+  p = await P(); ok(p.open === open0 - 1, `tap a piece then its hole: it goes in (${open0} -> ${p.open})`);
+}
 const cnt = await page.evaluate(() => SPG.shapesGame.bag.built);
 ok(cnt >= played, `built counter went up (${cnt} / ${played})`);
 ok(page.errs.length === 0, 'no page errors ' + page.errs.join('|'));

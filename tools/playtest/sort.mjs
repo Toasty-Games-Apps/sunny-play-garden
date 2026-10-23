@@ -40,6 +40,8 @@ for (const age of [2, 4, 7]) {
   const modes = await page.evaluate(a => SPG.sortGame.MODES[a === 2 ? 1 : a === 7 ? 3 : 2], age);
   const stars0 = await page.evaluate(() => SPG.store.active.stars);
   let rounds = 0;
+  const badge = () => page.evaluate(() => !!document.querySelector('.card[aria-label="Tidy Time"] .card-new:not(.hidden)'));
+  ok(await badge(), `age ${age}: the new game twinkles on the hub`);
   for (const [mi, mode] of modes.entries()) {
     await page.evaluate(m => { SPG.sortGame.next = m; }, mode);
     await openGame(page, 'Tidy Time');
@@ -59,6 +61,10 @@ for (const age of [2, 4, 7]) {
     it = p.items.find(i => i.state === 'floor'); const to = { x: p.w / 2, y: (p.area.y0 + p.area.y1) / 2 };
     await drag(page, it, to); await page.waitForTimeout(150); p = await P();
     ok(p.items.some(i => i.state === 'floor' && Math.hypot(i.x - to.x, i.y - to.y) < it.r + 30), `age ${age} ${mode}: let go on the floor, it stays there`);
+    // tap a thing, then tap its basket
+    { p = await P(); const i = p.items.find(i => i.state === 'floor'), bin = p.bins.find(q => q.key === i.key), n0 = bin.n;
+      await page.mouse.click(i.x, i.y); await page.waitForTimeout(500); ok((await P()).sel === i.id, `age ${age} ${mode}: a tap picks a thing`);
+      await page.mouse.click(bin.x, bin.y); await page.waitForTimeout(500); p = await P(); ok(p.bins.find(q => q.key === i.key).n === n0 + 1, `age ${age} ${mode}: then a tap on its basket puts it in`); }
     if (mi === 1) { await page.setViewportSize({ width: Hh, height: W }); await page.waitForTimeout(400); p = await P(); ok(p.items.every(i => i.state !== 'floor' || (i.x > 0 && i.x < p.w && i.y > 0 && i.y < p.h)), 'after turning, every thing is on screen'); }
     if (mi === 2) await page.evaluate(() => SPG.night.set('on'));
     // everything into its basket
@@ -73,6 +79,7 @@ for (const age of [2, 4, 7]) {
     await page.evaluate(() => SPG.app.closeGame()); await page.waitForTimeout(300);
   }
   await page.evaluate(() => SPG.night.set('off'));
+  ok(!(await badge()), `age ${age}: once opened it stops twinkling`);
   await page.waitForTimeout(1500);
   const stars = await page.evaluate(() => SPG.store.active.stars); ok(stars - stars0 === Math.floor(rounds / 2), `age ${age}: one star per two tidy rooms (${stars - stars0} for ${rounds})`);
   ok(!page.errs.length, 'errors: ' + page.errs.join(' | '));

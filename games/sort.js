@@ -359,7 +359,7 @@
       R.bins.forEach(b => Object.assign(b, { items: [], open: 0, chomp: 0, shake: 0, hop: 0, glow: 0, blink: 0 }));
       R.items.forEach((it, i) => Object.assign(it, { id: i, state: 'floor', wrong: 0, in: -i * .07, wig: 0, glow: false, x: 0, y: 0 }));
       R.tier = tier; R.wrongSaid = false; R.hinted = false; R.done = 0;
-      this.phase = 'in'; this.pt = 0; this.idle = 0; this.drag = null;
+      this.phase = 'in'; this.pt = 0; this.idle = 0; this.drag = null; this.sel = null;
       this.layout();
       voice.say(mode === 'size' && tier === 3 ? 'sort-size3' : 'sort-' + mode);
     }
@@ -381,7 +381,13 @@
         const r = Math.max(this.sizeOf(it) * .58, 30), d = Math.hypot(x - it.x, y - it.y);
         if (d < r && d <= hd + 1) { hit = it; hd = d; }
       }
-      if (!hit) return;
+      if (!hit) {
+        // tap a thing, then tap a basket: the same as dragging, for fingers that find dragging hard
+        const sel = this.sel; this.sel = null; if (!sel || (sel.state !== 'floor' && sel.state !== 'back')) return;
+        const bin = this.binAt(x, y); if (!bin) return;
+        sel.state = 'floor'; return bin.key === sel.key ? this.right(sel, bin) : this.wrong(sel, bin);
+      }
+      this.sel = null;
       R.items.splice(R.items.indexOf(hit), 1); R.items.push(hit);   // bring it to the front
       hit.state = 'held'; hit.wig = 0;
       this.drag = { id, it: hit, ox: hit.x - x, oy: hit.y - y, x0: x, y0: y, t0: this.t, moved: false };
@@ -398,7 +404,7 @@
       for (const b of R.bins) b.open = Math.min(b.open, .3);
       if (cancel) return this.home(it, false);
       const bin = this.binAt(it.x, it.y + this.sizeOf(it) * .2) || this.binAt(x, y);
-      if (!d.moved && this.t - d.t0 < .35 && !bin) { this.tapItem(it); return this.home(it, false); }
+      if (!d.moved && this.t - d.t0 < .35 && !bin) { this.tapItem(it); this.sel = it; return this.home(it, false); }
       if (!bin) {   // let go on the floor: it stays there (kept inside the room)
         const a = this.area, s = this.sizeOf(it) * .5;
         it.x = clamp(it.x, a.x0 + s, a.x1 - s); it.y = clamp(it.y, a.y0 + s, a.y1 - s);
@@ -517,11 +523,13 @@
       const pop = ease(it.in); if (pop <= 0) return;
       if (it.state === 'fly') s *= 1 - ease(it.ft / .32) * .45;
       if (held) s *= 1 + .12 * this.lift;
+      const chosen = this.sel === it; if (chosen) s *= 1.1 + Math.sin(t * 6) * .03;
       c.save();
       // shadow on the floor
       const lift = held ? this.sizeOf(it) * .3 * this.lift : it.state === 'fly' || it.state === 'back' ? this.s * .15 : 0;
       c.fillStyle = 'rgba(70,40,30,.18)'; ell(c, it.x, it.y + s * .42 + lift, s * .36 * pop, s * .09 * pop); c.fill();
       c.translate(it.x, it.y); c.scale(pop, pop);
+      if (chosen) { c.strokeStyle = 'rgba(255,255,255,.95)'; c.lineWidth = Math.max(3, s * .06); c.setLineDash([s * .12, s * .09]); c.lineDashOffset = -t * 30; ell(c, 0, 0, s * .6, s * .6); c.stroke(); c.setLineDash([]); }
       if (it.glow && it.state === 'floor') { c.fillStyle = `rgba(255,236,120,${.4 + Math.sin(t * 7) * .2})`; ell(c, 0, 0, s * .62, s * .62); c.fill(); }
       c.rotate((it.state === 'floor' ? it.rot * .4 : 0) + Math.sin(t * 22) * it.wig * .18);
       drawItem(c, it, s);
@@ -551,7 +559,7 @@
     }
     probe() {
       const R = this.round;
-      return { phase: this.phase, mode: R && R.mode, tier: R && R.tier, rounds: this.bag.rounds, sorted: this.bag.sorted, w: this.w, h: this.h, s: this.s, area: this.area,
+      return { sel: this.sel ? this.sel.id : null, phase: this.phase, mode: R && R.mode, tier: R && R.tier, rounds: this.bag.rounds, sorted: this.bag.sorted, w: this.w, h: this.h, s: this.s, area: this.area,
         bins: R ? R.bins.map(b => ({ key: b.key, x: b.x, y: b.y + b.h * .4, top: b.y - b.deco, w: b.w, n: b.items.length, glow: b.glow > 0 })) : [],
         items: R ? R.items.map(it => ({ id: it.id, key: it.key, kind: it.kind, col: it.col, size: it.size, x: it.x, y: it.y, r: this.sizeOf(it) / 2, state: it.state, glow: it.glow })) : [] };
     }
@@ -560,7 +568,7 @@
   Object.assign(api, { makeRound, MODES, COUNT, probe: () => { const r = SPG.app.running(); return r && r.inst instanceof SortGame ? r.inst.probe() : null; } });
   SPG.sortGame = api;
   SPG.games.push({
-    id: 'sort', name: 'Tidy Time', order: 17,
+    id: 'sort', name: 'Tidy Time', order: 17, fresh: true,
     icon(c, w, h) {
       const g = c.createLinearGradient(0, 0, 0, h); g.addColorStop(0, '#fff6e0'); g.addColorStop(1, '#ffe2b8'); c.fillStyle = g; c.fillRect(0, 0, w, h);
       const m = Math.min(w, h);
