@@ -109,5 +109,12 @@ await openGame(page, 'Pet Care'); await page.waitForTimeout(1000);
   ok(p.x > 0 && p.x < p.w, 'pet care: pet on screen after turning ' + JSON.stringify(p));
 }
 await home();
+// Letter Garden: a letter she keeps missing comes back more often (uniform would be about 4%)
+await openGame(page, 'Letter Garden'); await page.waitForTimeout(500);
+{
+  const f = await page.evaluate(() => { const g = SPG.app.running().inst, keep = g.bag.lt; g.bag.lt = { q: [0, 4] }; let n = 0; for (let i = 0; i < 2000; i++) if (g.pickLetter(SPG.glyphs.LETTERS) === 'q') n++; g.bag.lt = keep; return n / 2000; });
+  ok(f > .1 && f < .4, 'letters: a missed letter comes back more often ' + f);
+}
+await home();
 ok(!page.errs.length, 'errors: ' + page.errs.join(' | '));
 stop(b); console.log(fails ? `FAILS: ${fails}` : 'FIXES OK');

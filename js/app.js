@@ -144,11 +144,14 @@
     const av = $('hub-avatar'); const c = av.getContext('2d');
     c.setTransform(1, 0, 0, 1, 0, 0); c.clearRect(0, 0, av.width, av.height);
     c.translate(32, 38); art.avatar(c, p.avatar, 22);
+    markFresh();
   }
+  // a game added in an update twinkles until this player has opened it once, so it is found even on the last page
+  function markFresh() { const o = (store.active && store.active.data && store.active.data.opened) || {}; document.querySelectorAll('.card-new').forEach(el => el.classList.toggle('hidden', !!o[el.dataset.id])); }
   SPG.ui.press($('hub-who'), () => { voice.stop(); renderWho(); });
   SPG.ui.press($('hub-lock'), () => askGate(openParent));
 
-  const tints = { letters: ['#ffe3ec', '#f5b8cb'], fruit: ['#ffe9c7', '#f5c98a'], rain: ['#d8efff', '#a8d3f2'], fire: ['#ffe1d6', '#f5a58f'], band: ['#ffe3f0', '#f2a9c9'], shapes: ['#e3f0ff', '#9cc5f0'], puzzle: ['#e6f7ec', '#98d4ae'], care: ['#fff0d9', '#f2c88c'], hide: ['#e8f6d8', '#a7d78a'], garden: ['#dff5d0', '#a9d98f'], color: ['#efe4ff', '#cdbcf7'], pets: ['#ffe8ef', '#f6b9cc'], style: ['#ffe3f1', '#f7a8cf'], aquarium: ['#d8f2ff', '#7fc8ec'], cook: ['#fff0dc', '#f5c690'], clay: ['#ffe9d4', '#f2b98c'], fishing: ['#d8f2ff', '#8ccbe8'], pattern: ['#eafbe0', '#a6dc7e'], feelings: ['#fff1f6', '#f5b8cb'] };
+  const tints = { letters: ['#ffe3ec', '#f5b8cb'], fruit: ['#ffe9c7', '#f5c98a'], rain: ['#d8efff', '#a8d3f2'], fire: ['#ffe1d6', '#f5a58f'], band: ['#ffe3f0', '#f2a9c9'], shapes: ['#e3f0ff', '#9cc5f0'], puzzle: ['#e6f7ec', '#98d4ae'], care: ['#fff0d9', '#f2c88c'], hide: ['#e8f6d8', '#a7d78a'], garden: ['#dff5d0', '#a9d98f'], color: ['#efe4ff', '#cdbcf7'], pets: ['#ffe8ef', '#f6b9cc'], style: ['#ffe3f1', '#f7a8cf'], aquarium: ['#d8f2ff', '#7fc8ec'], cook: ['#fff0dc', '#f5c690'], clay: ['#ffe9d4', '#f2b98c'], fishing: ['#d8f2ff', '#8ccbe8'], pattern: ['#eafbe0', '#a6dc7e'], feelings: ['#fff1f6', '#f5b8cb'], sort: ['#fff6e0', '#f5cf8f'] };
   function renderCards() {
     const all = SPG.games.slice().sort((a, b) => a.order - b.order);
     const games = orderedGames(all.filter(g => !g.shop)), shops = all.filter(g => g.shop);
@@ -168,7 +171,9 @@
       const [tint, edge] = tints[g.id] || ['#fff', '#ddd'];
       const canvas = document.createElement('canvas');
       const card = h('button', { class: 'card' + (hubEdit && hubEdit.drag && hubEdit.drag.id === g.id ? ' drag-src' : ''), type: 'button', 'aria-label': g.name, style: `--tint:${tint};--edge:${edge};--d:${-(pi * PER_PAGE + k) * 1.1}s` },
-        h('span', { class: 'lamp', 'aria-hidden': 'true' }), canvas, h('span', { class: 'card-name' }, g.name));
+        h('span', { class: 'lamp', 'aria-hidden': 'true' }), canvas, h('span', { class: 'card-name' }, g.name),
+        // a game added in an update twinkles until this player has opened it once, so it is found even on the last page
+        g.fresh ? h('span', { class: 'card-new', 'data-id': g.id, 'aria-hidden': 'true' }) : null);
       // A swipe must turn the page, not start a game, so a card opens on a short tap (the browser cancels the touch when it becomes a swipe).
       let down = null;
       const cancelHold = () => { clearTimeout(card._hold); clearTimeout(card._hl); card.classList.remove('holding'); };
@@ -226,7 +231,7 @@
       front._draw = paint(canvas, g);
       return front;
     }));
-    drawCards();
+    drawCards(); markFresh();
   }
   /* ------------------------------------------------------------ rearranging the apps (grown-ups): hold an app ~2 s, confirm, then drag */
   // touching the empty background of the main menu (not an icon, button, arrow or the shop) changes the picture behind it
@@ -299,6 +304,7 @@
   function openGame(g) {
     if (current === 'stage') return;   // a second finger lifting off another (now hidden) app
     voice.stop(); SPG.sfx.tap();
+    if (g.fresh) { const o = store.bag('opened', () => ({})); if (!o[g.id]) { o[g.id] = 1; store.save(); } }
     show('stage');
     $('stage-stars').textContent = store.active.stars;
     const host = $('game-host');
@@ -772,10 +778,14 @@
       const rows = [
         ['Letters traced', traced.length ? `${traced.length} of 26: ${traced.join(' ').toUpperCase()}` : 'none yet'],
         ['Letter games answered right', L.correct || 0],
+        // from the find-the-letter and sounds games: right first time at least twice and mostly right = known; often needing another try = to practise
+        ['Letters known', Object.keys(L.lt || {}).sort().filter(k => L.lt[k][0] >= 2 && L.lt[k][0] >= L.lt[k][1] * 3).join(' ').toUpperCase()],
+        ['Letters to practise', Object.keys(L.lt || {}).sort().filter(k => L.lt[k][1] > 0 && L.lt[k][1] * 2 >= L.lt[k][0]).join(' ').toUpperCase()],
         ['Counting questions right', L.numOk || 0],
         ['Adding and taking away right', L.mathOk || 0],
         ['Patterns finished (Caterpillars)', g('pattern').done || 0],
         ['Friends helped (Feeling Friends)', g('feelings').helped || 0],
+        ['Things sorted (Tidy Time)', g('sort').sorted || 0],
         ['Shape pictures built', g('shapes').built || 0],
         ['Puzzles solved', g('puzzle').solved || 0],
         ['Tunes copied (Bunny Band)', g('band').wins || 0],

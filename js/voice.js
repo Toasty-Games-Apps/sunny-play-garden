@@ -41,6 +41,8 @@
     'fish-start': 'Tap the fishing rod, then tap a spot!', 'fish-bite': 'A bite! Tap to reel it in!', 'fish/bass': 'A bass!', 'fish/bluegill': 'A bluegill!', 'fish/goldfish': 'A goldfish!', 'fish/carp': 'A carp!', 'fish/trout': 'A trout!', 'fish/perch': 'A perch!', 'fish/catfish': 'A catfish!', 'fish/salmon': 'A salmon!', 'fish/minnow': 'A minnow!',
     'pat-start': 'What comes next? Touch it!', 'pat-next': 'What comes next?',
     'feel-start': 'Hello! Can you tell how I feel?',
+    'sort-color': 'Put each toy in the basket of the same color!', 'sort-size': 'Big things for the big bear, little things for the little bear!', 'sort-size3': 'Big, middle and little! Give each bear the right size!', 'sort-food': 'Fruit in the bowl, vegetables in the crate!', 'sort-shape': 'Sort them by shape!', 'sort-try': 'Not that one. Try another basket!', 'sort-done': 'All tidy! Great sorting!',
+    'sort/big': 'Big!', 'sort/mid': 'Middle!', 'sort/small': 'Little!', 'sort/fruit': 'Fruit!', 'sort/veg': 'A vegetable!', 'sort/apple': 'An apple!', 'sort/orange': 'An orange!', 'sort/melon': 'Watermelon!', 'sort/berry': 'A strawberry!', 'sort/banana': 'A banana!', 'sort/grapes': 'Grapes!', 'sort/pear': 'A pear!', 'sort/carrot': 'A carrot!', 'sort/broccoli': 'Broccoli!', 'sort/corn': 'Corn!', 'sort/peas': 'Peas!', 'sort/potato': 'A potato!',
     'feel-how': 'How do I feel? Touch the face.',
     'feel-look': 'Hmm. Look at my face!',
     'feel-s-present': 'A present, just for me!',
@@ -153,10 +155,10 @@
   const CORE_SET = new Set(CORE);
   const isCore = k => CORE_SET.has(k) || /^(pname|player)\//.test(k);
   // spoken whenever they come up (by a recording if there is one, otherwise the built-in voice) although they are not on the short list
-  const SPOKEN = /^(letter|sound|word|num|color|shape|name|pname|player|fish)\//;
+  const SPOKEN = /^(letter|sound|word|num|color|shape|name|pname|player|fish|sort)\//;
   // Instructions that tell her what to do next: always spoken (she cannot read), although they are not on the short list to record.
   // Each one is said once at its moment (a new step, the first coin...), never on every touch.
-  const INSTRUCT = new Set(['pat-start', 'pat-next', 'feel-start', 'feel-how', 'feel-look', 'feel-s-present', 'feel-s-cake', 'feel-s-pal', 'feel-s-icecream', 'feel-s-balloon', 'feel-s-rain', 'feel-s-thunder', 'feel-s-dark', 'feel-s-tower', 'feel-s-splash', 'feel-s-jack', 'feel-s-party', 'feel-s-yawn', 'feel/happy', 'feel/sad', 'feel/scared', 'feel/mad', 'feel/wow', 'feel/sleep', 'feel-help', 'feel-help-sleep', 'feel-joy', 'feel-breathe', 'feel-better', 'feel-fun', 'feel-night', 'shop-stars', 'shop-first', 'shop-worn', 'follow-bee', 'catch-drops', 'fire-pet', 'fire-next', 'band-song', 'puzzle-next', 'hide-gate', 'hide-locked', 'count-find', 'math-sum', 'math-left',
+  const INSTRUCT = new Set(['sort-color', 'sort-size', 'sort-size3', 'sort-food', 'sort-shape', 'sort-try', 'sort-done', 'pat-start', 'pat-next', 'feel-start', 'feel-how', 'feel-look', 'feel-s-present', 'feel-s-cake', 'feel-s-pal', 'feel-s-icecream', 'feel-s-balloon', 'feel-s-rain', 'feel-s-thunder', 'feel-s-dark', 'feel-s-tower', 'feel-s-splash', 'feel-s-jack', 'feel-s-party', 'feel-s-yawn', 'feel/happy', 'feel/sad', 'feel/scared', 'feel/mad', 'feel/wow', 'feel/sleep', 'feel-help', 'feel-help-sleep', 'feel-joy', 'feel-breathe', 'feel-better', 'feel-fun', 'feel-night', 'shop-stars', 'shop-first', 'shop-worn', 'follow-bee', 'catch-drops', 'fire-pet', 'fire-next', 'band-song', 'puzzle-next', 'hide-gate', 'hide-locked', 'count-find', 'math-sum', 'math-left',
     'aq-coin', 'aq-boss', 'meteor-start', 'seed-in', 'pat-it', 'water-me', 'confirm-bye',
     'cook-pick', 'cook-roll', 'cook-cutsand', 'cook-oven-on', 'cook-squirt', 'cook-drop', 'cook-pour', 'cook-ding', 'cook-grill', 'cook-flip', 'cook-stack', 'cook-frost', 'cook-slice',
     'cook-pickbun', 'cook-pickbread', 'cook-patties', 'cook-meat', 'cook-cheese', 'cook-veg', 'cook-saucetop', 'cook-scoop', 'cook-pizzasauce', 'cook-pizzacheese', 'cook-toppings']);

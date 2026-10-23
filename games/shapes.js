@@ -197,7 +197,7 @@
         const used = new Set(pic.parts.map(p => p.s + '|' + p.c)), cands = shuffle(open.filter(q => q.p.s !== 'star'));
         for (const q of cands) { if (this.items.filter(it => it.decoy).length >= 2) break; const cols = shuffle(COLS.filter(c => !used.has(q.p.s + '|' + c) && c !== 'white')); if (!cols.length) continue; used.add(q.p.s + '|' + cols[0]); this.items.push({ p: Object.assign({}, q.p, { c: cols[0] }), slotRef: null, state: 'home', x: 0, y: 0, hx: 0, hy: 0, sc: 1, tsc: 1, t: 0, decoy: true, wig: 0 }); }
       }
-      this.items = shuffle(this.items); this.state = 'build'; this.stateT = 0; this.drag = null; this.idle = 0; this.misses = {}; this.hint = null; this.intro = 0;
+      this.items = shuffle(this.items); this.state = 'build'; this.stateT = 0; this.drag = null; this.sel = null; this.idle = 0; this.misses = {}; this.hint = null; this.intro = 0;
       this.layout(); this.items.forEach((it, i) => { it.pop = -i * .05; it.x = it.hx; it.y = it.hy; it.sc = it.tsc; });
       this.fx.p.length = 0;
     }
@@ -209,7 +209,18 @@
       this.idle = 0; this.hint = null;
       let best = null, bd = 1e9;
       for (const it of this.items) { if (it.state === 'placed' || it.state === 'fly') continue; const d = Math.hypot(x - it.x, y - it.y), r = Math.max(this.cell * .5, 26); if (d < r && d < bd) { best = it; bd = d; } }
-      if (!best) return;
+      if (!best) {
+        // a piece picked with a tap, then a tap on a hole: the same as dragging it there, for fingers that find dragging hard
+        const it = this.sel; this.sel = null; if (!it || (it.state !== 'home' && it.state !== 'back')) return;
+        const under = this.openSlots().filter(q => { const e = extent(q.p); return Math.hypot(x - this.sx(q.p.x), y - this.sy(q.p.y)) < Math.max(Math.max(e.w, e.h) * this.ss * .55, 36 * this.ui); });
+        if (!under.length) return;
+        const q = under.find(q => keyOf(q.p) === keyOf(it.p) && !it.decoy);   // as with a drop: a hole it fits wins over a nearer one
+        if (q) return this.place(it, q);
+        it.wig = .6; sfx.boing(); const m = this.misses[keyOf(it.p)] = (this.misses[keyOf(it.p)] || 0) + 1;
+        if (m >= 2 && !it.decoy) { const h = this.openSlots().find(h => keyOf(h.p) === keyOf(it.p)); if (h) this.hint = { q: h, until: this.t + 6 }; }
+        return;
+      }
+      this.sel = null;
       best.state = 'drag'; const lift = clamp(Math.max(extent(best.p).w, extent(best.p).h) * this.ss * .3, 18, 50);
       this.drag = { it: best, id, x, y, sx: x, sy: y, t0: this.t, lift }; best.pop = 0; sfx.pop();
     }
@@ -230,6 +241,7 @@
       if (!near && !it.decoy && Math.hypot(d.x - d.sx, d.y - d.sy) < 14 && this.t - d.t0 < .5) {   // a tap on a piece shows where it goes
         const q = this.openSlots().find(q => keyOf(q.p) === key); if (q) this.hint = { q, until: this.t + 2.5 };
       }
+      if (!near && Math.hypot(d.x - d.sx, d.y - d.sy) < 14 && this.t - d.t0 < .5) this.sel = it;
       if (near) {   // it was dropped on a hole it does not fit: after two misses its own hole pulses
         const m = this.misses[key] = (this.misses[key] || 0) + 1;
         if (m >= 2 && !it.decoy) { const q = this.openSlots().find(q => keyOf(q.p) === key); if (q) this.hint = { q, until: this.t + 6 }; }
@@ -356,6 +368,7 @@
       const lift = it.state === 'drag' ? 1 : 0, pop = ease(clamp(it.pop, 0, 1)), wig = it.wig > 0 ? Math.sin(this.t * 16) * .12 : 0;
       c.save(); c.translate(it.x, it.y); if (wig) c.rotate(wig); const k = it.sc * (.5 + .5 * pop) * (lift ? 1.03 : 1);
       if (lift) { c.save(); c.translate(6, 12 + this.drag.lift * .25); c.globalAlpha = .22; drawPiece(c, Object.assign({}, it.p, { c: 'gray' }), k, { shadow: false }); c.restore(); }
+      if (this.sel === it && (it.state === 'home' || it.state === 'back')) { const e = extent(it.p), rad = Math.max(e.w, e.h) * k * .62 + 6; c.save(); c.strokeStyle = night ? 'rgba(255,240,170,.95)' : 'rgba(255,255,255,.95)'; c.lineWidth = 4; c.setLineDash([10, 8]); c.lineDashOffset = -this.t * 30; c.beginPath(); c.arc(0, 0, rad, 0, TAU); c.stroke(); c.restore(); }
       drawPiece(c, it.p, k, {}); c.restore();
     }
     draw() {

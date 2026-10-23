@@ -14,3 +14,5 @@ Each script starts its own `python3 -m http.server` on `$PORT` (default 8123): u
 - `tiers.mjs`, `vox.mjs`: spot checks (flames and puzzle grids by age; which spoken lines are silent without Extra audio help, and the letter A override).
 - `ui.mjs`: screenshots of setup, the Age and difficulty panel and the kitchen menu at night.
 - `dbg.mjs`: example of jumping straight to a kitchen step (`g.startRecipe(R); g.stIdx = n; g.beginStep()`).
+- `sort.mjs W H`: Tidy Time: checks the round maker at every tier, plays every kind of sorting at ages 2, 4 and 7 by dragging (wrong basket twice, a drop on the floor, everything in), rotation, night, the idle hint, one star per two rounds.
+- `monkey.mjs [seconds] [W H]`: plays every game like a toddler (random taps, long presses and wild drags, a screen turn, a pause and resume) and reports any page error per game. `GAMES=name,name` and `AGE=` narrow it.
