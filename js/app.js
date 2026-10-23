@@ -148,7 +148,7 @@
   SPG.ui.press($('hub-who'), () => { voice.stop(); renderWho(); });
   SPG.ui.press($('hub-lock'), () => askGate(openParent));
 
-  const tints = { letters: ['#ffe3ec', '#f5b8cb'], fruit: ['#ffe9c7', '#f5c98a'], rain: ['#d8efff', '#a8d3f2'], fire: ['#ffe1d6', '#f5a58f'], band: ['#ffe3f0', '#f2a9c9'], shapes: ['#e3f0ff', '#9cc5f0'], puzzle: ['#e6f7ec', '#98d4ae'], care: ['#fff0d9', '#f2c88c'], hide: ['#e8f6d8', '#a7d78a'], garden: ['#dff5d0', '#a9d98f'], color: ['#efe4ff', '#cdbcf7'], pets: ['#ffe8ef', '#f6b9cc'], style: ['#ffe3f1', '#f7a8cf'], aquarium: ['#d8f2ff', '#7fc8ec'], cook: ['#fff0dc', '#f5c690'], clay: ['#ffe9d4', '#f2b98c'], fishing: ['#d8f2ff', '#8ccbe8'], pattern: ['#eafbe0', '#a6dc7e'], feelings: ['#fff1f6', '#f5b8cb'] };
+  const tints = { letters: ['#ffe3ec', '#f5b8cb'], fruit: ['#ffe9c7', '#f5c98a'], rain: ['#d8efff', '#a8d3f2'], fire: ['#ffe1d6', '#f5a58f'], band: ['#ffe3f0', '#f2a9c9'], shapes: ['#e3f0ff', '#9cc5f0'], puzzle: ['#e6f7ec', '#98d4ae'], care: ['#fff0d9', '#f2c88c'], hide: ['#e8f6d8', '#a7d78a'], garden: ['#dff5d0', '#a9d98f'], color: ['#efe4ff', '#cdbcf7'], pets: ['#ffe8ef', '#f6b9cc'], style: ['#ffe3f1', '#f7a8cf'], aquarium: ['#d8f2ff', '#7fc8ec'], cook: ['#fff0dc', '#f5c690'], clay: ['#ffe9d4', '#f2b98c'], fishing: ['#d8f2ff', '#8ccbe8'], pattern: ['#eafbe0', '#a6dc7e'], feelings: ['#fff1f6', '#f5b8cb'], sort: ['#fff6e0', '#f5cf8f'] };
   function renderCards() {
     const all = SPG.games.slice().sort((a, b) => a.order - b.order);
     const games = orderedGames(all.filter(g => !g.shop)), shops = all.filter(g => g.shop);
@@ -776,6 +776,7 @@
         ['Adding and taking away right', L.mathOk || 0],
         ['Patterns finished (Caterpillars)', g('pattern').done || 0],
         ['Friends helped (Feeling Friends)', g('feelings').helped || 0],
+        ['Things sorted (Tidy Time)', g('sort').sorted || 0],
         ['Shape pictures built', g('shapes').built || 0],
         ['Puzzles solved', g('puzzle').solved || 0],
         ['Tunes copied (Bunny Band)', g('band').wins || 0],

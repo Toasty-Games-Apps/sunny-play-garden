@@ -16,7 +16,8 @@ LEARN
 - Letter Garden: trace letters with a friendly bee, flash cards, find the letter, letter sounds, write your own name, plus counting and first sums.
 - Shape Builder: fit coloured shapes into their holes to build a house, rocket, castle and more, then watch the picture come alive.
 - Caterpillars: what comes next? Each caterpillar sings its colour pattern; pick the next ball and it turns into a butterfly.
-- Feeling Friends: a friend's ice cream falls or thunder booms. Touch the face that shows how the friend feels, then choose a way to help: a hug, a song or a big calm breath.
+- Feeling Friends: a friend's ice cream falls or thunder booms. Touch the face that shows the feeling, then choose a way to help: a hug, a song or a calm breath.
+- Tidy Time: sort toys, fruit and vegetables into friendly baskets by colour, size, kind or shape.
 - Puzzle Pond: jigsaw puzzles made from your own coloring pictures, growing from 4 pieces to 12.
 
 CREATE

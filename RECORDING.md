@@ -159,9 +159,9 @@ Say the sound the letter makes: "buh", "kuh", "sss". Not the name.
 | `sound-y.mp3` | yuh |
 | `sound-z.mp3` | zzz |
 
-# Part 2: optional lines (596, nobody has to record these)
+# Part 2: optional lines (620, nobody has to record these)
 
-## Prompts and instructions (155)
+## Prompts and instructions (179)
 
 Short lines that tell {her} what to do.
 
@@ -205,6 +205,30 @@ Short lines that tell {her} what to do.
 | `pat-start.mp3` | What comes next? Touch it! |
 | `pat-next.mp3` | What comes next? |
 | `feel-start.mp3` | Hello! Can you tell how I feel? |
+| `sort-color.mp3` | Put each toy in the basket of the same color! |
+| `sort-size.mp3` | Big things for the big bear, little things for the little bear! |
+| `sort-size3.mp3` | Big, middle and little! Give each bear the right size! |
+| `sort-food.mp3` | Fruit in the bowl, vegetables in the crate! |
+| `sort-shape.mp3` | Sort them by shape! |
+| `sort-try.mp3` | Not that one. Try another basket! |
+| `sort-done.mp3` | All tidy! Great sorting! |
+| `sort-big.mp3` | Big! |
+| `sort-mid.mp3` | Middle! |
+| `sort-small.mp3` | Little! |
+| `sort-fruit.mp3` | Fruit! |
+| `sort-veg.mp3` | A vegetable! |
+| `sort-apple.mp3` | An apple! |
+| `sort-orange.mp3` | An orange! |
+| `sort-melon.mp3` | Watermelon! |
+| `sort-berry.mp3` | A strawberry! |
+| `sort-banana.mp3` | A banana! |
+| `sort-grapes.mp3` | Grapes! |
+| `sort-pear.mp3` | A pear! |
+| `sort-carrot.mp3` | A carrot! |
+| `sort-broccoli.mp3` | Broccoli! |
+| `sort-corn.mp3` | Corn! |
+| `sort-peas.mp3` | Peas! |
+| `sort-potato.mp3` | A potato! |
 | `feel-how.mp3` | How do I feel? Touch the face. |
 | `feel-look.mp3` | Hmm. Look at my face! |
 | `feel-s-present.mp3` | A present, just for me! |
