@@ -9,7 +9,7 @@ const b = await start(); const page = await newPage(b, W, Hh); await login(page,
 await openGame(page, 'Shape Builder'); await page.waitForTimeout(900);
 let fails = 0; const ok = (c, m) => { if (!c) { fails++; if (fails < 40) console.log('FAIL', m); } };
 const P = () => page.evaluate(() => SPG.shapesGame.probe());
-const IDS = await page.evaluate(() => ['house', 'rocket', 'car', 'boat', 'flower', 'fish', 'snowman', 'castle', 'tree', 'kite', 'icecream', 'cat', 'robot']);
+const IDS = await page.evaluate(() => SPG.shapesGame.ids);
 const shot = async n => { await page.waitForTimeout(250); await page.screenshot({ path: `${SP}/shapes-${n}.png` }); };
 const drag = async (it, x, y) => {   // grab the piece in the tray and carry it so that its centre ends at (x, y)
   const tgt = await page.evaluate(([hx, hy, tx, ty, key]) => { const g = SPG.shapesGame, it = g.items.find(i => Math.abs(i.hx - hx) < 1 && Math.abs(i.hy - hy) < 1); return g.pointerFor(it, tx, ty); }, [it.hx, it.hy, x, y, it.key]);
@@ -62,6 +62,13 @@ for (const tier of tiers) {
       if (n === Math.floor(real.length / 2) && (id === 'house' || id === 'flower' || id === 'robot')) await shot(`${id}-t${tier}-${W}x${Hh}-half`);
     }
     await page.waitForTimeout(200); p = await P();
+    if (tier === 3 && p.state === 'count') {   // older kids count one kind of shape first: one wrong number, then the right one
+      const C = p.count, kindOf = s => (s === 'rtri' ? 'triangle' : s); ok(C.n === p.slots.filter(s => kindOf(s.shape) === C.kind).length, `${tag}: counts the ${C.kind}s right (${C.n})`);
+      ok(C.btns.length === 3 && C.btns.some(b => b.v === C.n) && C.btns.every(b => b.x - C.r > 0 && b.x + C.r < p.w && b.y + C.r < p.h), `${tag}: three number buttons on screen`);
+      if (id === 'house') await shot(`count-${W}x${Hh}`);
+      const bad = C.btns.find(b => b.v !== C.n); await page.mouse.click(bad.x, bad.y); await page.waitForTimeout(200); ok((await P()).state === 'count', `${tag}: a wrong number does not move on`);
+      const good = C.btns.find(b => b.v === C.n); await page.mouse.click(good.x, good.y); await page.waitForTimeout(1400); p = await P();
+    }
     ok(p.open === 0 && p.state === 'cheer', `${tag}: finished, celebrating (${p.state}, ${p.open} open)`);
     if (p.state === 'cheer') { const built = p.built; await page.waitForTimeout(1200); if (['rocket', 'house', 'car', 'castle'].includes(id) && tier === 2) await shot(`${id}-cheer-${W}x${Hh}`); }
     played++;
