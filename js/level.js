@@ -33,7 +33,7 @@
     ['clay', 'Clay Corner', ['Seven big tools: clay, hand, pull, squish, rolling pin, cookie cutters, eyes and beads', 'Adds the knife, stamps, smoothing, pinch and poke', 'Adds recolouring (the paint drop)']],
     ['fishing', 'Fishing Pond', ['Three fishing spots, a fish bites quickly and one tap reels it in', 'Five fishing spots (deeper water too), three taps to reel a fish in', 'Five fishing spots, five taps to reel in, and the fish tugs while reeling']],
     ['pattern', 'Caterpillars (what comes next)', ['Two-colour patterns (red, blue, red, blue...) and two balls to pick from', 'Starts with two-colour patterns, adds red-red-blue and three-colour ones after two right first tries; three balls to pick from', 'Longer patterns, patterns of dots, stripes or big and small, two missing balls and look-alike balls']],
-    ['feelings', 'Feeling Friends (naming feelings, helping)', ['Happy or sad, two faces to pick from', 'Happy, sad, scared, mad and surprised, three faces to pick from', 'Also sleepy, four faces to pick from']],
+    ['feelings', 'Feeling Friends (naming feelings, helping)', ['Happy or sad, two faces to pick from', 'Happy, sad, scared, mad and surprised, three faces to pick from', 'Also sleepy, four faces to pick from, then "Why did I feel that way?": pick the picture of what happened']],
     ['sort', 'Tidy Time (sorting)', ['Two baskets and 6 things: sort by colour, or big and little', 'Three colours, fruit or vegetable, big or little; 8 things', 'Four colours, big-middle-little, fruit or vegetable, and by shape with the colours mixed; 10 things']],
   ];
 

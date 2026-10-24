@@ -58,6 +58,11 @@
     'feel-s-jack': 'Pop! What was that?',
     'feel-s-party': 'Surprise! A party!',
     'feel-s-yawn': 'I played all day long. Yawn!',
+    'feel-s-bubbles': 'Look! Bubbles, bubbles everywhere!',
+    'feel-s-rainbow': 'Oh! A big rainbow!',
+    'feel-s-spider': 'Eek! A spider came down!',
+    'feel-s-grab': 'Hey! That is my ball!',
+    'feel-why': 'Why did I feel that way? Touch the picture.',
     'feel/happy': 'Yes! I feel happy!',
     'feel/sad': 'Yes. I feel sad.',
     'feel/scared': 'Yes. I feel scared.',
@@ -158,7 +163,7 @@
   const SPOKEN = /^(letter|sound|word|num|color|shape|name|pname|player|fish|sort)\//;
   // Instructions that tell her what to do next: always spoken (she cannot read), although they are not on the short list to record.
   // Each one is said once at its moment (a new step, the first coin...), never on every touch.
-  const INSTRUCT = new Set(['sort-color', 'sort-size', 'sort-size3', 'sort-food', 'sort-shape', 'sort-try', 'sort-done', 'pat-start', 'pat-next', 'feel-start', 'feel-how', 'feel-look', 'feel-s-present', 'feel-s-cake', 'feel-s-pal', 'feel-s-icecream', 'feel-s-balloon', 'feel-s-rain', 'feel-s-thunder', 'feel-s-dark', 'feel-s-tower', 'feel-s-splash', 'feel-s-jack', 'feel-s-party', 'feel-s-yawn', 'feel/happy', 'feel/sad', 'feel/scared', 'feel/mad', 'feel/wow', 'feel/sleep', 'feel-help', 'feel-help-sleep', 'feel-joy', 'feel-breathe', 'feel-better', 'feel-fun', 'feel-night', 'shop-stars', 'shop-first', 'shop-worn', 'follow-bee', 'catch-drops', 'fire-pet', 'fire-next', 'band-song', 'puzzle-next', 'hide-gate', 'hide-locked', 'count-find', 'math-sum', 'math-left',
+  const INSTRUCT = new Set(['sort-color', 'sort-size', 'sort-size3', 'sort-food', 'sort-shape', 'sort-try', 'sort-done', 'pat-start', 'pat-next', 'feel-start', 'feel-how', 'feel-look', 'feel-s-present', 'feel-s-cake', 'feel-s-pal', 'feel-s-icecream', 'feel-s-balloon', 'feel-s-rain', 'feel-s-thunder', 'feel-s-dark', 'feel-s-tower', 'feel-s-splash', 'feel-s-jack', 'feel-s-party', 'feel-s-yawn', 'feel-s-bubbles', 'feel-s-rainbow', 'feel-s-spider', 'feel-s-grab', 'feel-why', 'feel/happy', 'feel/sad', 'feel/scared', 'feel/mad', 'feel/wow', 'feel/sleep', 'feel-help', 'feel-help-sleep', 'feel-joy', 'feel-breathe', 'feel-better', 'feel-fun', 'feel-night', 'shop-stars', 'shop-first', 'shop-worn', 'follow-bee', 'catch-drops', 'fire-pet', 'fire-next', 'band-song', 'puzzle-next', 'hide-gate', 'hide-locked', 'count-find', 'math-sum', 'math-left',
     'aq-coin', 'aq-boss', 'meteor-start', 'seed-in', 'pat-it', 'water-me', 'confirm-bye',
     'cook-pick', 'cook-roll', 'cook-cutsand', 'cook-oven-on', 'cook-squirt', 'cook-drop', 'cook-pour', 'cook-ding', 'cook-grill', 'cook-flip', 'cook-stack', 'cook-frost', 'cook-slice',
     'cook-pickbun', 'cook-pickbread', 'cook-patties', 'cook-meat', 'cook-cheese', 'cook-veg', 'cook-saucetop', 'cook-scoop', 'cook-pizzasauce', 'cook-pizzacheese', 'cook-toppings']);
