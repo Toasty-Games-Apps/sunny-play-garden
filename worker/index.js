@@ -30,6 +30,7 @@ const MAX_VOICE_TOTAL = 80_000_000;  // bytes of voice files per family
 const MAX_VOICE_COUNT = 6000;        // files per family
 const APP_ORIGINS = new Set(['https://localhost']);   // the Android app (Capacitor serves the game from here)
 const json = (body, status = 200) => new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' } });
+const WEB_NOTICE = '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex"><title>Little Sprout Park</title></head><body style="font:18px/1.5 system-ui,sans-serif;max-width:36rem;margin:15vh auto;padding:1rem;background:#eaf6fb;color:#5a3f5e"><h1>Little Sprout Park</h1><p>The browser game is closed. Little Sprout Park is moving to the Android app.</p><p><a href="/privacy.html">Privacy policy</a> · <a href="mailto:nicholasolsen22@gmail.com">Support</a></p></body></html>';
 
 export class Backups extends DurableObject {
   constructor(state, env) {
@@ -171,7 +172,14 @@ const corsFor = origin => origin && APP_ORIGINS.has(origin) ? {
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
-    if (!url.pathname.startsWith('/api/')) return env.ASSETS ? env.ASSETS.fetch(request) : new Response('Not found', { status: 404 });
+    if (!url.pathname.startsWith('/api/')) {
+      // Browser play is closed; keep the app's API and the public privacy policy available.
+      if (url.pathname === '/' || url.pathname === '/index.html')
+        return new Response(WEB_NOTICE, { headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' } });
+      if (['/privacy.html', '/.well-known/assetlinks.json'].includes(url.pathname))
+        return env.ASSETS ? env.ASSETS.fetch(request) : new Response('Not found', { status: 404 });
+      return new Response('Browser play is closed.', { status: 410, headers: { 'Cache-Control': 'no-store' } });
+    }
     // The website talks to its own address; the Android app is the one other caller that is allowed.
     const origin = request.headers.get('Origin');
     const cors = corsFor(origin);
