@@ -327,7 +327,7 @@ button.chip:active { transform: translateY(3px); box-shadow: 0 3px 0 rgba(90, 63
 .lg-emoji, .lg-emoji-opt, .lg-reveal-emoji, .lg-reveal { font-family: "Noto Color Emoji", "Apple Color Emoji", "Segoe UI Emoji", sans-serif; }
 
 /* ================= voices studio ================= */
-#studio, #vintro { z-index: 55; }
+#studio, #vintro, #signvid { z-index: 55; }
 .vchips { gap: 10px; }
 .vchips .seg-btn { font-size: 1.2rem; min-height: 52px; }
 .notice { background: #fff0d6; border-radius: 16px; padding: .7em 1em; margin: 8px 0; font-weight: 600; }
@@ -1238,6 +1238,29 @@ details.learn[open] .learn-more { background: #f6eefa; }
 .sign-card.words-only .sign-cap { padding-top: 10px; }
 body.night .sign-card { background: rgba(40, 46, 96, .94); }
 body.night .sign-cap { color: #f2ecff; }
+/* Grown-ups > Accessibility > Sign videos (js/signvideo.js) */
+.sv-tabs { flex-wrap: wrap; }
+.sv-words { display: grid; grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: 8px; margin-top: 12px; }
+.sv-word { min-height: 46px; border: 0; border-radius: 14px; background: #f4eef7; color: var(--ink, #5a3f5e); font: inherit; font-weight: 700; font-size: 1rem; padding: 6px 8px; cursor: pointer; position: relative; }
+.sv-word.has::after { content: ''; position: absolute; top: 7px; right: 8px; width: 10px; height: 10px; border-radius: 50%; background: #ff5a6a; box-shadow: 0 0 0 2px #fff; }
+.sv-word.on { background: var(--leaf, #5cbf6a); color: #fff; }
+.sv-panel { margin-top: 14px; padding: 12px; border-radius: 20px; background: #fbf7fd; box-shadow: inset 0 0 0 2px #eee3f3; }
+.sv-panel h4 { margin: 0 0 8px; font-size: 1.3rem; }
+.sv-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.sv-box { margin: 0; position: relative; display: flex; flex-direction: column; align-items: stretch; }
+.sv-box canvas, .sv-box video, .sv-box .sv-none { width: 100%; aspect-ratio: 1; display: block; border-radius: 16px; background: #fff; object-fit: cover; }
+.sv-box video.mirror { transform: scaleX(-1); }
+.sv-box figcaption { text-align: center; font-weight: 700; font-size: .95rem; margin-top: 4px; }
+.sv-box .sv-none { display: flex; align-items: center; justify-content: center; color: #9a8aa3; font-weight: 700; box-shadow: inset 0 0 0 2px #eee3f3; }
+.sv-box.rec video { box-shadow: 0 0 0 4px #ff5a6a; }
+.sv-count { position: absolute; left: 0; right: 0; top: 0; aspect-ratio: 1; display: flex; align-items: center; justify-content: center; font-size: 5rem; font-weight: 800; color: #fff; text-shadow: 0 3px 10px rgba(0,0,0,.45); pointer-events: none; }
+.sv-bar { height: 8px; border-radius: 4px; background: #eee3f3; margin-top: 6px; overflow: hidden; }
+.sv-bar i { display: block; height: 100%; width: 0; background: #ff5a6a; }
+.sv-btns { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.sv-file { display: none; }
+.sv-msg { margin: 8px 0 0; }
+@media (max-width: 380px) { .sv-pair { grid-template-columns: 1fr; } }
+
 .sign-swatch { display: inline-block; width: 1em; height: 1em; border-radius: 50%; margin-right: .4em; vertical-align: -.15em; box-shadow: 0 0 0 2px rgba(255, 255, 255, .9); }
 
 /* Accessibility > Seeing (js/access.js): colour filters for colour vision deficiency, stronger contrast, bigger buttons */

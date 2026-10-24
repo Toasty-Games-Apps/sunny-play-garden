@@ -88,8 +88,8 @@
   function frame(now) {
     raf = 0; if (!card) return;
     const dt = Math.min(.05, (now - (last || now)) / 1000); last = now;
-    // a new line waits for the sign that is being made to finish (but never long), so no sign is cut off half way
-    if (pending) { const w = hands.wordNow(); if (!hands.busy || !w || hands.time >= w.to - .05 || hands.time - (pending.at || 0) > .9) { start(pending.ids, pending.text); pending = null; } }
+    // a new line waits for the sign that is being made to finish (but never long; a grown-up's video a little longer), so no sign is cut off half way
+    if (pending) { const w = hands.wordNow(); if (!hands.busy || !w || hands.time >= w.to - .05 || hands.time - (pending.at || 0) > (w.video ? 3.5 : .9)) { start(pending.ids, pending.text); pending = null; } }
     hands.update(dt);
     const r = cv.getBoundingClientRect(), dpr = Math.min(2, window.devicePixelRatio || 1);
     if (r.width) {

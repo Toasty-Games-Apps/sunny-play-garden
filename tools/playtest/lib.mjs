@@ -5,7 +5,7 @@ export const SP = process.env.SHOTS || '/tmp';   // where screenshots go
 import { fileURLToPath } from 'node:url'; import { dirname, join } from 'node:path';
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 let srv;
-export async function start() { srv = spawn('python3', ['-m', 'http.server', String(process.env.PORT || 8123)], { cwd: ROOT, stdio: 'ignore' }); await new Promise(r => setTimeout(r, 700)); return await chromium.launch(); }
+export async function start(launch = {}) { srv = spawn('python3', ['-m', 'http.server', String(process.env.PORT || 8123)], { cwd: ROOT, stdio: 'ignore' }); await new Promise(r => setTimeout(r, 700)); return await chromium.launch(launch); }
 export function stop(b) { b.close(); srv.kill(); }
 export async function newPage(browser, w, h, opts = {}) {
   const ctx = await browser.newContext({ viewport: { width: w, height: h }, hasTouch: false, ...opts });

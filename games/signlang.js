@@ -29,10 +29,11 @@
     { id: 'shapes', tier: 3, words: ['CIRCLE', 'SQUARE', 'TRIANGLE', 'RECTANGLE', 'DIAMOND', 'OVAL', 'STAR', 'HEART'] },
     { id: 'letters', tier: 1, words: 'abcdefghijklmnopqrstuvwxyz'.split('').map(l => 'L:' + l) }
   ];
+  SPG.signGroups = GROUPS;   // the grown-ups' Sign videos screen lists the words in the same groups
   const SPELLWORDS = ['CAT', 'DOG', 'SUN', 'PIG', 'COW', 'BEE', 'OWL', 'FISH', 'BALL', 'CAKE', 'MOON', 'STAR', 'TREE', 'MILK', 'BOOK', 'CAR'];
   // what the word is called (spoken, `sign/<ID>`), for the words that are not just their name
   const SAY = { 'THANK-YOU': 'Thank you', 'I-LOVE-YOU': 'I love you', FINISH: 'All done', TOILET: 'Potty', 'ICE-CREAM': 'Ice cream', MOM: 'Mommy', DAD: 'Daddy', N: n => String(n) };
-  const nameOf = id => (/^N:/.test(id) ? id.slice(2) : /^L:/.test(id) ? id.slice(2).toUpperCase() : SAY[id] || id.charAt(0) + id.slice(1).toLowerCase().replace(/-/g, ' '));
+  const nameOf = SPG.signNameOf = id => (/^N:/.test(id) ? id.slice(2) : /^L:/.test(id) ? id.slice(2).toUpperCase() : SAY[id] || id.charAt(0) + id.slice(1).toLowerCase().replace(/-/g, ' '));
   // every word becomes a spoken line (always said: they are what the game is about)
   for (const g of GROUPS) for (const w of g.words) if (!/^L:/.test(w)) voice.LINES['sign/' + w] = nameOf(w) + '!';
   for (const w of SPELLWORDS) voice.LINES['sign/' + w] = voice.LINES['sign/' + w] || nameOf(w) + '!';

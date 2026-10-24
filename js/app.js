@@ -5,7 +5,7 @@
   const { store, voice, safe, art } = SPG;
   const $ = id => document.getElementById(id);
   const screens = { who: $('who'), setup: $('setup'), hub: $('hub'), stage: $('stage') };
-  const overlays = { brk: $('break'), gate: $('gate'), parent: $('parent'), studio: $('studio'), fs: $('fs-resume'), vintro: $('vintro') };
+  const overlays = { brk: $('break'), gate: $('gate'), parent: $('parent'), studio: $('studio'), signvid: $('signvid'), fs: $('fs-resume'), vintro: $('vintro') };
   let current = 'who';
   let running = null;
 
@@ -452,6 +452,9 @@
   function openStudio() { SPG.studio.render($('studio-body')); openOverlay(overlays.studio); }
   function closeStudio() { SPG.studio.abort(); voice.stop(); closeOverlay(overlays.studio); renderParent(); }
   $('studio-close').addEventListener('click', closeStudio);
+  function openSignVideos() { SPG.signVideo.render($('signvid-body')); openOverlay(overlays.signvid); }
+  function closeSignVideos() { SPG.signVideo.close(); closeOverlay(overlays.signvid); renderParent(); }
+  $('signvid-close').addEventListener('click', closeSignVideos);
 
   function toggle(label, key) {
     const sw = h('button', { class: 'switch', type: 'button', role: 'switch', 'aria-checked': String(!!store.settings[key]), 'aria-label': label });
@@ -740,6 +743,13 @@
 
   // Accessibility. Hearing: everything the games say is also signed (ASL) by a pair of hands in a corner card (js/signs.js).
   // Seeing: colour filters for colour vision deficiency, stronger contrast, bigger buttons (js/access.js). All off by default.
+  // colour symbols: on by themselves with a colour filter, and the switch can change that either way
+  function marksRow() {
+    const st = store.settings, sw = h('button', { class: 'switch', type: 'button', role: 'switch', 'aria-checked': String(SPG.vision.marks()), 'aria-label': 'Colour symbols' });
+    sw.addEventListener('click', () => { st.colourMarks = !SPG.vision.marks(); store.saveSettings(); sw.setAttribute('aria-checked', String(st.colourMarks)); });
+    return h('div', {}, h('div', { class: 'setting' }, h('span', {}, 'Colour symbols: a little white heart, sun, leaf, drop… on each colour'), sw),
+      h('p', { class: 'fine', style: 'margin:0' }, 'In Shape Builder and Caterpillars, where things are matched by colour, every colour also has its own symbol (red a heart, orange a lightning bolt, yellow a sun, green a leaf, blue a drop, purple a moon, pink a flower, brown a paw), so colour is never the only difference. On by itself with a colour filter.'));
+  }
   function accessSection() {
     const st = store.settings; if (st.signWords == null) st.signWords = true;
     const sw = h('button', { class: 'switch', type: 'button', role: 'switch', 'aria-checked': String(!!st.signs), 'aria-label': 'Signing hands' });
@@ -765,6 +775,10 @@
       seg('Size', 'signSize', [['small', 'Small'], ['big', 'Big']]),
       seg('Hand colour', 'signSkin', [['medium', 'Medium', SPG.sign.SKINS.medium.base], ['light', 'Light', SPG.sign.SKINS.light.base], ['tan', 'Tan', SPG.sign.SKINS.tan.base], ['deep', 'Deep', SPG.sign.SKINS.deep.base]]),
       toggle('Show the words under the hands', 'signWords'), show);
+    { const n = SPG.signVideo.count(), vb = h('button', { class: 'btn small quiet', type: 'button', style: 'margin-top:10px' }, 'Sign videos: record your own');
+      vb.addEventListener('click', openSignVideos);
+      sec.append(h('h4', {}, 'Your own sign videos'),
+        h('p', { class: 'fine', style: 'margin:6px 0 0' }, `Record yourself (or a Deaf friend or teacher) making any sign, and that video is shown instead of the drawn hands, in the corner card and in Sign Along. ${n ? n + (n === 1 ? ' sign has' : ' signs have') + ' a video.' : 'No videos yet.'}`), vb); }
     sec.append(h('p', { class: 'fine' }, 'The signs are drawn by the app from standard ASL. Signing differs from place to place: if your child learns with a Deaf signer or an ASL teacher, ask them to look through Sign Along, and tell us about any sign that should change.'));
     // seeing
     const vis = h('div', { class: 'seg', role: 'group', 'aria-label': 'Colour vision' });
@@ -776,7 +790,7 @@
     const tog = (label, key) => { const t = toggle(label, key); t.querySelector('.switch').addEventListener('click', () => SPG.vision.apply()); return t; };
     sec.append(h('h4', {}, 'Seeing: colours and size'),
       h('p', { class: 'fine', style: 'margin:6px 0 0' }, 'Colour filter for colour blindness: the colours that are easy to mix up are shifted into colours that can be told apart, in every game and menu. Tidy Time also leaves out sorting by colour while a filter is on.'),
-      vis,
+      vis, marksRow(),
       tog('Stronger contrast and colours', 'contrast'),
       tog('Bigger buttons on the menus and around the games', 'bigUI'));
     return sec;
@@ -950,6 +964,7 @@
     if (!overlays.gate.classList.contains('hidden')) { gateState = null; closeOverlay(overlays.gate); return; }
     if (!overlays.vintro.classList.contains('hidden')) return;
     if (!overlays.studio.classList.contains('hidden')) { closeStudio(); return; }
+    if (!overlays.signvid.classList.contains('hidden')) { closeSignVideos(); return; }
     if (!overlays.parent.classList.contains('hidden')) { closeParent(); return; }
     if (!overlays.fs.classList.contains('hidden') || !overlays.brk.classList.contains('hidden')) return;
     if (current === 'stage') { if (!running?.inst?.back?.()) closeGame(); }

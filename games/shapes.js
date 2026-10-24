@@ -46,7 +46,17 @@
     c.fillStyle = g; c.fill();
     c.save(); c.clip(); c.fillStyle = 'rgba(255,255,255,.32)'; c.beginPath(); c.ellipse(-p.w * .18, -p.h * .3, p.w * .3, p.h * .11, -.4, 0, TAU); c.fill(); c.restore();
     shapePath(c, p.s, p.w, p.h); c.lineWidth = 2.2 / k; c.strokeStyle = art.shade(col, p.c === 'white' ? -.35 : -.3); c.stroke();
+    if (o.mark) colourMark(c, p, k, 1);
     c.restore();
+  }
+  // Grown-ups > Accessibility > colour symbols: a little white symbol per colour on the loose pieces, the coloured holes and the preview,
+  // so a child who sees colours differently can still match them (SPG.vision.mark). Drawn upright, inside the shape, never too small to see.
+  const FIT = { circle: [.3, 0, 0], oval: [.3, 0, 0], square: [.3, 0, 0], rect: [.3, 0, 0], triangle: [.22, 0, .2], rtri: [.2, -.2, .2], trapezoid: [.28, 0, .04], diamond: [.22, 0, 0], semicircle: [.27, 0, .22], star: [.2, 0, .05] };
+  function colourMark(c, p, k, alpha) {
+    if (!SPG.vision || !SPG.vision.marks()) return;
+    const f = FIT[p.s] || FIT.square, r = Math.min(Math.min(p.w, p.h) * f[0], 9);
+    if (r * k < 3.5) return;
+    c.save(); c.translate(p.w * f[1], p.h * f[2]); c.rotate(-(p.r || 0) * Math.PI / 180); SPG.vision.mark(c, p.c, r, alpha); c.restore();
   }
   // the hole a piece goes into
   function drawHole(c, p, k, o) {
@@ -57,6 +67,7 @@
     // a soft inner shadow along the top-left edge, like a real hole in a board
     c.save(); c.clip(); c.lineWidth = 7 / k; c.strokeStyle = 'rgba(40,20,60,.26)'; shapePath(c, p.s, p.w, p.h); c.translate(2 / k, 3 / k); c.stroke(); c.restore();
     shapePath(c, p.s, p.w, p.h); c.setLineDash([8 / k, 6 / k]); c.lineWidth = 2.6 / k; c.strokeStyle = o.tint ? art.shade(COL[p.c], -.32) : (o.night ? 'rgba(220,225,255,.6)' : 'rgba(90,63,94,.55)'); c.stroke(); c.setLineDash([]);
+    colourMark(c, p, k, o.tint ? .6 : .5);   // at tier 3 the plain holes show the symbol too: the preview is too small to carry it
     c.restore();
   }
 
@@ -443,7 +454,7 @@
       c.save(); c.translate(it.x, it.y); if (wig) c.rotate(wig); const k = it.sc * (.5 + .5 * pop) * (lift ? 1.03 : 1);
       if (lift) { c.save(); c.translate(6, 12 + this.drag.lift * .25); c.globalAlpha = .22; drawPiece(c, Object.assign({}, it.p, { c: 'gray' }), k, { shadow: false }); c.restore(); }
       if (this.sel === it && (it.state === 'home' || it.state === 'back')) { const e = extent(it.p), rad = Math.max(e.w, e.h) * k * .62 + 6; c.save(); c.strokeStyle = night ? 'rgba(255,240,170,.95)' : 'rgba(255,255,255,.95)'; c.lineWidth = 4; c.setLineDash([10, 8]); c.lineDashOffset = -this.t * 30; c.beginPath(); c.arc(0, 0, rad, 0, TAU); c.stroke(); c.restore(); }
-      drawPiece(c, it.p, k, {}); c.restore();
+      drawPiece(c, it.p, k, { mark: true }); c.restore();
     }
     draw() {
       const c = this.ctx, w = this.w, h = this.h; if (!w || !this.pic) return;
@@ -479,7 +490,7 @@
     // a small picture of the finished build, for the colours (tier 3: the holes are plain)
     drawPreview(c, night) {
       const r = this.prev, k = r.s / 118; c.save(); c.fillStyle = 'rgba(60,40,70,.2)'; art.rr(c, r.x + 2, r.y + 4, r.s, r.s, 12); c.fill(); c.fillStyle = night ? '#3f4a86' : '#f4f9ff'; art.rr(c, r.x, r.y, r.s, r.s, 12); c.fill(); c.strokeStyle = night ? '#7a6fc0' : '#fff'; c.lineWidth = 3; c.stroke();
-      c.translate(r.x + r.s / 2 - 50 * k, r.y + r.s / 2 - 50 * k); for (const p of this.pic.parts) { c.save(); c.translate(p.x * k, p.y * k); drawPiece(c, p, k, { shadow: false }); c.restore(); } c.restore();
+      c.translate(r.x + r.s / 2 - 50 * k, r.y + r.s / 2 - 50 * k); for (const p of this.pic.parts) { c.save(); c.translate(p.x * k, p.y * k); drawPiece(c, p, k, { shadow: false, mark: !p.bg }); c.restore(); } c.restore();
     }
   }
 

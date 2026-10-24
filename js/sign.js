@@ -384,18 +384,24 @@
       this.skin = SKINS[opts.skin] || SKIN; this.t = 0; this.keys = []; this.time = 0; this.cam = null; this.onWord = opts.onWord || null;
       this.cur = null; this.busy = false; this.trail = { R: [], L: [] }; this.words = [];
       this.yaw = opts.yaw == null ? .4 : opts.yaw;   // seen a little from the side (a three-quarter view), so a movement toward the body or toward the child shows
+      this.noVideo = !!opts.noVideo;   // a sign a grown-up recorded (js/signvideo.js) plays as that video, unless this is set
     }
     setSkin(id) { this.skin = SKINS[id] || SKIN; }
     // sequence: [sign ids]; each becomes key poses (from the pose the hands are in, or straight into the first sign)
     play(ids, o = {}) {
       const list = ids.map(id => (typeof id === 'string' ? SIGNS[id] : id)).filter(Boolean);
       const keys = [], words = [];
-      let at = 0;
+      let at = 0, afterVideo = false;
       list.forEach((sg, wi) => {
+        // a recorded video of the sign: the hands wait (out of sight) while it plays
+        const vid = !this.noVideo && SPG.signVideo && SPG.signVideo.clip(sg.id);
+        if (vid) { const from = words.length ? at + .25 : at; at = from + vid.dur; words.push({ from, to: at, box: null, place: null, id: sg.id, video: sg.id }); afterVideo = true; return; }
         const w0 = keys.length;
         sg.k.forEach((f, fi) => {
           const prev = keys[keys.length - 1];
-          if (!prev) at = 0; else at += fi === 0 ? Math.max(.3, f.t) : f.t;
+          if (prev) at += afterVideo && fi === 0 ? .05 : fi === 0 ? Math.max(.3, f.t) : f.t;
+          else if (at > 0) at += .05;
+          if (fi === 0) afterVideo = false;
           const twoHand = !!(f.L || sg.mirror) || sg.k.some(q => q.L);
           keys.push({ at, R: f.R ? resolve(f.R, false) : prev.R, L: f.L ? resolve(f.L, true) : sg.mirror && f.R ? resolve(f.R, true) : null, two: twoHand, place: f.R ? placeName(f.R.at) : prev && prev.place,
             face: f.face ? (typeof f.face === 'string' ? { mood: f.face } : f.face) : { mood: sg.face || 'neutral' }, arcR: f.arc, arcL: f.arcL || (f.arc && sg.mirror ? [-f.arc[0], f.arc[1], f.arc[2]] : null), word: fi === 0 ? { id: sg.id, i: wi } : null, w: wi });
@@ -405,7 +411,7 @@
         words.push({ from: keys[w0].at, to: at, box: this.boxOf(keys.slice(w0)), place: keys.slice(w0).map(k => k.place).find(p => typeof p === 'string' && BODY.has(p)) || null, id: sg.id });
       });
       // the second hand of a two-handed sign fades in and out; when a sign has none, the other hand is not shown
-      this.keys = keys; this.words = words; this.time = 0; this.busy = keys.length > 0; this.endsAt = at; this.lastWord = -1; this.trail = { R: [], L: [] };
+      this.keys = keys; this.words = words; this.time = 0; this.busy = words.length > 0; this.endsAt = at; this.lastWord = -1; this.trail = { R: [], L: [] };
       if (keys.length) this.cur = this.poseAt(0);
       return at;
     }
@@ -437,12 +443,14 @@
     wordNow() { const W = this.words; if (!W.length) return null; return W.find(w => this.time <= w.to) || W[W.length - 1]; }
     // draw into a box (x, y, w, h) of a 2D context
     draw(c, x, y, w, h, o = {}) {
+      { const wn = this.wordNow();
+        if (wn && wn.video && (this.time >= wn.from - .05 || !this.cur) && SPG.signVideo && SPG.signVideo.draw(c, wn.video, x, y, w, h, this.time - wn.from, this.busy)) return; }
       if (!this.cur) return;
       const R = poseHand(this.cur.R, false), L = this.cur.L && this.cur.lAlpha > .02 ? poseHand(this.cur.L, true) : null;
       // the camera holds each sign's box (it glides to the next sign's box between signs)
       const W = this.words, wn = this.wordNow();
-      let box = wn ? wn.box : this.boxOf([{ R: this.cur.R, L: this.cur.L }]);
-      if (wn) { const i = W.indexOf(wn), nx = W[i + 1]; if (nx && this.time > wn.to - .3) { const u = ease((this.time - (wn.to - .3)) / .3); box = box.map((v, j) => lerp(v, nx.box[j], u)); } }
+      let box = wn && wn.box ? wn.box : this.boxOf([{ R: this.cur.R, L: this.cur.L }]);
+      if (wn) { const i = W.indexOf(wn), nx = W[i + 1]; if (nx && nx.box && this.time > wn.to - .3) { const u = ease((this.time - (wn.to - .3)) / .3); box = box.map((v, j) => lerp(v, nx.box[j], u)); } }
       const pad = o.pad == null ? .06 : o.pad, iw = w * (1 - pad * 2), ih = h * (1 - pad * 2);
       const want = { cx: (box[0] + box[2]) / 2, cy: (box[1] + box[3]) / 2, s: Math.max(box[2] - box[0], (box[3] - box[1]) * iw / ih) };
       if (!this.cam || o.snap) this.cam = want; else { const a = Math.min(1, (o.dt || .016) * 7); this.cam = { cx: lerp(this.cam.cx, want.cx, a), cy: lerp(this.cam.cy, want.cy, a), s: lerp(this.cam.s, want.s, a) }; }
