@@ -374,6 +374,8 @@
   }
   const lerpFace = (a, b, u) => ({ mood: u < .5 ? a.mood : b.mood });
   const BODY = new Set(Object.keys(BADGE));
+  // a sign given at an exact point counts as made on the body when it is close to it (the chest, or the face)
+  const placeName = at => (!Array.isArray(at) ? at : at[2] > 1.45 ? null : at[1] > -.4 ? 'face' : at[1] > -3.2 ? (Math.abs(at[0]) < .4 ? 'chestc' : 'chest') : 'belly');
 
   // The hands: give them a list of sign ids and they sign them one after another (no person: just two hands, a short wrist each,
   // a fading trail that shows the movement, and for signs made at the face or the chest a little emoji face that shows where).
@@ -395,7 +397,7 @@
           const prev = keys[keys.length - 1];
           if (!prev) at = 0; else at += fi === 0 ? Math.max(.3, f.t) : f.t;
           const twoHand = !!(f.L || sg.mirror) || sg.k.some(q => q.L);
-          keys.push({ at, R: f.R ? resolve(f.R, false) : prev.R, L: f.L ? resolve(f.L, true) : sg.mirror && f.R ? resolve(f.R, true) : null, two: twoHand, place: f.R ? f.R.at : prev && prev.place,
+          keys.push({ at, R: f.R ? resolve(f.R, false) : prev.R, L: f.L ? resolve(f.L, true) : sg.mirror && f.R ? resolve(f.R, true) : null, two: twoHand, place: f.R ? placeName(f.R.at) : prev && prev.place,
             face: f.face ? (typeof f.face === 'string' ? { mood: f.face } : f.face) : { mood: sg.face || 'neutral' }, arcR: f.arc, arcL: f.arcL || (f.arc && sg.mirror ? [-f.arc[0], f.arc[1], f.arc[2]] : null), word: fi === 0 ? { id: sg.id, i: wi } : null, w: wi });
         });
         at += o.gap != null ? o.gap : .22;   // a little hold at the end of each sign

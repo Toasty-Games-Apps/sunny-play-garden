@@ -16,3 +16,7 @@ Each script starts its own `python3 -m http.server` on `$PORT` (default 8123): u
 - `dbg.mjs`: example of jumping straight to a kitchen step (`g.startRecipe(R); g.stIdx = n; g.beginStep()`).
 - `sort.mjs W H`: Tidy Time: checks the round maker at every tier, plays every kind of sorting at ages 2, 4 and 7 by dragging (wrong basket twice, a drop on the floor, everything in), rotation, night, the idle hint, one star per two rounds.
 - `monkey.mjs [seconds] [W H]`: plays every game like a toddler (random taps, long presses and wild drags, a screen turn, a pause and resume) and reports any page error per game. `GAMES=name,name` and `AGE=` narrow it.
+- `signs.mjs W H`: Sign Along at ages 2, 4 and 7 (Learn, Watch & find with a wrong picture, Letters, My name, a screen turn), and the signing hands of sign-language mode (every gloss uses known signs, the card shows in a game, not inside Sign Along, not when off).
+- `sign-strips.mjs`: film strips of signs to check them by eye (`IDS=HELLO,CAT N=5`), or every handshape (`HANDS=1`).
+- `color.mjs`: Coloring Book: every collection tab, every brush style, pattern fills, stickers, undo, start over, keeping pictures after a reload (`SIZES=390x844,1280x800`, `SHOTS=` also writes painted sheets of every collection).
+- `smoke2.mjs` with `SIGNS=1`: also turns on the signing hands, a colour filter and bigger buttons in every game.

@@ -121,13 +121,13 @@
   sign('PRESENT', [T(.3, H('X', [-.7, -2.2, 1.8], 'out+up', 'co')), T(.45, H('X', [-.7, -2.4, 3.0], 'out', 'co'), null, null, [0, .35, 0])], { mirror: true, face: 'happy' });
 
   // family and the everyday signs used most with young children
-  sign('MOM', [T(.3, H('5', 'chin', 'up+.2co', 'co+.3out', 'tt', [0, -.05, .35])), ...rep([T(.15, H('5', 'chin', 'up+.2co', 'co+.3out', 'tt', [0, -.05, .04])), T(.15, H('5', 'chin', 'up+.2co', 'co+.3out', 'tt', [0, -.05, .35]))], 2)], { face: 'kind' });
-  sign('DAD', [T(.3, H('5', 'forehead', 'up+.2co', 'co+.3out', 'tt', [0, 0, .35])), ...rep([T(.15, H('5', 'forehead', 'up+.2co', 'co+.3out', 'tt', [0, 0, .04])), T(.15, H('5', 'forehead', 'up+.2co', 'co+.3out', 'tt', [0, 0, .35]))], 2)], { face: 'kind' });
+  sign('MOM', [T(.3, H('5', 'chin', 'up+.2co', 'out+.7co', 'tt', [0, -.05, .35])), ...rep([T(.15, H('5', 'chin', 'up+.2co', 'out+.7co', 'tt', [0, -.05, .04])), T(.15, H('5', 'chin', 'up+.2co', 'out+.7co', 'tt', [0, -.05, .35]))], 2)], { face: 'kind' });
+  sign('DAD', [T(.3, H('5', 'forehead', 'up+.2co', 'out+.7co', 'tt', [0, 0, .35])), ...rep([T(.15, H('5', 'forehead', 'up+.2co', 'out+.7co', 'tt', [0, 0, .04])), T(.15, H('5', 'forehead', 'up+.2co', 'out+.7co', 'tt', [0, 0, .35]))], 2)], { face: 'kind' });
   sign('BABY', [T(.35, H('openB', [-.3, -2.5, 2.2], 'co', 'up'), H('openB', Lw(-.2, -2.7, 2.2), 'co', 'up')), ...rep([T(.3, H('openB', [-.7, -2.4, 2.2], 'co+.3up', 'up'), H('openB', Lw(-.6, -2.6, 2.2), 'co+.3up', 'up')), T(.3, H('openB', [.1, -2.4, 2.2], 'co+.3down', 'up'), H('openB', Lw(.2, -2.6, 2.2), 'co+.3down', 'up'))], 1)], { face: 'kind' });
   sign('I-LOVE-YOU', [T(.35, H('ILY', 'neutral', 'up', 'out', 'palm', [-.4, .5, 0])), T(.6, H('ILY', 'neutral', 'up+.15co', 'out', 'palm', [-.4, .55, .2]))], { face: 'happy' });
   sign('SORRY', [T(.3, H('A', 'chest', 'up+co', 'in', 'palm', [.1, .1, .03])), T(.18, H('A', 'chest', 'up+co', 'in', 'palm', [.45, -.15, .03])), T(.18, H('A', 'chest', 'up+co', 'in', 'palm', [.1, -.4, .03])), T(.18, H('A', 'chest', 'up+co', 'in', 'palm', [-.25, -.15, .03])), T(.18, H('A', 'chest', 'up+co', 'in', 'palm', [.1, .1, .03]))], { face: 'sad' });
   sign('TOILET', [T(.3, H('T', 'spell', 'up', 'out', 'palm', [.3, 0, 0])), ...rep([T(.14, H('T', 'spell', 'up+.4co', 'out+co', 'palm', [.3, 0, 0])), T(.14, H('T', 'spell', 'up+.4ip', 'out+ip', 'palm', [.3, 0, 0]))], 2)]);
-  sign('HURT', [T(.3, H('1', [-.35, -2.2, 2.3], 'co', 'in')), ...rep([T(.18, H('1', [-.2, -2.2, 2.3], 'co+.4up', 'in')), T(.18, H('1', [-.35, -2.2, 2.3], 'co', 'in'))], 2)], { mirror: true, face: 'sad' });
+  sign('HURT', [T(.3, H('1', [-.35, -2.2, 2.3], 'co+.3up', 'in+.6down')), ...rep([T(.18, H('1', [-.2, -2.2, 2.3], 'co+.7up', 'in+.6down')), T(.18, H('1', [-.35, -2.2, 2.3], 'co+.3up', 'in+.6down'))], 2)], { mirror: true, face: 'sad' });
   sign('OUTSIDE', [T(.3, H('flatO', [-.1, -2.0, 2.4], 'down', 'in'), H('C', Lw(.05, -2.4, 2.3), 'up', 'co')), T(.4, H('flatO', [-.3, -1.3, 3.0], 'up+out', 'in'), H('C', Lw(.05, -2.4, 2.3), 'up', 'co'))]);
   sign('SHOES', [T(.3, H('S', [-.4, -2.4, 2.3], 'out', 'down'), H('S', Lw(.4, -2.4, 2.3), 'out', 'down')), ...rep([T(.15, H('S', [-.2, -2.4, 2.3], 'out', 'down'), H('S', Lw(.2, -2.4, 2.3), 'out', 'down')), T(.15, H('S', [-.4, -2.4, 2.3], 'out', 'down'), H('S', Lw(.4, -2.4, 2.3), 'out', 'down'))], 2)]);
 

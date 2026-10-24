@@ -18,10 +18,11 @@ LEARN
 - Caterpillars: what comes next? Each caterpillar sings its colour pattern; pick the next ball and it turns into a butterfly.
 - Feeling Friends: a friend's ice cream falls or thunder booms. Touch the face that shows the feeling, then choose a way to help: a hug, a song or a calm breath.
 - Tidy Time: sort toys, fruit and vegetables into friendly baskets by colour, size, kind or shape.
+- Sign Along: learn sign language (ASL) with a friendly pair of hands: everyday words, animals, food, colours, numbers, the alphabet and your own name.
 - Puzzle Pond: jigsaw puzzles made from your own coloring pictures, growing from 4 pieces to 12.
 
 CREATE
-- Coloring Book: 59 pictures in six collections (animal friends, garden, Halloween, Thanksgiving and fall, Christmas, dinosaurs). Tap to fill, paint with a brush that stays inside the lines, undo anything, and save your pictures.
+- Coloring Book: 95 pictures in twelve collections (animal friends, garden, dinosaurs, birthday party, Valentine's Day, Easter and spring, summer fun, Halloween, Thanksgiving and fall, Hanukkah and winter lights, Christmas, Lunar New Year). Tap to fill with 24 colours or patterns, paint with rainbow and glitter brushes that stay inside the lines, add stickers, undo anything, and save your pictures.
 - Clay Corner: squish, roll, stretch, pinch and cut soft play-dough, add googly eyes and take photos of your creations.
 - Sprout Kitchen: 12 recipes from cookies, cupcakes and pancakes to build-your-own burgers, sandwiches and pizza. Measure, stir, roll, cut, bake, decorate, then eat it bite by bite.
 - Style Studio: dress up girls and boys in princess gowns, crowns and wings, do make-up and nails, cut and brush hair in the Hair Salon, then walk the runway.
