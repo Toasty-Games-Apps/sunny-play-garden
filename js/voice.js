@@ -64,6 +64,7 @@
     'feel-s-spider': 'Eek! A spider came down!',
     'feel-s-grab': 'Hey! That is my ball!',
     'feel-why': 'Why did I feel that way? Touch the picture.',
+    'sl-start': 'Let\'s talk with our hands!', 'sl-find': 'Watch the hands. Touch the picture!', 'sl-letter': 'Watch the hand. Which letter is it?', 'sl-word': 'Watch the hand spell a word. Touch the picture!',
     'feel/happy': 'Yes! I feel happy!',
     'feel/sad': 'Yes. I feel sad.',
     'feel/scared': 'Yes. I feel scared.',
@@ -161,10 +162,10 @@
   const CORE_SET = new Set(CORE);
   const isCore = k => CORE_SET.has(k) || /^(pname|player)\//.test(k);
   // spoken whenever they come up (by a recording if there is one, otherwise the built-in voice) although they are not on the short list
-  const SPOKEN = /^(letter|sound|word|num|color|shape|name|pname|player|fish|sort)\//;
+  const SPOKEN = /^(letter|sound|word|num|color|shape|name|pname|player|fish|sort|sign)\//;
   // Instructions that tell her what to do next: always spoken (she cannot read), although they are not on the short list to record.
   // Each one is said once at its moment (a new step, the first coin...), never on every touch.
-  const INSTRUCT = new Set(['sort-color', 'sort-size', 'sort-size3', 'sort-food', 'sort-shape', 'sort-try', 'sort-done', 'pat-start', 'pat-next', 'feel-start', 'feel-how', 'feel-look', 'feel-s-present', 'feel-s-cake', 'feel-s-pal', 'feel-s-icecream', 'feel-s-balloon', 'feel-s-rain', 'feel-s-thunder', 'feel-s-dark', 'feel-s-tower', 'feel-s-splash', 'feel-s-jack', 'feel-s-party', 'feel-s-yawn', 'feel-s-bubbles', 'feel-s-rainbow', 'feel-s-spider', 'feel-s-grab', 'feel-why', 'shapes-count/circle', 'shapes-count/oval', 'shapes-count/square', 'shapes-count/rect', 'shapes-count/triangle', 'shapes-count/trapezoid', 'shapes-count/diamond', 'shapes-count/semicircle', 'shapes-count/star', 'feel/happy', 'feel/sad', 'feel/scared', 'feel/mad', 'feel/wow', 'feel/sleep', 'feel-help', 'feel-help-sleep', 'feel-joy', 'feel-breathe', 'feel-better', 'feel-fun', 'feel-night', 'shop-stars', 'shop-first', 'shop-worn', 'follow-bee', 'catch-drops', 'fire-pet', 'fire-next', 'band-song', 'puzzle-next', 'hide-gate', 'hide-locked', 'count-find', 'math-sum', 'math-left',
+  const INSTRUCT = new Set(['sort-color', 'sort-size', 'sort-size3', 'sort-food', 'sort-shape', 'sort-try', 'sort-done', 'pat-start', 'pat-next', 'feel-start', 'feel-how', 'feel-look', 'feel-s-present', 'feel-s-cake', 'feel-s-pal', 'feel-s-icecream', 'feel-s-balloon', 'feel-s-rain', 'feel-s-thunder', 'feel-s-dark', 'feel-s-tower', 'feel-s-splash', 'feel-s-jack', 'feel-s-party', 'feel-s-yawn', 'feel-s-bubbles', 'feel-s-rainbow', 'feel-s-spider', 'feel-s-grab', 'feel-why', 'sl-start', 'sl-find', 'sl-letter', 'sl-word', 'shapes-count/circle', 'shapes-count/oval', 'shapes-count/square', 'shapes-count/rect', 'shapes-count/triangle', 'shapes-count/trapezoid', 'shapes-count/diamond', 'shapes-count/semicircle', 'shapes-count/star', 'feel/happy', 'feel/sad', 'feel/scared', 'feel/mad', 'feel/wow', 'feel/sleep', 'feel-help', 'feel-help-sleep', 'feel-joy', 'feel-breathe', 'feel-better', 'feel-fun', 'feel-night', 'shop-stars', 'shop-first', 'shop-worn', 'follow-bee', 'catch-drops', 'fire-pet', 'fire-next', 'band-song', 'puzzle-next', 'hide-gate', 'hide-locked', 'count-find', 'math-sum', 'math-left',
     'aq-coin', 'aq-boss', 'meteor-start', 'seed-in', 'pat-it', 'water-me', 'confirm-bye',
     'cook-pick', 'cook-roll', 'cook-cutsand', 'cook-oven-on', 'cook-squirt', 'cook-drop', 'cook-pour', 'cook-ding', 'cook-grill', 'cook-flip', 'cook-stack', 'cook-frost', 'cook-slice',
     'cook-pickbun', 'cook-pickbread', 'cook-patties', 'cook-meat', 'cook-cheese', 'cook-veg', 'cook-saucetop', 'cook-scoop', 'cook-pizzasauce', 'cook-pizzacheese', 'cook-toppings']);
@@ -363,6 +364,8 @@
     const have = order.filter(s => hasClip(s, key));
     return have.length ? have[Math.floor(Math.random() * have.length)] : null;
   }
+  // a line that would be said now: not muted, a cheer that comes up (see praise frequency), not an Extra audio help line while that is off
+  const willSay = item => !!item && (typeof item !== 'string' ? !!item.say : !skip(item) && !(isExtra(item) && !settings().audioHelp));
   function skip(key) {
     const s = settings();
     if ((s.muted || []).includes(key)) return true;
@@ -371,11 +374,11 @@
   }
 
   // live(): false once a newer line or stop() took over while this one was still loading
-  async function playOne(item, live = () => true) {
+  // checked: the line has already passed the checks below (say() decides once, for the voice and the sign-language hands alike)
+  async function playOne(item, live = () => true, checked = false) {
     if (!settings().voice || !item || SPG.voice.hushed) return;
     if (typeof item !== 'string') return item.say ? speak(item.say) : undefined;
-    if (skip(item)) return;
-    if (isExtra(item) && !settings().audioHelp) return;   // only with Extra audio help
+    if (!checked && !willSay(item)) return;
     await ready; if (!live()) return;
     const set = A.ctx ? chooseSet(item) : null;
     if (set) { const buf = await loadBuffer(set, item); if (!live()) return; if (buf) return playBuffer(buf); }
@@ -519,12 +522,13 @@
     groupOf: key => GROUPS.find(g => g.test(key)),
     // Say a line, or a list of lines one after another. Items are keys, {say: 'free text'}, or null.
     async say(...items) {
-      const list = items.flat();
+      const list = items.flat().filter(willSay);
       const my = ++token;
       current?.stop();
+      try { if (SPG.signs && list.length) SPG.signs.say(list); } catch (_) { /* the hands never stop the voice */ }
       for (const it of list) {
         if (my !== token) return;
-        await playOne(it, () => my === token);
+        await playOne(it, () => my === token, true);
       }
     },
     // Play a critter noise if one is recorded, otherwise the spoken announcement.
@@ -545,7 +549,7 @@
       const [off, dur] = buf._trim || [0, undefined]; src.start(0, off, dur);
       return dur || buf.duration;
     },
-    stop() { token++; current?.stop(); },
+    stop() { token++; current?.stop(); try { SPG.signs && SPG.signs.stop(); } catch (_) { /* ignore */ } },
     praise() { const k = [...PRAISE]; return SPG.voice.say(k[Math.floor(Math.random() * k.length)]); },
     startRecording, saveClip, deleteClip, previewClip
   };
