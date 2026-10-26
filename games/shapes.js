@@ -13,7 +13,8 @@
 
   const COL = { red: '#ff6b6b', blue: '#5aa8f0', yellow: '#ffd54a', green: '#6fcf6f', orange: '#ffa24d', purple: '#b58cf0', pink: '#ff8fc0', brown: '#b9805a', gray: '#8f96a8', white: '#ffffff' };
   const COLS = Object.keys(COL);
-  const SHAPE_SAY = { rect: 'rectangle' };
+  const SHAPE_SAY = { rect: 'rectangle', rtri: 'triangle' };
+  const KIND = s => (s === 'rtri' ? 'triangle' : s);   // for counting, a right triangle is a triangle too
 
   /* ---------------------------------------------------------------- shapes: one function draws both the hole and the piece */
   // Centered on (0, 0) inside a box of w x h; the caller rotates and scales.
@@ -23,6 +24,7 @@
       case 'circle': case 'oval': c.ellipse(0, 0, hw, hh, 0, 0, TAU); break;
       case 'square': case 'rect': art.rr(c, -hw, -hh, w, h, Math.min(w, h) * .12); break;
       case 'triangle': c.moveTo(0, -hh); c.lineTo(hw, hh); c.lineTo(-hw, hh); c.closePath(); break;
+      case 'rtri': c.moveTo(-hw, -hh); c.lineTo(hw, hh); c.lineTo(-hw, hh); c.closePath(); break;   // a right triangle (a sail, a tail fin): the square corner at the bottom left
       case 'trapezoid': c.moveTo(-hw * .6, -hh); c.lineTo(hw * .6, -hh); c.lineTo(hw, hh); c.lineTo(-hw, hh); c.closePath(); break;
       case 'diamond': c.moveTo(0, -hh); c.lineTo(hw, 0); c.lineTo(0, hh); c.lineTo(-hw, 0); c.closePath(); break;
       case 'semicircle': c.moveTo(-hw, hh); c.ellipse(0, hh, hw, h, 0, Math.PI, TAU); c.closePath(); break;
@@ -44,7 +46,17 @@
     c.fillStyle = g; c.fill();
     c.save(); c.clip(); c.fillStyle = 'rgba(255,255,255,.32)'; c.beginPath(); c.ellipse(-p.w * .18, -p.h * .3, p.w * .3, p.h * .11, -.4, 0, TAU); c.fill(); c.restore();
     shapePath(c, p.s, p.w, p.h); c.lineWidth = 2.2 / k; c.strokeStyle = art.shade(col, p.c === 'white' ? -.35 : -.3); c.stroke();
+    if (o.mark) colourMark(c, p, k, 1);
     c.restore();
+  }
+  // Grown-ups > Accessibility > colour symbols: a little white symbol per colour on the loose pieces, the coloured holes and the preview,
+  // so a child who sees colours differently can still match them (SPG.vision.mark). Drawn upright, inside the shape, never too small to see.
+  const FIT = { circle: [.3, 0, 0], oval: [.3, 0, 0], square: [.3, 0, 0], rect: [.3, 0, 0], triangle: [.22, 0, .2], rtri: [.2, -.2, .2], trapezoid: [.28, 0, .04], diamond: [.22, 0, 0], semicircle: [.27, 0, .22], star: [.2, 0, .05] };
+  function colourMark(c, p, k, alpha) {
+    if (!SPG.vision || !SPG.vision.marks()) return;
+    const f = FIT[p.s] || FIT.square, r = Math.min(Math.min(p.w, p.h) * f[0], 9);
+    if (r * k < 3.5) return;
+    c.save(); c.translate(p.w * f[1], p.h * f[2]); c.rotate(-(p.r || 0) * Math.PI / 180); SPG.vision.mark(c, p.c, r, alpha); c.restore();
   }
   // the hole a piece goes into
   function drawHole(c, p, k, o) {
@@ -55,6 +67,7 @@
     // a soft inner shadow along the top-left edge, like a real hole in a board
     c.save(); c.clip(); c.lineWidth = 7 / k; c.strokeStyle = 'rgba(40,20,60,.26)'; shapePath(c, p.s, p.w, p.h); c.translate(2 / k, 3 / k); c.stroke(); c.restore();
     shapePath(c, p.s, p.w, p.h); c.setLineDash([8 / k, 6 / k]); c.lineWidth = 2.6 / k; c.strokeStyle = o.tint ? art.shade(COL[p.c], -.32) : (o.night ? 'rgba(220,225,255,.6)' : 'rgba(90,63,94,.55)'); c.stroke(); c.setLineDash([]);
+    colourMark(c, p, k, o.tint ? .6 : .5);   // at tier 3 the plain holes show the symbol too: the preview is too small to carry it
     c.restore();
   }
 
@@ -62,46 +75,69 @@
      s shape, x y centre, w h size, r turn in degrees, c colour, l the youngest tier that has to place it (lower tiers see it already built),
      g lights up in the celebration. The order is the order they are drawn in. */
   const P = (s, x, y, w, h, c, l, extra) => Object.assign({ s, x, y, w, h, c, l }, extra || {});
+  // bg: scenery (the sun, the ground, the road, clouds...): built like the rest, but it stays where it is when the picture comes alive
+  const BG = { bg: 1 };
   const PICS = [
     { id: 'house', cheer: { move: 'bob', lights: true, fx: ['smoke', 65, 12] }, parts: [
       P('rect', 65, 19, 8, 16, 'orange', 2), P('square', 50, 64, 46, 46, 'yellow', 1), P('triangle', 50, 27, 62, 28, 'red', 1), P('rect', 50, 75, 14, 24, 'brown', 1),
-      P('square', 38, 56, 12, 12, 'blue', 2, { g: 1 }), P('square', 62, 56, 12, 12, 'blue', 2, { g: 1 }), P('circle', 50, 28, 9, 9, 'blue', 3, { g: 1 }), P('circle', 86, 14, 14, 14, 'orange', 3), P('trapezoid', 50, 93, 26, 8, 'gray', 3)] },
+      P('square', 38, 56, 12, 12, 'blue', 2, { g: 1 }), P('square', 62, 56, 12, 12, 'blue', 2, { g: 1 }), P('circle', 50, 28, 9, 9, 'blue', 3, { g: 1 }), P('circle', 86, 14, 14, 14, 'orange', 3, BG), P('trapezoid', 50, 91, 26, 8, 'gray', 3, BG)] },
     { id: 'rocket', cheer: { move: 'launch', fx: ['flame', 50, 84] }, parts: [
       P('trapezoid', 50, 68, 46, 18, 'purple', 1), P('oval', 50, 46, 26, 54, 'pink', 1), P('triangle', 50, 19, 26, 20, 'red', 1), P('circle', 50, 42, 12, 12, 'blue', 2),
-      P('triangle', 50, 84, 14, 18, 'orange', 2, { r: 180 }), P('star', 20, 24, 12, 12, 'yellow', 3), P('star', 82, 56, 12, 12, 'yellow', 3), P('circle', 80, 22, 12, 12, 'green', 3)] },
+      P('triangle', 50, 84, 14, 18, 'orange', 2, { r: 180 }), P('star', 20, 24, 12, 12, 'yellow', 3, BG), P('star', 82, 56, 12, 12, 'yellow', 3, BG), P('circle', 80, 22, 12, 12, 'green', 3, BG)] },
     { id: 'car', cheer: { move: 'drive' }, parts: [
-      P('rect', 50, 88, 96, 6, 'gray', 3), P('rect', 50, 60, 72, 22, 'red', 1), P('trapezoid', 50, 41, 38, 18, 'blue', 1), P('trapezoid', 50, 42, 24, 11, 'yellow', 2),
-      P('circle', 30, 74, 18, 18, 'gray', 1), P('circle', 70, 74, 18, 18, 'gray', 1), P('circle', 87, 59, 8, 8, 'yellow', 2), P('circle', 84, 16, 14, 14, 'orange', 3), P('oval', 22, 18, 26, 10, 'white', 3)] },
+      P('rect', 50, 86, 96, 6, 'gray', 3, BG), P('rect', 50, 60, 72, 22, 'red', 1), P('trapezoid', 50, 41, 38, 18, 'blue', 1), P('trapezoid', 50, 42, 24, 11, 'yellow', 2),
+      P('circle', 30, 74, 18, 18, 'gray', 1), P('circle', 70, 74, 18, 18, 'gray', 1), P('circle', 87, 59, 8, 8, 'yellow', 2), P('circle', 84, 16, 14, 14, 'orange', 3, BG), P('oval', 22, 18, 26, 10, 'white', 3, BG)] },
     { id: 'boat', cheer: { move: 'sail', fx: ['splash', 50, 86] }, parts: [
-      P('semicircle', 18, 90, 18, 8, 'blue', 3), P('semicircle', 50, 91, 18, 8, 'blue', 3), P('semicircle', 82, 90, 18, 8, 'blue', 3), P('rect', 50, 44, 4, 46, 'brown', 2),
-      P('triangle', 56, 42, 34, 44, 'red', 1), P('triangle', 31, 52, 20, 30, 'yellow', 1), P('trapezoid', 50, 78, 62, 20, 'brown', 1, { r: 180 }), P('triangle', 57, 15, 10, 10, 'green', 2, { r: 90 }), P('circle', 82, 18, 14, 14, 'yellow', 3)] },
-    { id: 'flower', cheer: { move: 'sway', pivot: [50, 95] }, parts: [
-      P('rect', 50, 72, 5, 46, 'green', 1), P('oval', 32, 66, 18, 8, 'green', 3, { r: -25 }), P('diamond', 66, 64, 12, 18, 'green', 3), P('oval', 50, 14, 14, 22, 'pink', 1), P('oval', 50, 54, 14, 22, 'orange', 2),
-      P('oval', 31, 34, 14, 22, 'purple', 2, { r: 90 }), P('oval', 69, 34, 14, 22, 'red', 2, { r: 90 }), P('circle', 50, 34, 16, 16, 'yellow', 1), P('trapezoid', 50, 90, 30, 18, 'brown', 3, { r: 180 }), P('circle', 84, 22, 8, 8, 'orange', 3)] },
+      P('semicircle', 18, 92, 18, 8, 'blue', 3, BG), P('semicircle', 50, 93, 18, 8, 'blue', 3, BG), P('semicircle', 82, 92, 18, 8, 'blue', 3, BG), P('rect', 50, 40, 4, 56, 'brown', 2),
+      P('rtri', 64, 45, 24, 44, 'red', 1), P('rtri', 39, 49, 36, 18, 'yellow', 1, { r: 270 }), P('trapezoid', 50, 78, 62, 20, 'brown', 1, { r: 180 }), P('triangle', 56, 16, 10, 10, 'green', 2, { r: 90 }), P('circle', 82, 18, 14, 14, 'yellow', 3, BG)] },
+    { id: 'flower', cheer: { move: 'sway', pivot: [50, 82] }, parts: [
+      P('rect', 50, 66, 5, 34, 'green', 1), P('oval', 42, 68, 18, 8, 'green', 3, { r: -25 }), P('diamond', 58.5, 64, 12, 18, 'green', 3), P('oval', 50, 15, 14, 22, 'pink', 1), P('oval', 50, 53, 14, 22, 'orange', 2),
+      P('oval', 31, 34, 14, 22, 'purple', 2, { r: 90 }), P('oval', 69, 34, 14, 22, 'red', 2, { r: 90 }), P('circle', 50, 34, 16, 16, 'yellow', 1), P('trapezoid', 50, 90, 30, 18, 'brown', 3, { r: 180, bg: 1 }), P('circle', 84, 14, 12, 12, 'orange', 3, BG)] },
     { id: 'fish', cheer: { move: 'swim', fx: ['bubbles', 30, 46] }, parts: [
-      P('semicircle', 76, 94, 44, 12, 'green', 3), P('triangle', 78, 50, 22, 20, 'red', 1, { r: 270 }), P('triangle', 46, 30, 16, 12, 'green', 2), P('oval', 46, 50, 44, 28, 'orange', 1), P('circle', 33, 45, 10, 10, 'white', 1),
-      P('circle', 32, 45, 5, 5, 'gray', 2), P('circle', 14, 30, 7, 7, 'blue', 3), P('circle', 10, 44, 7, 7, 'blue', 3), P('circle', 18, 18, 7, 7, 'blue', 3)] },
+      P('semicircle', 76, 94, 44, 12, 'green', 3, BG), P('triangle', 78, 50, 22, 20, 'red', 1, { r: 270 }), P('triangle', 46, 30, 16, 12, 'green', 2), P('oval', 46, 50, 44, 28, 'orange', 1), P('circle', 33, 45, 10, 10, 'white', 1),
+      P('circle', 32, 45, 5, 5, 'gray', 2), P('circle', 14, 30, 7, 7, 'blue', 3, BG), P('circle', 10, 44, 7, 7, 'blue', 3, BG), P('circle', 18, 18, 7, 7, 'blue', 3, BG)] },
     { id: 'snowman', cheer: { move: 'hop', fx: ['snow'] }, parts: [
       P('circle', 50, 72, 38, 38, 'white', 1), P('circle', 50, 40, 28, 28, 'white', 1), P('rect', 50, 56, 28, 6, 'red', 3), P('rect', 50, 17, 16, 14, 'gray', 2), P('rect', 50, 25, 26, 4, 'gray', 2),
       P('circle', 44, 37, 4, 4, 'gray', 2), P('circle', 56, 37, 4, 4, 'gray', 2), P('triangle', 50, 45, 6, 12, 'orange', 1, { r: 180 }), P('circle', 50, 68, 5, 5, 'blue', 3), P('circle', 50, 79, 5, 5, 'blue', 3)] },
-    { id: 'castle', cheer: { move: 'bob', fx: ['fireworks'] }, parts: [
+    { id: 'castle', cheer: { move: 'still', lights: true, flag: true, fx: ['fireworks'] }, parts: [
       P('rect', 50, 70, 64, 34, 'gray', 1), P('rect', 22, 60, 16, 54, 'pink', 1), P('rect', 78, 60, 16, 54, 'pink', 1), P('triangle', 22, 25, 20, 16, 'red', 2), P('triangle', 78, 25, 20, 16, 'red', 2),
-      P('semicircle', 50, 79, 16, 16, 'brown', 1), P('rect', 22, 48, 6, 12, 'blue', 3), P('rect', 78, 48, 6, 12, 'blue', 3), P('rect', 50, 46, 3, 20, 'brown', 3), P('triangle', 57, 40, 12, 10, 'yellow', 3, { r: 90 })] },
-    { id: 'tree', cheer: { move: 'sway', pivot: [50, 94], fx: ['leaves', 50, 30] }, parts: [
-      P('semicircle', 50, 93, 90, 14, 'green', 1), P('rect', 50, 76, 12, 34, 'brown', 1), P('circle', 50, 40, 54, 54, 'green', 1), P('circle', 38, 40, 8, 8, 'red', 2), P('circle', 60, 32, 8, 8, 'red', 2),
-      P('circle', 54, 52, 8, 8, 'red', 2), P('circle', 85, 14, 14, 14, 'yellow', 3), P('oval', 20, 16, 22, 9, 'white', 3), P('triangle', 78, 38, 8, 8, 'orange', 3, { r: 90 })] },
-    { id: 'kite', cheer: { move: 'float', pivot: [50, 96] }, parts: [
-      P('semicircle', 50, 92, 70, 16, 'green', 3), P('circle', 50, 70, 9, 9, 'yellow', 1), P('circle', 50, 82, 9, 9, 'green', 1), P('circle', 50, 94, 9, 9, 'blue', 2), P('diamond', 50, 34, 40, 52, 'red', 1),
-      P('diamond', 50, 34, 18, 24, 'orange', 2), P('circle', 84, 14, 14, 14, 'yellow', 3), P('oval', 20, 20, 24, 10, 'white', 3)] },
+      P('semicircle', 50, 79, 16, 16, 'brown', 1), P('rect', 22, 48, 6, 12, 'blue', 3, { g: 1 }), P('rect', 78, 48, 6, 12, 'blue', 3, { g: 1 }), P('rect', 50, 44, 3, 20, 'brown', 3), P('triangle', 56.5, 39, 12, 10, 'yellow', 3, { r: 90, flag: 1 })] },
+    { id: 'tree', cheer: { move: 'sway', pivot: [50, 90], fx: ['leaves', 50, 30] }, parts: [
+      P('semicircle', 50, 93, 90, 14, 'green', 1, BG), P('rect', 50, 76, 12, 34, 'brown', 1), P('circle', 50, 40, 54, 54, 'green', 1), P('circle', 38, 40, 8, 8, 'red', 2), P('circle', 60, 32, 8, 8, 'red', 2),
+      P('circle', 54, 52, 8, 8, 'red', 2), P('circle', 85, 14, 14, 14, 'yellow', 3, BG), P('oval', 20, 16, 22, 9, 'white', 3, BG), P('circle', 81, 42, 10, 10, 'blue', 3), P('triangle', 87.5, 42, 5, 5, 'orange', 3, { r: 90 })] },
+    { id: 'kite', cheer: { move: 'float', pivot: [50, 70] }, parts: [
+      P('semicircle', 50, 94, 70, 12, 'green', 3, BG), P('circle', 50, 65, 8, 8, 'yellow', 1), P('circle', 45, 72, 8, 8, 'green', 1), P('circle', 51, 79, 8, 8, 'blue', 2), P('diamond', 50, 34, 40, 52, 'red', 1),
+      P('diamond', 50, 34, 18, 24, 'orange', 2), P('circle', 84, 14, 14, 14, 'yellow', 3, BG), P('oval', 20, 20, 24, 10, 'white', 3, BG)] },
     { id: 'icecream', cheer: { move: 'wobble', pivot: [50, 98], fx: ['sprinkles', 50, 40] }, parts: [
-      P('rect', 50, 97, 52, 4, 'gray', 3), P('triangle', 50, 76, 34, 44, 'brown', 1, { r: 180 }), P('circle', 50, 48, 34, 34, 'pink', 1), P('circle', 50, 26, 26, 26, 'purple', 1),
-      P('circle', 50, 11, 10, 10, 'red', 2), P('star', 41, 47, 8, 8, 'yellow', 2), P('star', 60, 54, 8, 8, 'yellow', 2), P('circle', 84, 14, 16, 16, 'orange', 3)] },
+      P('rect', 63, 17, 5, 18, 'brown', 3, { r: 30 }), P('triangle', 50, 76, 34, 44, 'brown', 1, { r: 180 }), P('circle', 50, 48, 34, 34, 'pink', 1), P('circle', 50, 26, 26, 26, 'purple', 1),
+      P('circle', 50, 11, 10, 10, 'red', 2), P('star', 41, 47, 8, 8, 'yellow', 2), P('star', 60, 54, 8, 8, 'yellow', 2), P('circle', 84, 14, 16, 16, 'orange', 3, BG)] },
     { id: 'cat', cheer: { move: 'hop' }, parts: [
       P('oval', 78, 78, 12, 34, 'orange', 3, { r: 30 }), P('oval', 50, 84, 44, 30, 'orange', 3), P('triangle', 34, 24, 14, 16, 'orange', 1), P('triangle', 66, 24, 14, 16, 'orange', 1), P('circle', 50, 48, 40, 40, 'orange', 1),
       P('circle', 40, 44, 8, 8, 'green', 2), P('circle', 60, 44, 8, 8, 'green', 2), P('triangle', 50, 54, 7, 6, 'pink', 2, { r: 180 }), P('semicircle', 50, 60, 14, 6, 'red', 3, { r: 180 })] },
     { id: 'robot', cheer: { move: 'dance', pivot: [50, 95], fx: ['sparks', 50, 10] }, parts: [
-      P('rect', 28, 92, 10, 14, 'gray', 3), P('rect', 72, 92, 10, 14, 'gray', 3), P('rect', 22, 62, 8, 28, 'orange', 3), P('rect', 78, 62, 8, 28, 'orange', 3), P('square', 50, 66, 40, 40, 'blue', 1),
-      P('rect', 50, 33, 30, 22, 'gray', 1), P('rect', 50, 17, 3, 10, 'gray', 2), P('circle', 50, 11, 6, 6, 'red', 2), P('circle', 43, 31, 8, 8, 'yellow', 1), P('circle', 57, 31, 8, 8, 'yellow', 1), P('rect', 50, 41, 16, 4, 'red', 2)] }
+      P('rect', 38, 92, 10, 14, 'gray', 3), P('rect', 62, 92, 10, 14, 'gray', 3), P('rect', 26, 62, 8, 28, 'orange', 3), P('rect', 74, 62, 8, 28, 'orange', 3), P('square', 50, 66, 40, 40, 'blue', 1),
+      P('rect', 50, 33, 30, 22, 'gray', 1), P('rect', 50, 17, 3, 10, 'gray', 2), P('circle', 50, 11, 6, 6, 'red', 2), P('circle', 43, 31, 8, 8, 'yellow', 1), P('circle', 57, 31, 8, 8, 'yellow', 1), P('rect', 50, 41, 16, 4, 'red', 2)] },
+    { id: 'train', cheer: { move: 'drive', fx: ['smoke', 70, 34] }, parts: [
+      P('rect', 50, 88, 96, 4, 'gray', 3, BG), P('circle', 14, 14, 12, 12, 'yellow', 3, BG), P('rect', 60, 62, 40, 18, 'red', 1), P('rect', 70, 46, 8, 14, 'gray', 2), P('square', 30, 52, 26, 26, 'blue', 1),
+      P('rect', 30, 37, 32, 5, 'purple', 2), P('square', 30, 50, 10, 10, 'white', 2, { g: 1 }), P('circle', 30, 78, 16, 16, 'gray', 1), P('circle', 64, 78, 16, 16, 'gray', 1), P('circle', 82, 60, 6, 6, 'yellow', 3, { g: 1 })] },
+    { id: 'butterfly', cheer: { move: 'flutter', pivot: [50, 52] }, parts: [
+      P('semicircle', 50, 95, 80, 10, 'green', 3, BG), P('circle', 37, 64, 20, 20, 'pink', 2), P('circle', 63, 64, 20, 20, 'pink', 2), P('circle', 34, 40, 28, 28, 'purple', 1), P('circle', 66, 40, 28, 28, 'purple', 1),
+      P('circle', 34, 40, 10, 10, 'yellow', 3), P('circle', 66, 40, 10, 10, 'yellow', 3), P('oval', 50, 52, 8, 40, 'brown', 1), P('circle', 46, 29, 5, 5, 'brown', 2), P('circle', 54, 29, 5, 5, 'brown', 2)] },
+    { id: 'owl', cheer: { move: 'hop' }, parts: [
+      P('rect', 50, 91, 90, 6, 'brown', 3, BG), P('triangle', 34, 32, 10, 12, 'brown', 3), P('triangle', 66, 32, 10, 12, 'brown', 3), P('oval', 50, 60, 44, 52, 'brown', 1), P('oval', 50, 72, 24, 26, 'yellow', 2),
+      P('circle', 41, 46, 16, 16, 'white', 1), P('circle', 59, 46, 16, 16, 'white', 1), P('circle', 41, 46, 7, 7, 'gray', 2), P('circle', 59, 46, 7, 7, 'gray', 2), P('triangle', 50, 56, 8, 8, 'orange', 2, { r: 180 })] },
+    { id: 'turtle', cheer: { move: 'crawl' }, parts: [
+      P('circle', 86, 14, 14, 14, 'yellow', 3, BG), P('rect', 36, 76, 8, 10, 'green', 1), P('rect', 64, 76, 8, 10, 'green', 1), P('triangle', 22, 70, 8, 6, 'green', 3, { r: 270 }), P('circle', 82, 64, 14, 14, 'green', 1),
+      P('semicircle', 50, 58, 50, 30, 'green', 1), P('circle', 40, 62, 8, 8, 'yellow', 2), P('circle', 60, 62, 8, 8, 'yellow', 2), P('circle', 50, 51, 8, 8, 'yellow', 2), P('circle', 85, 62, 4, 4, 'gray', 3)] },
+    { id: 'plane', cheer: { move: 'fly' }, parts: [
+      P('oval', 20, 80, 24, 10, 'white', 3, BG), P('circle', 84, 16, 14, 14, 'yellow', 3, BG), P('rtri', 20, 38, 14, 16, 'red', 1), P('oval', 50, 50, 70, 18, 'blue', 1), P('trapezoid', 48, 61, 30, 10, 'red', 1, { r: 180 }),
+      P('circle', 52, 48, 6, 6, 'white', 2), P('circle', 61, 48, 6, 6, 'white', 2), P('circle', 70, 48, 6, 6, 'white', 2), P('circle', 85, 50, 8, 8, 'yellow', 3)] },
+    { id: 'pumpkin', cheer: { move: 'wobble', pivot: [50, 86], lights: true }, parts: [
+      P('semicircle', 50, 93, 90, 14, 'brown', 3, BG), P('circle', 84, 14, 14, 14, 'yellow', 3, BG), P('star', 16, 16, 10, 10, 'yellow', 3, BG), P('rect', 50, 35, 8, 12, 'green', 1), P('oval', 60, 35, 14, 7, 'green', 2, { r: -20 }),
+      P('oval', 50, 62, 64, 48, 'orange', 1), P('triangle', 38, 56, 12, 10, 'yellow', 1, { g: 1 }), P('triangle', 62, 56, 12, 10, 'yellow', 1, { g: 1 }), P('diamond', 50, 64, 6, 6, 'yellow', 2, { g: 1 }), P('semicircle', 50, 72, 24, 10, 'yellow', 2, { r: 180, g: 1 })] },
+    { id: 'xmastree', cheer: { move: 'still', lights: true, fx: ['snow'] }, parts: [
+      P('square', 24, 88, 12, 12, 'red', 3, BG), P('square', 78, 87, 14, 14, 'purple', 3, BG), P('rect', 50, 84, 12, 12, 'brown', 1), P('triangle', 50, 64, 60, 26, 'green', 1), P('triangle', 50, 46, 48, 24, 'green', 1), P('triangle', 50, 30, 36, 22, 'green', 1),
+      P('star', 50, 14, 12, 12, 'yellow', 2, { g: 1 }), P('circle', 40, 50, 6, 6, 'red', 2, { g: 1 }), P('circle', 62, 64, 6, 6, 'red', 2, { g: 1 }), P('circle', 54, 36, 6, 6, 'blue', 3, { g: 1 })] }
   ];
   const BYID = Object.fromEntries(PICS.map(p => [p.id, p]));
 
@@ -116,7 +152,11 @@
     hop: u => ({ dy: -Math.abs(Math.sin(u * TAU * 3)) * 12 }),
     float: u => ({ dy: -u * 40, rot: Math.sin(u * TAU * 3) * .12 }),
     wobble: u => ({ rot: Math.sin(u * TAU * 3) * .12 }),
-    dance: u => ({ rot: Math.sin(u * TAU * 4) * .1, dy: -Math.abs(Math.sin(u * TAU * 4)) * 4 })
+    dance: u => ({ rot: Math.sin(u * TAU * 4) * .1, dy: -Math.abs(Math.sin(u * TAU * 4)) * 4 }),
+    still: () => ({}),
+    flutter: u => ({ dy: -Math.sin(u * Math.PI) * 26, dx: Math.sin(u * TAU) * 10, sx: 1 - Math.abs(Math.sin(u * TAU * 6)) * .45 }),
+    crawl: u => ({ dx: Math.sin(u * Math.PI) * 14, dy: -Math.abs(Math.sin(u * TAU * 5)) * 1.2 }),
+    fly: u => ({ dx: ease(u) * 150, dy: -ease(u) * 40 + Math.sin(u * TAU * 2) * 2, rot: -ease(Math.min(1, u * 3)) * .12 })
   };
   const CHEER_T = 3.4;
 
@@ -126,7 +166,7 @@
       this.host = host;
       this.canvas = document.createElement('canvas'); this.canvas.className = 'game-canvas';
       host.append(this.canvas); this.ctx = this.canvas.getContext('2d');
-      SPG.shapesGame = this; this.bag = store.bag('shapes', () => ({ built: 0, seen: [] })); this.bag.built = this.bag.built || 0;
+      SPG.shapesGame = this; this.ids = PICS.map(p => p.id); this.bag = store.bag('shapes', () => ({ built: 0, seen: [] })); this.bag.built = this.bag.built || 0;
       this.counter = SPG.ui.counter(host, (c, s) => { c.translate(s / 2, s * .55); c.fillStyle = '#ff6b6b'; art.rr(c, -s * .3, -s * .02, s * .3, s * .3, s * .04); c.fill(); c.fillStyle = '#5aa8f0'; c.beginPath(); c.arc(s * .2, s * .12, s * .16, 0, TAU); c.fill(); c.fillStyle = '#ffd54a'; c.beginPath(); c.moveTo(-s * .02, -s * .34); c.lineTo(s * .24, -s * .02); c.lineTo(-s * .28, -s * .02); c.closePath(); c.fill(); }, this.bag.built);
       this.fx = new art.Fx(); this.t = 0; this.running = false; this.state = 'build'; this.stateT = 0; this.drag = null; this.idle = 0; this.misses = {};
       this.tick = this.tick.bind(this);
@@ -157,7 +197,7 @@
       }
       this.tray = tray; this.B = Math.max(60, B); this.bx = bx; this.by = by; this.ss = this.B / 100;
       this.prev = { s: Math.min(64 * this.ui + 6, top - 10), y: 5 }; this.prev.x = (w - this.prev.s) / 2;
-      this.layoutTray();
+      this.layoutTray(); this.layoutCount();
     }
     sx(x) { return this.bx + x * this.ss; }
     sy(y) { return this.by + y * this.ss; }
@@ -197,7 +237,7 @@
         const used = new Set(pic.parts.map(p => p.s + '|' + p.c)), cands = shuffle(open.filter(q => q.p.s !== 'star'));
         for (const q of cands) { if (this.items.filter(it => it.decoy).length >= 2) break; const cols = shuffle(COLS.filter(c => !used.has(q.p.s + '|' + c) && c !== 'white')); if (!cols.length) continue; used.add(q.p.s + '|' + cols[0]); this.items.push({ p: Object.assign({}, q.p, { c: cols[0] }), slotRef: null, state: 'home', x: 0, y: 0, hx: 0, hy: 0, sc: 1, tsc: 1, t: 0, decoy: true, wig: 0 }); }
       }
-      this.items = shuffle(this.items); this.state = 'build'; this.stateT = 0; this.drag = null; this.sel = null; this.idle = 0; this.misses = {}; this.hint = null; this.intro = 0;
+      this.items = shuffle(this.items); this.state = 'build'; this.stateT = 0; this.drag = null; this.sel = null; this.idle = 0; this.misses = {}; this.hint = null; this.intro = 0; this.count = null;
       this.layout(); this.items.forEach((it, i) => { it.pop = -i * .05; it.x = it.hx; it.y = it.hy; it.sc = it.tsc; });
       this.fx.p.length = 0;
     }
@@ -205,6 +245,7 @@
 
     /* ---------------------------------------------------------------- dragging */
     grab(x, y, id) {
+      if (this.state === 'count') return this.pressCount(x, y);
       if (this.state !== 'build' || this.drag) return;
       this.idle = 0; this.hint = null;
       let best = null, bd = 1e9;
@@ -262,7 +303,40 @@
       if (!this.openSlots().length) this.finish();
     }
     finish() {
-      this.state = 'cheer'; this.stateT = 0; this.bag.built++; this.counter.set(this.bag.built); store.addStars(1); store.save();
+      this.bag.built++; this.counter.set(this.bag.built); store.addStars(1); store.save();
+      if (this.tierNow === 3 && this.askCount()) { sfx.chime(); return; }
+      this.cheer();
+    }
+    // tier 3, before the celebration: "How many circles?" (a shape that the picture has 2 to 6 of), three number buttons
+    askCount() {
+      const by = {}; for (const q of this.parts) { const k = KIND(q.p.s); by[k] = (by[k] || 0) + 1; }
+      const kinds = Object.keys(by).filter(k => by[k] >= 2 && by[k] <= 6); if (!kinds.length) return false;
+      const kind = shuffle(kinds)[0], n = by[kind];
+      const opts = shuffle([n - 1, n + 1, n + 2, n - 2].filter(v => v >= 1 && v <= 9)).slice(0, 2);
+      this.count = { kind, n, wrong: 0, glow: false, done: 0, btns: shuffle([n, ...opts]).map(v => ({ v, shake: 0, dim: false, pop: 0 })) };
+      this.state = 'count'; this.stateT = 0; this.idle = 0; this.layoutCount();
+      voice.say('shapes-count/' + kind);
+      return true;
+    }
+    layoutCount() {
+      const C = this.count; if (!C) return; const t = this.tray, k = C.btns.length;
+      const r = this.countR = clamp(Math.min(t.w / (k * 2.6), t.h * .3), 30, 70), gap = Math.min(r * 2.6, t.w / k);
+      C.btns.forEach((b, i) => { b.x = t.x + t.w / 2 + (i - (k - 1) / 2) * gap; b.y = t.y + t.h * .6; });
+      C.icon = { x: t.x + t.w / 2, y: t.y + t.h * .6 - r * 2.1, s: r * .9 };
+    }
+    pressCount(x, y) {
+      const C = this.count; if (!C || C.done) return; this.idle = 0;
+      const b = C.btns.find(b => Math.hypot(x - b.x, y - b.y) < this.countR * 1.15); if (!b) return;
+      if (b.v === C.n) {
+        C.done = this.t; b.pop = 1; sfx.chime(); voice.say('num/' + C.n); C.btns.forEach(o => { if (o !== b) o.dim = true; });
+        this.fx.burst(b.x, b.y, 14, { colors: ['#ffd54a', '#fff', '#5aa8f0'], speed: 200, g: 200, life: .8, size: 6 * this.ui, shape: 'star', up: 90 });
+        return;
+      }
+      if (b.dim) { b.shake = 1; return; }
+      b.shake = 1; b.dim = true; C.wrong++; sfx.boing(); if (C.wrong >= 2) C.glow = true;
+    }
+    cheer() {
+      this.state = 'cheer'; this.stateT = 0; this.count = null;
       sfx.win(); setTimeout(() => this.running && voice.praise(), 600);
       const cx = this.bx + this.B / 2, cy = this.by + this.B / 2; this.fx.burst(cx, cy, 26, { colors: ['#ff6b6b', '#ffd54a', '#5aa8f0', '#6fcf6f', '#ff8fc0', '#fff'], speed: 330, g: 380, life: 1.3, size: 7 * this.ui, shape: 'star', up: 190 });
       if (this.pic.cheer.move === 'launch') sfx.whoosh();
@@ -278,7 +352,8 @@
       const slot = q => { const e = extent(q.p); return { i: q.i, key: keyOf(q.p), shape: q.p.s, col: q.p.c, x: this.sx(q.p.x), y: this.sy(q.p.y), w: e.w * this.ss, h: e.h * this.ss, open: !q.placed, pre: q.pre }; };
       const item = it => ({ key: keyOf(it.p), shape: it.p.s, col: it.p.c, decoy: it.decoy, state: it.state, x: it.x, y: it.y, hx: it.hx, hy: it.hy, dim: Math.max(extent(it.p).w, extent(it.p).h) * it.sc, sc: it.sc, ss: this.ss });
       return { state: this.state, tier: this.tierNow, pic: this.pic && this.pic.id, w: this.w, h: this.h, board: { x: this.bx, y: this.by, s: this.B }, tray: this.tray, cell: this.cell, prev: this.tierNow === 3 ? this.prev : null,
-        slots: (this.parts || []).map(slot), items: (this.items || []).map(item), open: this.openSlots().length, built: this.bag.built, hint: !!this.hint, ui: this.ui };
+        slots: (this.parts || []).map(slot), items: (this.items || []).map(item), open: this.openSlots().length, built: this.bag.built, hint: !!this.hint, ui: this.ui,
+        count: this.count ? { kind: this.count.kind, n: this.count.n, glow: this.count.glow, r: this.countR, btns: this.count.btns.map(b => ({ v: b.v, x: b.x, y: b.y, dim: b.dim })) } : null };
     }
 
     update(dt) {
@@ -293,6 +368,12 @@
       if (this.hint && this.t > this.hint.until) this.hint = null;
       // nobody has touched anything for a while: a hole pulses and its piece wiggles
       if (this.state === 'build' && !this.drag && this.idle > 9 && !this.hint) { const q = shuffle(this.openSlots())[0]; if (q) { this.hint = { q, until: this.t + 6 }; const it = this.items.find(i => i.state === 'home' && !i.decoy && keyOf(i.p) === keyOf(q.p)); if (it) it.wig = 3; } this.idle = 6; }
+      if (this.state === 'count') {
+        const C = this.count;
+        for (const b of C.btns) { b.shake = Math.max(0, b.shake - dt * 2.4); b.pop = Math.max(0, b.pop - dt * 2); }
+        if (C.done && this.t - C.done > 1.1) this.cheer();
+        else if (!C.done && this.idle > 10) { this.idle = 0; C.glow = true; voice.say('shapes-count/' + C.kind); }
+      }
       if (this.state === 'cheer') {
         const u = clamp(this.stateT / CHEER_T, 0, 1), fxk = this.pic.cheer.fx; this.cheerAcc = (this.cheerAcc || 0) + dt;
         if (fxk) this.cheerFx(fxk, u, dt);
@@ -345,11 +426,14 @@
     // the whole picture, with the holes and the pieces in place; xf is the celebration's movement (design units)
     drawPicture(c, night, xf) {
       const ss = this.ss, tint = this.tierNow < 3, held = this.drag ? keyOf(this.drag.it.p) : null, pulse = .5 + Math.sin(this.t * 7) * .5;
+      // the celebration moves only the thing that was built: scenery parts (bg) stay where they are
+      const move = c2 => { const px = this.sx(xf.px == null ? 50 : xf.px), py = this.sy(xf.py == null ? 50 : xf.py); c2.translate((xf.dx || 0) * ss, (xf.dy || 0) * ss); c2.translate(px, py); c2.rotate(xf.rot || 0); if (xf.sx != null) c2.scale(xf.sx, 1); c2.translate(-px, -py); };
       c.save();
-      if (xf) { const px = this.sx(xf.px == null ? 50 : xf.px), py = this.sy(xf.py == null ? 50 : xf.py); c.translate((xf.dx || 0) * ss, (xf.dy || 0) * ss); c.translate(px, py); c.rotate(xf.rot || 0); c.translate(-px, -py); }
+      if (xf) { const pad = this.B * .05; c.beginPath(); c.rect(this.bx - pad, -this.h, this.B + pad * 2, this.by + this.B + pad + this.h); c.clip(); }   // it drives or sails off the edge of the paper
       for (const q of this.parts) {
         const p = q.p, x = this.sx(p.x), y = this.sy(p.y);
-        c.save(); c.translate(x, y);
+        c.save(); if (xf && !p.bg) move(c); c.translate(x, y);
+        if (xf && p.flag) { const e = extent(p); c.translate(-e.w * ss / 2, 0); c.rotate(Math.sin(this.t * 7) * .12); c.scale(1 + Math.sin(this.t * 9) * .06, 1); c.translate(e.w * ss / 2, 0); }   // a flag flaps on its pole
         if (q.placed && (q.pre || !q.filling || q.filling.state === 'placed')) {
           const age = this.t - q.at, bump = age < .4 ? 1 + Math.sin(age / .4 * Math.PI) * .12 * (1 - age / .4) : 1;
           drawPiece(c, p, ss * bump, {});
@@ -365,29 +449,48 @@
     }
     drawItem(c, it, night) {
       if (it.state === 'placed' || (it.state === 'fly' && it.t >= 1)) return;
+      if (this.state !== 'build' && this.state !== 'switch' && it.decoy) return;   // the look-alikes are put away once the picture is built
       const lift = it.state === 'drag' ? 1 : 0, pop = ease(clamp(it.pop, 0, 1)), wig = it.wig > 0 ? Math.sin(this.t * 16) * .12 : 0;
       c.save(); c.translate(it.x, it.y); if (wig) c.rotate(wig); const k = it.sc * (.5 + .5 * pop) * (lift ? 1.03 : 1);
       if (lift) { c.save(); c.translate(6, 12 + this.drag.lift * .25); c.globalAlpha = .22; drawPiece(c, Object.assign({}, it.p, { c: 'gray' }), k, { shadow: false }); c.restore(); }
       if (this.sel === it && (it.state === 'home' || it.state === 'back')) { const e = extent(it.p), rad = Math.max(e.w, e.h) * k * .62 + 6; c.save(); c.strokeStyle = night ? 'rgba(255,240,170,.95)' : 'rgba(255,255,255,.95)'; c.lineWidth = 4; c.setLineDash([10, 8]); c.lineDashOffset = -this.t * 30; c.beginPath(); c.arc(0, 0, rad, 0, TAU); c.stroke(); c.restore(); }
-      drawPiece(c, it.p, k, {}); c.restore();
+      drawPiece(c, it.p, k, { mark: true }); c.restore();
     }
     draw() {
       const c = this.ctx, w = this.w, h = this.h; if (!w || !this.pic) return;
       const night = this.night(); this.drawBackground(c, night); this.drawBoard(c, night); this.drawTray(c, night);
       // the picture (it moves during the celebration, and slides in when a new one begins)
       let xf = null;
-      if (this.state === 'cheer' || this.state === 'switch') { const u = clamp(this.stateT / CHEER_T, 0, 1), m = (MOVES[this.pic.cheer.move] || MOVES.bob)(this.state === 'switch' ? 1 : u); xf = { dx: m.dx, dy: m.dy, rot: m.rot, px: this.pic.cheer.pivot ? this.pic.cheer.pivot[0] : 50, py: m.py || (this.pic.cheer.pivot ? this.pic.cheer.pivot[1] : 50) }; }
+      if (this.state === 'cheer' || this.state === 'switch') { const u = clamp(this.stateT / CHEER_T, 0, 1), m = (MOVES[this.pic.cheer.move] || MOVES.bob)(this.state === 'switch' ? 1 : u); xf = { dx: m.dx, dy: m.dy, rot: m.rot, sx: m.sx, px: this.pic.cheer.pivot ? this.pic.cheer.pivot[0] : 50, py: m.py || (this.pic.cheer.pivot ? this.pic.cheer.pivot[1] : 50) }; }
       c.save(); c.globalAlpha = this.state === 'switch' ? 0 : clamp(this.intro * 1.5, 0, 1); const ic = this.intro < 1 ? 1 - ease(this.intro) : 0; if (ic) c.translate(0, ic * 14);
       this.drawPicture(c, night, xf); c.restore();
+      if (this.state === 'count') this.drawCount(c, night);
       for (const it of this.items) if (it.state !== 'drag') this.drawItem(c, it, night);
       if (this.drag) this.drawItem(c, this.drag.it, night);
       this.fx.draw(c);
       if (this.tierNow === 3 && this.state === 'build') this.drawPreview(c, night);
     }
+    drawCount(c, night) {
+      const C = this.count, r = this.countR, t = this.t, ss = this.ss, pulse = .5 + Math.sin(t * 5) * .5;
+      // the shapes to count wear a soft glowing outline
+      for (const q of this.parts) if (KIND(q.p.s) === C.kind) { c.save(); c.translate(this.sx(q.p.x), this.sy(q.p.y)); c.rotate((q.p.r || 0) * Math.PI / 180); c.scale(ss, ss); shapePath(c, q.p.s, q.p.w, q.p.h); c.lineWidth = 3.5 / ss; c.strokeStyle = `rgba(255,255,255,${(.55 + pulse * .45).toFixed(2)})`; c.shadowColor = '#ffe066'; c.shadowBlur = 10 + pulse * 8; c.lineJoin = 'round'; c.stroke(); c.restore(); }
+      // which shape: a big white one above the numbers
+      const ic = C.icon, sp = { s: C.kind, w: C.kind === 'rect' ? 30 : C.kind === 'oval' ? 18 : C.kind === 'semicircle' || C.kind === 'trapezoid' ? 26 : 22, h: C.kind === 'rect' ? 16 : C.kind === 'oval' ? 26 : C.kind === 'semicircle' ? 13 : C.kind === 'trapezoid' ? 16 : 22, c: 'white' };
+      c.save(); c.translate(ic.x, ic.y); drawPiece(c, sp, ic.s / Math.max(sp.w, sp.h) * 1.6 * (1 + Math.sin(t * 4) * .04), {}); c.restore();
+      for (const b of C.btns) {
+        const k = 1 + b.pop * .25, x = b.x + Math.sin(b.shake * 20) * b.shake * r * .15, glow = C.glow && b.v === C.n && !C.done;
+        c.save(); c.translate(x, b.y); c.scale(k, k); c.globalAlpha = b.dim ? .45 : 1;
+        if (glow) { c.fillStyle = `rgba(255,236,120,${.45 + Math.sin(t * 7) * .25})`; c.beginPath(); c.arc(0, 0, r * 1.3, 0, TAU); c.fill(); }
+        c.fillStyle = 'rgba(0,0,0,.14)'; c.beginPath(); c.arc(0, r * .08, r, 0, TAU); c.fill();
+        c.fillStyle = night ? '#4b558f' : '#fff'; c.beginPath(); c.arc(0, 0, r, 0, TAU); c.fill(); c.strokeStyle = '#5aa8f0'; c.lineWidth = r * .12; c.beginPath(); c.arc(0, 0, r * .92, 0, TAU); c.stroke();
+        c.fillStyle = night ? '#fff' : '#4a3a66'; c.font = `800 ${r * 1.15}px Fredoka, system-ui`; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(String(b.v), 0, r * .06);
+        c.restore();
+      }
+    }
     // a small picture of the finished build, for the colours (tier 3: the holes are plain)
     drawPreview(c, night) {
       const r = this.prev, k = r.s / 118; c.save(); c.fillStyle = 'rgba(60,40,70,.2)'; art.rr(c, r.x + 2, r.y + 4, r.s, r.s, 12); c.fill(); c.fillStyle = night ? '#3f4a86' : '#f4f9ff'; art.rr(c, r.x, r.y, r.s, r.s, 12); c.fill(); c.strokeStyle = night ? '#7a6fc0' : '#fff'; c.lineWidth = 3; c.stroke();
-      c.translate(r.x + r.s / 2 - 50 * k, r.y + r.s / 2 - 50 * k); for (const p of this.pic.parts) { c.save(); c.translate(p.x * k, p.y * k); drawPiece(c, p, k, { shadow: false }); c.restore(); } c.restore();
+      c.translate(r.x + r.s / 2 - 50 * k, r.y + r.s / 2 - 50 * k); for (const p of this.pic.parts) { c.save(); c.translate(p.x * k, p.y * k); drawPiece(c, p, k, { shadow: false, mark: !p.bg }); c.restore(); } c.restore();
     }
   }
 

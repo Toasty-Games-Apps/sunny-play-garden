@@ -159,6 +159,14 @@
     </div>
   </div>
 
+  <!-- Record videos of signs (Grown-ups > Accessibility) -->
+  <div id="signvid" class="overlay hidden" role="dialog" aria-modal="true" aria-labelledby="signvid-title">
+    <div class="sheet wide" data-scroll>
+      <div class="sheet-head"><h2 id="signvid-title">Sign videos</h2><button id="signvid-close" class="btn go small" type="button"><svg><use href="#i-check"/></svg> Done</button></div>
+      <div id="signvid-body"></div>
+    </div>
+  </div>
+
   <!-- First run: pick the family voices -->
   <div id="vintro" class="overlay hidden" role="dialog" aria-modal="true" aria-label="Set up voices">
     <div class="sheet wide" data-scroll><div id="vintro-body"></div></div>
@@ -173,10 +181,15 @@
   <script src="js/native.js"></script>
   <script src="js/glyphs.js"></script>
   <script src="js/core.js"></script>
+  <script src="js/access.js"></script>
   <script src="js/photos.js"></script>
   <script src="js/level.js"></script>
   <script src="js/sync.js"></script>
   <script src="js/voice.js"></script>
+  <script src="js/sign.js"></script>
+  <script src="js/sign-words.js"></script>
+  <script src="js/signs.js"></script>
+  <script src="js/signvideo.js"></script>
   <script src="js/art.js"></script>
   <script src="js/art-garden.js"></script>
   <script src="js/art-pets.js"></script>
@@ -205,6 +218,7 @@
   <script src="games/pattern.js"></script>
   <script src="games/feelings.js"></script>
   <script src="games/sort.js"></script>
+  <script src="games/signlang.js"></script>
   <script src="games/garden.js"></script>
   <script src="games/color-pictures.js"></script>
   <script src="games/color-seasons.js"></script>

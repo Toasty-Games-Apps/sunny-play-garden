@@ -5,7 +5,7 @@
   const { store, voice, safe, art } = SPG;
   const $ = id => document.getElementById(id);
   const screens = { who: $('who'), setup: $('setup'), hub: $('hub'), stage: $('stage') };
-  const overlays = { brk: $('break'), gate: $('gate'), parent: $('parent'), studio: $('studio'), fs: $('fs-resume'), vintro: $('vintro') };
+  const overlays = { brk: $('break'), gate: $('gate'), parent: $('parent'), studio: $('studio'), signvid: $('signvid'), fs: $('fs-resume'), vintro: $('vintro') };
   let current = 'who';
   let running = null;
 
@@ -151,7 +151,7 @@
   SPG.ui.press($('hub-who'), () => { voice.stop(); renderWho(); });
   SPG.ui.press($('hub-lock'), () => askGate(openParent));
 
-  const tints = { letters: ['#ffe3ec', '#f5b8cb'], fruit: ['#ffe9c7', '#f5c98a'], rain: ['#d8efff', '#a8d3f2'], fire: ['#ffe1d6', '#f5a58f'], band: ['#ffe3f0', '#f2a9c9'], shapes: ['#e3f0ff', '#9cc5f0'], puzzle: ['#e6f7ec', '#98d4ae'], care: ['#fff0d9', '#f2c88c'], hide: ['#e8f6d8', '#a7d78a'], garden: ['#dff5d0', '#a9d98f'], color: ['#efe4ff', '#cdbcf7'], pets: ['#ffe8ef', '#f6b9cc'], style: ['#ffe3f1', '#f7a8cf'], aquarium: ['#d8f2ff', '#7fc8ec'], cook: ['#fff0dc', '#f5c690'], clay: ['#ffe9d4', '#f2b98c'], fishing: ['#d8f2ff', '#8ccbe8'], pattern: ['#eafbe0', '#a6dc7e'], feelings: ['#fff1f6', '#f5b8cb'], sort: ['#fff6e0', '#f5cf8f'] };
+  const tints = { letters: ['#ffe3ec', '#f5b8cb'], fruit: ['#ffe9c7', '#f5c98a'], rain: ['#d8efff', '#a8d3f2'], fire: ['#ffe1d6', '#f5a58f'], band: ['#ffe3f0', '#f2a9c9'], shapes: ['#e3f0ff', '#9cc5f0'], puzzle: ['#e6f7ec', '#98d4ae'], care: ['#fff0d9', '#f2c88c'], hide: ['#e8f6d8', '#a7d78a'], garden: ['#dff5d0', '#a9d98f'], color: ['#efe4ff', '#cdbcf7'], pets: ['#ffe8ef', '#f6b9cc'], style: ['#ffe3f1', '#f7a8cf'], aquarium: ['#d8f2ff', '#7fc8ec'], cook: ['#fff0dc', '#f5c690'], clay: ['#ffe9d4', '#f2b98c'], fishing: ['#d8f2ff', '#8ccbe8'], pattern: ['#eafbe0', '#a6dc7e'], feelings: ['#fff1f6', '#f5b8cb'], sort: ['#fff6e0', '#f5cf8f'], signs: ['#e9f3ff', '#b9d4f5'] };
   function renderCards() {
     const all = SPG.games.slice().sort((a, b) => a.order - b.order);
     const games = orderedGames(all.filter(g => !g.shop)), shops = all.filter(g => g.shop);
@@ -452,6 +452,9 @@
   function openStudio() { SPG.studio.render($('studio-body')); openOverlay(overlays.studio); }
   function closeStudio() { SPG.studio.abort(); voice.stop(); closeOverlay(overlays.studio); renderParent(); }
   $('studio-close').addEventListener('click', closeStudio);
+  function openSignVideos() { SPG.signVideo.render($('signvid-body')); openOverlay(overlays.signvid); }
+  function closeSignVideos() { SPG.signVideo.close(); closeOverlay(overlays.signvid); renderParent(); }
+  $('signvid-close').addEventListener('click', closeSignVideos);
 
   function toggle(label, key) {
     const sw = h('button', { class: 'switch', type: 'button', role: 'switch', 'aria-checked': String(!!store.settings[key]), 'aria-label': label });
@@ -628,6 +631,7 @@
 
     body.replaceChildren(
       h('section', { style: 'border-top:0;padding-top:0' }, h('h3', {}, 'Sound'), toggle('Voice prompts', 'voice'), toggle('Extra audio help', 'audioHelp'), h('p', { class: 'fine' }, 'For children who need more help hearing what things are: the games also say the name of each menu item, ingredient, piece of clothing or shop item as it is touched, give extra hints and say more cheers, and speak a little slower. Off by default, so the games stay quiet and calm (the short list of recorded lines is always said).'), toggle('Sound effects', 'sound'), toggle('Soft background music', 'music'), toggle('Coloring Book music', 'colorMusic')),
+      accessSection(),
       voicesSection(),
       timerSection(),
       pinSection(),
@@ -735,6 +739,61 @@
     return h('section', {}, h('h3', {}, 'Voices'),
       h('p', {}, 'Record your family\u2019s voices for the games (everyone\u2019s recordings can be mixed), choose the built-in voice, switch off lines you don\u2019t want, and choose how often the games cheer.'),
       h('p', { class: 'fine' }, 'Recorded so far: ' + voice.SETS.map(v => `${v.name} ${n(v.id)}`).join(', ') + ` of ${keys.length} lines.`), b);
+  }
+
+  // Accessibility. Hearing: everything the games say is also signed (ASL) by a pair of hands in a corner card (js/signs.js).
+  // Seeing: colour filters for colour vision deficiency, stronger contrast, bigger buttons (js/access.js). All off by default.
+  // colour symbols: on by themselves with a colour filter, and the switch can change that either way
+  function marksRow() {
+    const st = store.settings, sw = h('button', { class: 'switch', type: 'button', role: 'switch', 'aria-checked': String(SPG.vision.marks()), 'aria-label': 'Colour symbols' });
+    sw.addEventListener('click', () => { st.colourMarks = !SPG.vision.marks(); store.saveSettings(); sw.setAttribute('aria-checked', String(st.colourMarks)); });
+    return h('div', {}, h('div', { class: 'setting' }, h('span', {}, 'Colour symbols: a little white heart, sun, leaf, drop… on each colour'), sw),
+      h('p', { class: 'fine', style: 'margin:0' }, 'In Shape Builder and Caterpillars, where things are matched by colour, every colour also has its own symbol (red a heart, orange a lightning bolt, yellow a sun, green a leaf, blue a drop, purple a moon, pink a flower, brown a paw), so colour is never the only difference. On by itself with a colour filter.'));
+  }
+  function accessSection() {
+    const st = store.settings; if (st.signWords == null) st.signWords = true;
+    const sw = h('button', { class: 'switch', type: 'button', role: 'switch', 'aria-checked': String(!!st.signs), 'aria-label': 'Signing hands' });
+    sw.addEventListener('click', () => { st.signs = !st.signs; store.saveSettings(); sw.setAttribute('aria-checked', String(st.signs)); if (st.signs) SPG.signs.sample(); else SPG.signs.stop(); renderParent(); });
+    const seg = (label, key, opts) => {
+      const g = h('div', { class: 'seg', role: 'group', 'aria-label': label });
+      for (const [id, text, col] of opts) {
+        const b = h('button', { type: 'button', class: 'seg-btn', 'aria-pressed': String((st[key] || opts[0][0]) === id) }, col ? h('span', { class: 'sign-swatch', style: `background:${col}` }) : '', text);
+        b.addEventListener('click', () => { st[key] = id; store.saveSettings(); SPG.signs.sample(); renderParent(); });
+        g.append(b);
+      }
+      return h('div', {}, h('p', { class: 'fine', style: 'margin:10px 0 0' }, label), g);
+    };
+    const show = h('button', { class: 'btn small go', type: 'button', style: 'margin-top:10px' }, 'Show me');
+    show.addEventListener('click', () => SPG.signs.sample());
+    const sec = h('section', {}, h('h3', {}, 'Accessibility'),
+      h('p', {}, 'Extra help for children who are deaf or hard of hearing, or who see colours differently or need things bigger. Everything here is off until you turn it on.'),
+      h('h4', {}, 'Hearing: sign language (ASL)'),
+      h('div', { class: 'setting' }, h('span', {}, 'Signing hands, for children who are deaf or hard of hearing'), sw),
+      h('p', { class: 'fine' }, SPG.pron.fill('Everything the games say is also signed in American Sign Language by a pair of hands in a small card in a corner (taps go through it). Instructions are signed as their key words, letters and names are fingerspelled, and numbers, colours, shapes and feelings have their own signs. For signs made at the face or chest, a little smiley face shows where (a pink dot), and its expression shows the feeling or the question. The voice still speaks unless you switch Voice prompts off. The Sign Along game teaches the signs to any child.')));
+    if (st.signs) sec.append(
+      seg('Corner', 'signSide', [['left', 'Bottom left'], ['right', 'Bottom right']]),
+      seg('Size', 'signSize', [['small', 'Small'], ['big', 'Big']]),
+      seg('Hand colour', 'signSkin', [['medium', 'Medium', SPG.sign.SKINS.medium.base], ['light', 'Light', SPG.sign.SKINS.light.base], ['tan', 'Tan', SPG.sign.SKINS.tan.base], ['deep', 'Deep', SPG.sign.SKINS.deep.base]]),
+      toggle('Show the words under the hands', 'signWords'), show);
+    { const n = SPG.signVideo.count(), vb = h('button', { class: 'btn small quiet', type: 'button', style: 'margin-top:10px' }, 'Sign videos: record your own');
+      vb.addEventListener('click', openSignVideos);
+      sec.append(h('h4', {}, 'Your own sign videos'),
+        h('p', { class: 'fine', style: 'margin:6px 0 0' }, `Record yourself (or a Deaf friend or teacher) making any sign, and that video is shown instead of the drawn hands, in the corner card and in Sign Along. ${n ? n + (n === 1 ? ' sign has' : ' signs have') + ' a video.' : 'No videos yet.'}`), vb); }
+    sec.append(h('p', { class: 'fine' }, 'The signs are drawn by the app from standard ASL. Signing differs from place to place: if your child learns with a Deaf signer or an ASL teacher, ask them to look through Sign Along, and tell us about any sign that should change.'));
+    // seeing
+    const vis = h('div', { class: 'seg', role: 'group', 'aria-label': 'Colour vision' });
+    for (const [id, text] of [['', 'Usual colours'], ['deutan', 'Red–green (most common)'], ['protan', 'Red–green, reds look dark'], ['tritan', 'Blue–yellow']]) {
+      const b = h('button', { type: 'button', class: 'seg-btn', 'aria-pressed': String((st.vision || '') === id) }, text);
+      b.addEventListener('click', () => { st.vision = id; store.saveSettings(); SPG.vision.apply(); renderParent(); });
+      vis.append(b);
+    }
+    const tog = (label, key) => { const t = toggle(label, key); t.querySelector('.switch').addEventListener('click', () => SPG.vision.apply()); return t; };
+    sec.append(h('h4', {}, 'Seeing: colours and size'),
+      h('p', { class: 'fine', style: 'margin:6px 0 0' }, 'Colour filter for colour blindness: the colours that are easy to mix up are shifted into colours that can be told apart, in every game and menu. Tidy Time also leaves out sorting by colour while a filter is on.'),
+      vis, marksRow(),
+      tog('Stronger contrast and colours', 'contrast'),
+      tog('Bigger buttons on the menus and around the games', 'bigUI'));
+    return sec;
   }
 
   // Fruit Splash for older kids: naughty water balloons that shake the screen, spray water and take points away.
@@ -905,6 +964,7 @@
     if (!overlays.gate.classList.contains('hidden')) { gateState = null; closeOverlay(overlays.gate); return; }
     if (!overlays.vintro.classList.contains('hidden')) return;
     if (!overlays.studio.classList.contains('hidden')) { closeStudio(); return; }
+    if (!overlays.signvid.classList.contains('hidden')) { closeSignVideos(); return; }
     if (!overlays.parent.classList.contains('hidden')) { closeParent(); return; }
     if (!overlays.fs.classList.contains('hidden') || !overlays.brk.classList.contains('hidden')) return;
     if (current === 'stage') { if (!running?.inst?.back?.()) closeGame(); }

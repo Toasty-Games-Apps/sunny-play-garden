@@ -159,9 +159,9 @@ Say the sound the letter makes: "buh", "kuh", "sss". Not the name.
 | `sound-y.mp3` | yuh |
 | `sound-z.mp3` | zzz |
 
-# Part 2: optional lines (620, nobody has to record these)
+# Part 2: optional lines (638, nobody has to record these)
 
-## Prompts and instructions (179)
+## Prompts and instructions (197)
 
 Short lines that tell {her} what to do.
 
@@ -176,6 +176,15 @@ Short lines that tell {her} what to do.
 | `band-song.mp3` | Play some notes, then touch the red button! |
 | `shapes-done.mp3` | You built it! |
 | `shapes-wrong.mp3` | Try another one! |
+| `shapes-count-circle.mp3` | How many circles? Count them! |
+| `shapes-count-oval.mp3` | How many ovals? Count them! |
+| `shapes-count-square.mp3` | How many squares? Count them! |
+| `shapes-count-rect.mp3` | How many rectangles? Count them! |
+| `shapes-count-triangle.mp3` | How many triangles? Count them! |
+| `shapes-count-trapezoid.mp3` | How many trapezoids? Count them! |
+| `shapes-count-diamond.mp3` | How many diamonds? Count them! |
+| `shapes-count-semicircle.mp3` | How many half circles? Count them! |
+| `shapes-count-star.mp3` | How many stars? Count them! |
 | `puzzle-done.mp3` | You made the picture! |
 | `puzzle-next.mp3` | Tap the green arrow for another puzzle! |
 | `care-food.mp3` | Yum! Thank you! |
@@ -244,6 +253,15 @@ Short lines that tell {her} what to do.
 | `feel-s-jack.mp3` | Pop! What was that? |
 | `feel-s-party.mp3` | Surprise! A party! |
 | `feel-s-yawn.mp3` | I played all day long. Yawn! |
+| `feel-s-bubbles.mp3` | Look! Bubbles, bubbles everywhere! |
+| `feel-s-rainbow.mp3` | Oh! A big rainbow! |
+| `feel-s-spider.mp3` | Eek! A spider came down! |
+| `feel-s-grab.mp3` | Hey! That is my ball! |
+| `feel-why.mp3` | Why did I feel that way? Touch the picture. |
+| `sl-start.mp3` | Let's talk with our hands! |
+| `sl-find.mp3` | Watch the hands. Touch the picture! |
+| `sl-letter.mp3` | Watch the hand. Which letter is it? |
+| `sl-word.mp3` | Watch the hand spell a word. Touch the picture! |
 | `feel-happy.mp3` | Yes! I feel happy! |
 | `feel-sad.mp3` | Yes. I feel sad. |
 | `feel-scared.mp3` | Yes. I feel scared. |

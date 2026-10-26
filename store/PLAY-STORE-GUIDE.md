@@ -13,6 +13,7 @@ first plan and are kept only for reference: with the Capacitor app you skip them
 - `.well-known/assetlinks.json`: the file that lets the Android app hide the browser bar. Currently an empty list; you fill it in during step 4.
 - Kid-safe by design: no ads, no analytics, no accounts, no links out, parental gate on every setting.
 - `SPG.config.recorder` in `js/core.js`: set to `false` to remove all microphone use (simplest Families review). The rest of the app is unchanged.
+- `SPG.config.camera` (set in `js/signvideo.js`, default true): set to `false` to remove the camera from Grown-ups > Accessibility > Sign videos (grown-ups can still choose a video file). If you do, also change `camera=(self)` to `camera=()` in `_headers`. Sign videos stay on the device and are never uploaded.
 - Store graphics and listing text in this folder (`store/`), not published on the website.
 
 ## 0. Before you start

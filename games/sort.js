@@ -352,7 +352,7 @@
 
     /* ---------------------------------------------------------------- rounds */
     newRound() {
-      const tier = this.tier(), modes = MODES[tier];
+      const tier = this.tier(), cb = SPG.vision && SPG.vision.colourBlind(), modes = cb ? MODES[tier].filter(m => m !== 'color') : MODES[tier];   // colour filters on: no sorting by colour
       const mode = modes.includes(api.next) ? api.next : modes[this.bag.mi % modes.length]; api.next = null;   // api.next: tests ask for a kind of sorting
       this.bag.mi++;
       const R = this.round = makeRound(tier, mode);

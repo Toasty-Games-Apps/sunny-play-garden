@@ -19,6 +19,8 @@ const b = await start(); let fails = 0; const ok = (c, m) => { if (!c) { fails++
       if (R.choices.some(m => !MOODS[tier].includes(m))) out.push(`tier ${tier}: a feeling from an older tier`);
       if (R.choices.includes(LOOK[R.mood])) out.push(`${R.mood} offered with its look-alike`);
       if (R.helps.length !== 3) out.push('helps');
+      if (tier < 3 && R.whys) out.push(`tier ${tier}: a why question`);
+      if (tier === 3) { const st = id => SPG.feelingsGame.STORIES.find(s => s.id === id); if (!R.whys || R.whys.length !== 3 || !R.whys.includes(R.story) || new Set(R.whys.map(i => st(i).mood)).size !== 3) out.push('tier 3: why pictures ' + JSON.stringify(R.whys)); }
     }
     return [...new Set(out)];
   });
@@ -44,6 +46,13 @@ for (const age of [2, 4, 7]) {
       if (wrong.length >= 2) ok(q.glow, `age ${age}: the right face glows after two tries`);
     }
     await page.mouse.click(right.x, right.y);
+    if (age === 7) {   // "Why did I feel that way?": the picture of what happened
+      p = await waitFor(p => p.phase === 'why' && p.btns.length === 3 && p.btns.every(b => b.ready)); ok(p, `age ${age}: the why question comes (round ${round})`); if (!p) break;
+      if (round === 0) await page.screenshot({ path: `${SP}/feel-why-${W}x${Hh}.png` });
+      const wr = p.btns.filter(q => q.id !== p.story);
+      if (round === 1) { for (const q of wr) { await page.mouse.click(q.x, q.y); await page.waitForTimeout(250); } const q = await P(); ok(q.phase === 'why' && q.wglow, 'two wrong pictures: still asking and the right one glows'); }
+      const rt = p.btns.find(q => q.id === p.story); ok(rt, 'the right picture is offered'); await page.mouse.click(rt.x, rt.y);
+    }
     p = await waitFor(p => p.phase === 'help' && p.btns.length === 3 && p.btns.every(b => b.ready)); ok(p, `age ${age}: the right face is accepted and help is offered`); if (!p) break;
     const h = p.btns[round % 3], helped = p.helped; await page.mouse.click(h.x, h.y);
     p = await waitFor(p => p.helped === helped + 1); ok(p, `age ${age}: helping with ${h.id} makes the friend feel better`);
@@ -63,7 +72,7 @@ for (const age of [2, 4, 7]) {
   for (const id of ids) {
     await page.evaluate(i => { SPG.feelingsGame.next = i; }, id);
     await openGame(page, 'Feeling Friends');
-    const t0 = Date.now(); let p; while (Date.now() - t0 < 9000) { p = await page.evaluate(() => SPG.feelingsGame.probe()); if (p && p.phase === 'ask') break; await page.waitForTimeout(150); }
+    const t0 = Date.now(); let p; while (Date.now() - t0 < 16000) { p = await page.evaluate(() => SPG.feelingsGame.probe()); if (p && p.phase === 'ask') break; await page.waitForTimeout(150); }
     ok(p && p.story === id && p.phase === 'ask', 'story ' + id);
     await page.waitForTimeout(500); await page.screenshot({ path: `${SP}/feel-story-${id}.png` });
     await page.evaluate(() => SPG.app.closeGame()); await page.waitForTimeout(250);

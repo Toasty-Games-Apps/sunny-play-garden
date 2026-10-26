@@ -46,7 +46,7 @@ const DEVICES = [
 const CAPTION = {
   hub: ['Gentle games for ages 2 to 7', 'Buy once. No ads. No in-app purchases.'],
   trace: ['Trace letters with a friendly bee'], find: ['Find the letter, hear its sound'],
-  kitchen: ['Cook, build and decorate, then eat it up!'], color: ['59 pictures to color, inside the lines'],
+  kitchen: ['Cook, build and decorate, then eat it up!'], color: ['95 pictures to color, inside the lines'],
   feelings: ['Name feelings and help friends feel better'], shop: ['Earn stars by playing, adopt a pet'],
   rain: ['Catch the rain, rescue the pets'], fishing: ['Go fishing with your very own pet'],
   style: ['Dress up, hair salon and nail art'], clay: ['Squish, roll and shape soft clay'],
