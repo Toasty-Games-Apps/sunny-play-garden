@@ -70,7 +70,9 @@ else {
 
 console.log('Cloud backup');
 const wr = read('wrangler.jsonc');
-/Backups/.test(wr) && /new_sqlite_classes/.test(wr) && /run_worker_first/.test(wr) ? pass('wrangler.jsonc declares the backup Worker and Durable Object') : fail('wrangler.jsonc is missing the backup Worker / Durable Object settings');
+/"main"\s*:\s*"worker\/index\.js"/.test(wr) && /Backups/.test(wr) && /new_sqlite_classes/.test(wr)
+  ? pass('wrangler.jsonc declares the backup Worker and Durable Object')
+  : fail('wrangler.jsonc is missing the backup Worker / Durable Object settings');
 /worker\//.test(read('.assetsignore')) ? pass('worker/ is kept out of the public site') : fail('.assetsignore must list worker/');
 /pathname\.startsWith\('\/api\/'\)/.test(sw) ? pass('service worker never caches /api/') : fail('sw.js must skip /api/ requests');
 /backup/i.test(pv) ? pass('privacy policy describes the cloud backup') : fail('privacy.html does not mention the cloud backup');

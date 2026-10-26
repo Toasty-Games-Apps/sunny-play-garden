@@ -210,10 +210,12 @@
   async function openCamera(redraw) {
     ui.msg = '';
     try {
-      ui.stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 640 } }, audio: false });
-      if (!ui) { return; }
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 640 } }, audio: false });
+      if (!ui) { for (const track of stream.getTracks()) track.stop(); return; }
+      ui.stream = stream;
       ui.mode = 'camera';
     } catch (e) {
+      if (!ui) return;
       ui.msg = t('The camera could not be opened. Allow the camera for this app, or use Choose a video instead.'); ui.mode = 'idle';
     }
     redraw();
