@@ -302,7 +302,16 @@
   const perPage = () => (coverTiny() ? 1 : squareOpen() ? 9 : matchMedia('(min-width: 600px) and (min-height: 600px)').matches ? 6 : matchMedia('(orientation: portrait)').matches && !matchMedia('(max-height: 520px)').matches ? 9 : 8);
   function drawCards() {
     const strip = document.querySelector('#hub-games .pages'); if (strip && strip._restore) strip._restore();
-    document.querySelectorAll('#hub-games .card, #hub-shop .shopfront').forEach(c => c._draw && c._draw()); }
+    document.querySelectorAll('#hub-games .card, #hub-shop .shopfront').forEach(c => c._draw && c._draw());
+    document.querySelectorAll('#hub-shop .shop-sign').forEach(fitSign); }
+  // The shop's name sign must leave the OPEN sign by the door showing: a long name (Tienda de mascotas) gets smaller
+  // letters, and only if that is not enough goes on two lines.
+  function fitSign(s) {
+    s.style.fontSize = ''; s.classList.remove('wrap');
+    const max = s.parentNode.clientWidth * .36; if (!max || s.offsetWidth <= max) return;
+    s.style.fontSize = parseFloat(getComputedStyle(s).fontSize) * Math.max(.7, max / s.offsetWidth) + 'px';
+    if (s.offsetWidth > max) s.classList.add('wrap');
+  }
 
   /* ------------------------------------------------------------ games */
   function openGame(g) {

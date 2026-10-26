@@ -1,7 +1,7 @@
 // Checks the translations in js/lang/<id>.js against the English text in the code.
 //   node tools/check-i18n.mjs            -> what each language is missing, what it has that nothing uses, and {placeholders} that do not match
 //   node tools/check-i18n.mjs --dump F   -> writes every English text and spoken line that needs a translation to F (JSON), for a new language
-//   LANG=es node tools/check-i18n.mjs    -> one language only
+//   I18N_LANG=es node tools/check-i18n.mjs    -> one language only
 // Screen text is found in the code (t('...'), SPG.t('...'), the labels given to the games' button helpers, the names of games, fish,
 // garden friends... and the data-i18n text in index.html). Spoken lines are read from the running app (SPG.voice.LINES), so it needs
 // Playwright like the other tools; without it the spoken lines are not checked.
@@ -73,7 +73,7 @@ const KEEP = k => /^(name|pname|player)\//.test(k);
 const ENGLISH_ABC = k => /^(letter|sound|word)\//.test(k) || k === 'is-for';
 
 /* ---------- the languages ---------- */
-const langs = readdirSync(join(ROOT, 'js/lang')).filter(f => f.endsWith('.js')).map(f => f.slice(0, -3)).filter(l => !process.env.LANG || process.env.LANG.length > 3 || l === process.env.LANG);
+const langs = readdirSync(join(ROOT, 'js/lang')).filter(f => f.endsWith('.js')).map(f => f.slice(0, -3)).filter(l => !process.env.I18N_LANG || l === process.env.I18N_LANG);   // not LANG: that is the shell's locale
 const load = id => {
   const DATA = {}, merge = (a, b) => { for (const k in b) a[k] = b[k] && typeof b[k] === 'object' && !Array.isArray(b[k]) && a[k] ? Object.assign(a[k], b[k]) : b[k]; return a; };
   const ctx = { window: {}, SPG: { i18n: { add: (lid, d) => { DATA[lid] = merge(DATA[lid] || {}, d); } } } };

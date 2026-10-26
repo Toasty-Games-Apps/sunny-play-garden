@@ -16,27 +16,27 @@ LEARN
 - Letter Garden: trace letters with a friendly bee, flash cards, find the letter, letter sounds, write your own name, plus counting and first sums.
 - Shape Builder: fit coloured shapes into their holes to build a house, rocket, castle and more, then watch the picture come alive.
 - Caterpillars: what comes next? Each caterpillar sings its colour pattern; pick the next ball and it turns into a butterfly.
-- Feeling Friends: a friend's ice cream falls or thunder booms. Touch the face that shows the feeling, then choose a way to help: a hug, a song or a calm breath.
+- Feeling Friends: a friend's ice cream falls or thunder booms. Touch the face that shows the feeling, then help: a hug, a song or a calm breath.
 - Tidy Time: sort toys, fruit and vegetables into friendly baskets by colour, size, kind or shape.
 - Sign Along: learn sign language (ASL) with a friendly pair of hands: everyday words, animals, food, colours, numbers, the alphabet and your own name.
 - Puzzle Pond: jigsaw puzzles made from your own coloring pictures, growing from 4 pieces to 12.
 
 CREATE
-- Coloring Book: 95 pictures in twelve collections (animal friends, garden, dinosaurs, birthday party, Valentine's Day, Easter and spring, summer fun, Halloween, Thanksgiving and fall, Hanukkah and winter lights, Christmas, Lunar New Year). Tap to fill with 24 colours or patterns, paint with rainbow and glitter brushes that stay inside the lines, add stickers, undo anything, and save your pictures.
-- Clay Corner: squish, roll, stretch, pinch and cut soft play-dough, add googly eyes and take photos of your creations.
-- Sprout Kitchen: 12 recipes from cookies, cupcakes and pancakes to build-your-own burgers, sandwiches and pizza. Measure, stir, roll, cut, bake, decorate, then eat it bite by bite.
-- Style Studio: dress up girls and boys in princess gowns, crowns and wings, do make-up and nails, cut and brush hair in the Hair Salon, then walk the runway.
+- Coloring Book: 95 pictures in twelve collections, from animal friends and dinosaurs to the holidays. Fill with 24 colours or patterns, use rainbow and glitter brushes that stay inside the lines, add stickers.
+- Clay Corner: squish, roll, pinch and cut soft play-dough, add googly eyes and take photos.
+- Sprout Kitchen: 12 recipes, from cookies and pancakes to build-your-own burgers and pizza. Measure, stir, bake, decorate, then eat it bite by bite.
+- Style Studio: dress up girls and boys in gowns, crowns and wings, do make-up and nails, cut hair in the Hair Salon, then walk the runway.
 - Bunny Band: six animal musicians to play, little tunes to copy, and your own song to record.
 
 CARE
-- Pet Shop: earn stars by playing and choose from 21 pets (kittens, puppies, unicorns, dinosaurs and more) and 28 hats, glasses and bows. Stars are only ever earned by playing.
+- Pet Shop: earn stars by playing and choose from 21 pets (kittens, puppies, unicorns, dinosaurs and more) and 28 hats, glasses and bows.
 - Pet Care: feed, bath, brush and tuck in your pet, and decorate its room (castle, space, seaside and more).
 - Fish Tank: feed your fish, watch them grow, collect their coins and meet friendly visitors.
 - Grow a Garden: dig, plant, pat and water, step by step, and meet 14 garden friends.
 
 PLAY
 - Fruit Splash: swipe floating fruit with up to five fingers.
-- Rain Bucket: catch raindrops for rainbows, with gentle storms, shooting stars and pets parachuting into a safety net.
+- Rain Bucket: catch raindrops for rainbows, with gentle storms and pets parachuting into a safety net.
 - Fire Rescue: spray friendly flames with the hose and help the pets down the ladder.
 - Hide and Seek: walk a little world, find hiding friends and bring them all home.
 - Fishing Pond: cast from the dock with your pet, reel in nine kinds of fish and fill your fish book.
@@ -49,7 +49,8 @@ FOR GROWN-UPS
 - Grown-up settings are behind a grown-up check or your own PIN.
 - A daily play-time limit with a gentle "time for a rest" screen.
 - Record your family's voices (parents, grandparents, siblings) and the games mix them, or use the phone's built-in voice.
-- Night mode for calm bedtime play, several players with their own progress, and an optional encrypted backup between your devices.
+- Night mode for calm bedtime play, several players with their own progress, and an optional encrypted backup.
+- Plays in English, Spanish, Hindi and Chinese (Simplified); more languages are coming.
 - Works fully offline.
 
 ## Category

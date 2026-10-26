@@ -724,8 +724,12 @@
     placeBuddy() {
       const b = this.buddy; if (!b) return;
       if (this.view !== 'editor') { b.el.style.left = b.el.style.top = b.el.style.right = b.el.style.bottom = ''; return; }
-      const r = this.paper.getBoundingClientRect(), root = this.root.getBoundingClientRect(), h = b.el.offsetHeight || 100;
-      if (r.top - root.top >= h + 4) b.place(r.left - root.left + 4, r.top - root.top - h - 2);
+      const r = this.paper.getBoundingClientRect(), root = this.root.getBoundingClientRect(), h = b.el.offsetHeight || 100, w = b.el.offsetWidth || 90;
+      // never on the home button or the stars (on a small phone the page starts just under them)
+      const home = document.getElementById('btn-home').getBoundingClientRect(), stars = document.getElementById('stage-stars'), sr = (stars.closest('.hud-stars') || stars).getBoundingClientRect();
+      const x = Math.max(r.left - root.left + 4, home.right - root.left + 8), y = r.top - root.top - h - 2;
+      const clear = sr.width === 0 || x + w <= sr.left - root.left - 6 || y >= sr.bottom - root.top;
+      if (r.top - root.top >= h + 4 && clear) b.place(x, y);
       else b.place(8, root.height - h - 8);
     }
     redraw() { paintAll(this.pctx, this.sheet, this.ops); this.drawStickerLayer(); }

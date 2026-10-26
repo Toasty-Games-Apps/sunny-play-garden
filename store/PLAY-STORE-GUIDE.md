@@ -43,6 +43,11 @@ bubblewrap build
   as Free for the test uploads, check Monetize > Products > App pricing before the first production release. Selling a paid app also
   needs a payments profile (Setup > Payments profile) linked to the developer account, and tax details.
 - Category **Education**. Contact details and the privacy policy URL `https://YOUR-DOMAIN/privacy.html`.
+- **Countries and regions: all of them.** The owner wants the app released everywhere Google Play allows. In Release > Production >
+  **Countries / regions** > Add countries / regions, tick the box that selects every country and region in the list and save (do the
+  same for the closed and internal test tracks if testers live abroad). Nothing in the app is country-specific and it needs no internet.
+  For a paid app, check Monetize > Products > App pricing: Play converts the US price into a local price for each country (you can
+  round them). A country Play greys out for paid apps or for your account simply stays off. (verify)
 
 ## 3. Kids / Families settings (this is a children's app)
 - **Target audience and content**: choose the youngest age groups you designed for (e.g. "5 and under" and "6-8"). Because children are included, the app is subject to Google's **Families Policy**. Answer yes to "appeals to children".
@@ -74,6 +79,23 @@ Every screenshot is the real game with a short caption above it; none has transp
 Regenerate everything with `node tools/make-icons.mjs` (icons) and `node tools/make-store-assets.mjs` (screenshots and feature graphic);
 `ONLY=phone` (or `tablet7`, `tablet10`, `feature`) makes one part, `FRAME_ONLY=1` only re-writes the captions (edit `CAPTION` in the script).
 After changing the logo, also run `node android-app/make-android-icons.mjs` so the phone's launcher icon and splash screen match.
+
+### Translated listings (Spanish, Hindi, Chinese)
+The app plays in English, Spanish (Latin America), Hindi and Chinese (Simplified); more languages will come later. Each language has its
+listing text and graphics in its own folder:
+
+| Play Console language | Text | Graphics |
+| --- | --- | --- |
+| Español (Latinoamérica) – es-419 | `store/es/listing.md` | `store/es/feature-graphic.png`, `store/es/screenshots/phone/1-8` |
+| हिन्दी – hi-IN | `store/hi/listing.md` | `store/hi/feature-graphic.png`, `store/hi/screenshots/phone/1-8` |
+| 中文（简体）– zh-CN | `store/zh/listing.md` | `store/zh/feature-graphic.png`, `store/zh/screenshots/phone/1-8` |
+
+Main store listing > **Manage translations** > Add your own translations: add the three languages, paste the name, short and full
+description, then upload that language's feature graphic and phone screenshots. Tablet screenshots can be left empty: Play then shows the
+English ones. The Spanish text also suits **Español (Estados Unidos) – es-US** and **Español (España) – es-ES** if you want to add them.
+Google Play is not offered in mainland China, so the Chinese listing reaches Simplified Chinese readers elsewhere. Ask a native speaker to
+read each listing (and play the app in that language) before publishing. Remake the graphics with
+`STORE_LANG=es node tools/make-store-assets.mjs` (or `hi`, `zh`); the listing texts are checked against Play's limits by `tools/check-release.mjs`.
 
 ## 6. Testing requirements and release
 - Run an **Internal test** (up to 100 testers) to check everything works.

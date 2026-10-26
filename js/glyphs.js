@@ -123,10 +123,14 @@
     c.restore();
   }
 
+  // An accented letter (Spanish words: yoyó, ñ...) is its plain letter with a mark drawn above it.
+  const MARK = { '\u0301': 'acute', '\u0300': 'grave', '\u0303': 'tilde', '\u0308': 'dots' };
+  const baseOf = ch => { const d = ch.normalize('NFD'); return d.length > 1 && DATA[d[0]] && MARK[d[1]] ? [d[0], MARK[d[1]]] : null; };
+  const glyphOf = ch => get(ch) || (baseOf(ch) ? get(baseOf(ch)[0]) : null);
   // Width in px of a string at the given size.
   function measure(text, size, gap = 10) {
     let w = 0;
-    for (const ch of text) { const g = get(ch); w += (g ? g.w : 30) + gap; }
+    for (const ch of text) { const g = glyphOf(ch); w += (g ? g.w : 30) + gap; }
     return Math.max(0, w - gap) * size / 100;
   }
 
@@ -135,9 +139,19 @@
     const gap = opts.gap ?? 10;
     let cx = x;
     for (const ch of text) {
-      const g = get(ch);
+      const g = glyphOf(ch), acc = get(ch) ? null : baseOf(ch);
       if (!g) { cx += 30 * size / 100; continue; }
-      draw(c, ch, cx, y, size, opts);
+      draw(c, acc ? acc[0] : ch, cx, y, size, opts);
+      if (acc) {
+        const k = size / 100, m = g.w / 2, top = g.lower ? 30 : -6;   // above the mid line (small letters) or the top line (capitals)
+        c.save(); c.translate(cx, y); c.scale(k, k); c.lineCap = 'round'; c.strokeStyle = opts.color || '#5b4a6b'; c.lineWidth = opts.width || 11;
+        c.beginPath();
+        if (acc[1] === 'acute') { c.moveTo(m - 5, top); c.lineTo(m + 7, top - 16); }
+        else if (acc[1] === 'grave') { c.moveTo(m + 5, top); c.lineTo(m - 7, top - 16); }
+        else if (acc[1] === 'tilde') { c.moveTo(m - 14, top - 4); c.bezierCurveTo(m - 7, top - 16, m + 1, top + 6, m + 14, top - 10); }
+        else { c.moveTo(m - 9, top - 6); c.lineTo(m - 9, top - 6.5); c.moveTo(m + 9, top - 6); c.lineTo(m + 9, top - 6.5); c.lineWidth *= 1.25; }
+        c.stroke(); c.restore();
+      }
       cx += (g.w + gap) * size / 100;
     }
   }
