@@ -400,9 +400,9 @@
       c.save(); c.translate(cx, cy); c.scale(rise, rise);
       c.fillStyle = '#fffaf0'; rr(c, -box.w / 2, -box.h / 2, box.w, box.h, 30); c.fill(); c.strokeStyle = '#ffd54a'; c.lineWidth = 8; c.stroke();
       c.save(); c.translate(0, -box.h * .08 + Math.sin(this.t * 3) * 3); c.rotate(Math.sin(this.t * 2) * .04); drawFish(c, F.id, fs, this.t); c.restore();
-      const name = FISH[F.id].name + '!'; let fz = box.h * .13; c.font = `800 ${fz}px Fredoka, system-ui`; const tw = c.measureText(name).width; if (tw > box.w * .8) { fz *= box.w * .8 / tw; c.font = `800 ${fz}px Fredoka, system-ui`; }
+      const name = SPG.t('{name}!', { name: SPG.t(FISH[F.id].name) }); let fz = box.h * .13; c.font = `800 ${fz}px Fredoka, system-ui`; const tw = c.measureText(name).width; if (tw > box.w * .8) { fz *= box.w * .8 / tw; c.font = `800 ${fz}px Fredoka, system-ui`; }
       c.fillStyle = INK; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(name, 0, box.h * .36);
-      if (this.isNew) { const bw = box.w * .22, bh = box.h * .1; c.fillStyle = '#ff8aa3'; rr(c, -box.w / 2 + 12, -box.h / 2 + 12, bw, bh, 12); c.fill(); c.fillStyle = '#fff'; c.font = `800 ${bh * .62}px Fredoka, system-ui`; c.fillText('NEW', -box.w / 2 + 12 + bw / 2, -box.h / 2 + 12 + bh / 2 + 1); }
+      if (this.isNew) { const bw = box.w * .22, bh = box.h * .1; c.fillStyle = '#ff8aa3'; rr(c, -box.w / 2 + 12, -box.h / 2 + 12, bw, bh, 12); c.fill(); c.fillStyle = '#fff'; c.font = `800 ${bh * .62}px Fredoka, system-ui`; c.fillText(SPG.t('NEW'), -box.w / 2 + 12 + bw / 2, -box.h / 2 + 12 + bh / 2 + 1); }
       c.restore();
     }
     drawBook(c) {

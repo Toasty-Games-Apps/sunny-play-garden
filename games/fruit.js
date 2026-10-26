@@ -94,14 +94,14 @@
 
     /* ------------------------------------------------------------ the theme picker */
     buildThemeUI() {
-      const btn = document.createElement('button'); btn.type = 'button'; btn.className = 'fruit-theme-btn'; btn.setAttribute('aria-label', 'Themes');
+      const btn = document.createElement('button'); btn.type = 'button'; btn.className = 'fruit-theme-btn'; btn.setAttribute('aria-label', SPG.t('Themes'));
       const cv = document.createElement('canvas'); cv.width = cv.height = 72; btn.append(cv); this.themeBtn = btn;
       const c = cv.getContext('2d'); c.translate(36, 38);
       c.fillStyle = '#e8c9a0'; c.beginPath(); c.ellipse(0, 0, 26, 21, -.2, 0, TAU); c.fill(); c.fillStyle = '#fff'; c.beginPath(); c.arc(11, 8, 5, 0, TAU); c.fill();
       [['#ff6b81', -15, -5], ['#ffd54a', -4, -13], ['#5cc8f2', 9, -9], ['#7ed957', -15, 8]].forEach(([col, x, y]) => { c.fillStyle = col; c.beginPath(); c.arc(x, y, 5.5, 0, TAU); c.fill(); });
       const panel = document.createElement('div'); panel.className = 'fruit-themes hidden'; this.themePanel = panel;
       this.tiles = THEMES.map(th => {
-        const b = document.createElement('button'); b.type = 'button'; b.className = 'ft-tile'; b.setAttribute('aria-label', th.name);
+        const b = document.createElement('button'); b.type = 'button'; b.className = 'ft-tile'; b.setAttribute('aria-label', SPG.t(th.name));
         const tc = document.createElement('canvas'); tc.width = 200; tc.height = 130; b.append(tc); this.drawThumb(tc, th.id);
         SPG.ui.press(b, () => { this.setTheme(th.id); });
         return [th.id, b];

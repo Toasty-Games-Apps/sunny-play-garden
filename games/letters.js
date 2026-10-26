@@ -9,7 +9,7 @@
 
   const el = (tag, cls, ...kids) => { const e = document.createElement(tag); if (cls) e.className = cls; e.append(...kids.filter(k => k != null)); return e; };
   const icon = id => { const s = document.createElementNS('http://www.w3.org/2000/svg', 'svg'); s.innerHTML = `<use href="#i-${id}"/>`; return s; };
-  const btn = (cls, label, ...kids) => { const b = el('button', cls, ...kids); b.type = 'button'; b.setAttribute('aria-label', label); return b; };
+  const btn = (cls, label, ...kids) => { const b = el('button', cls, ...kids); b.type = 'button'; b.setAttribute('aria-label', SPG.t(label)); return b; };
   const withCase = (ch, cs) => cs === 'upper' ? ch.toUpperCase() : ch.toLowerCase();
   const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
 
@@ -563,8 +563,9 @@
       ];
       const grid = el('div', 'lg-modes');
       modes.forEach(([label, aria, draw, go], i) => {
+        if (label === 'My name' && !name) return;   // a name in another script (Hindi, Chinese) has no A to Z letters to trace
         const canvas = el('canvas', 'lg-mode-art');
-        const b = btn(`lg-mode m${i}`, aria, canvas, el('span', 'lg-mode-label', label));
+        const b = btn(`lg-mode m${i}`, aria, canvas, el('span', 'lg-mode-label', SPG.t(label)));
         SPG.ui.press(b, () => { sfx.pop(); go(); });
         grid.append(b); paint(canvas, draw);
       });
@@ -772,7 +773,7 @@
       this.reset('lg-find');
       const area = el('div', 'lg-options');
       const say = btn('lg-btn lg-say big', 'Hear the sound', icon('speaker'));
-      const NO = 'xi'; // "box" ends in x, "ice cream" starts with a long vowel: skip them here
+      const NO = SPG.i18n.list('noSound', 'xi'); // "box" ends in x, "ice cream" starts with a long vowel: skip them here (each language says which of its own to skip)
       const same = (a, b) => a === b || ('ckq'.includes(a) && 'ckq'.includes(b));
       const shuffle = a => a.sort(() => Math.random() - .5);
       let target = null, wrong = 0, locked = false;

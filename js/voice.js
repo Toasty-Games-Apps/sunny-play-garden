@@ -6,12 +6,13 @@
 // made less frequent. "Sound-only" keys (critter noises) play only when recorded.
 (() => {
   const SPG = window.SPG;
-  const A = SPG.audio, store = SPG.store;
+  const A = SPG.audio, store = SPG.store, I = SPG.i18n, t = SPG.t;
 
   const PHONICS = { a: 'ah', b: 'buh', c: 'kuh', d: 'duh', e: 'eh', f: 'fuh', g: 'guh', h: 'huh', i: 'ih', j: 'juh', k: 'kuh', l: 'luh', m: 'muh', n: 'nuh', o: 'aw', p: 'puh', q: 'kwuh', r: 'ruh', s: 'sss', t: 'tuh', u: 'uh', v: 'vuh', w: 'wuh', x: 'ks', y: 'yuh', z: 'zzz' };
   const NAMES = { a: 'Ay', b: 'Bee', c: 'Cee', d: 'Dee', e: 'Ee', f: 'Eff', g: 'Gee', h: 'Aitch', i: 'Eye', j: 'Jay', k: 'Kay', l: 'El', m: 'Em', n: 'En', o: 'Oh', p: 'Pee', q: 'Cue', r: 'Ar', s: 'Ess', t: 'Tee', u: 'You', v: 'Vee', w: 'Double you', x: 'Ex', y: 'Why', z: 'Zee' };
   // One picture word per letter (emoji renders on every Android tablet).
-  const WORDS = { a: ['apple', '🍎'], b: ['bear', '🐻'], c: ['cat', '🐱'], d: ['dog', '🐶'], e: ['elephant', '🐘'], f: ['fish', '🐟'], g: ['giraffe', '🦒'], h: ['horse', '🐴'], i: ['ice cream', '🍦'], j: ['juice', '🧃'], k: ['koala', '🐨'], l: ['lion', '🦁'], m: ['moon', '🌙'], n: ['nose', '👃'], o: ['octopus', '🐙'], p: ['pig', '🐷'], q: ['queen', '👸'], r: ['rainbow', '🌈'], s: ['sun', '☀️'], t: ['turtle', '🐢'], u: ['umbrella', '☂️'], v: ['violin', '🎻'], w: ['whale', '🐳'], x: ['box', '📦'], y: ['yarn', '🧶'], z: ['zebra', '🦓'] };
+  const EN_WORDS = { a: ['apple', '🍎'], b: ['bear', '🐻'], c: ['cat', '🐱'], d: ['dog', '🐶'], e: ['elephant', '🐘'], f: ['fish', '🐟'], g: ['giraffe', '🦒'], h: ['horse', '🐴'], i: ['ice cream', '🍦'], j: ['juice', '🧃'], k: ['koala', '🐨'], l: ['lion', '🦁'], m: ['moon', '🌙'], n: ['nose', '👃'], o: ['octopus', '🐙'], p: ['pig', '🐷'], q: ['queen', '👸'], r: ['rainbow', '🌈'], s: ['sun', '☀️'], t: ['turtle', '🐢'], u: ['umbrella', '☂️'], v: ['violin', '🎻'], w: ['whale', '🐳'], x: ['box', '📦'], y: ['yarn', '🧶'], z: ['zebra', '🦓'] };
+  const WORDS = I.list('words', EN_WORDS);   // Spanish has its own ("B de ballena"); Hindi and Chinese learn the English ABC with these
 
   const PRAISE = new Set(['great-job', 'wow', 'you-did-it', 'amazing', 'yay']);
   const CRITTERS = ['bee', 'butterfly', 'ladybug', 'bunny', 'bird', 'snail', 'hedgehog', 'frog', 'duckling', 'mouse', 'turtle', 'dragonfly', 'cat', 'dog'];
@@ -129,17 +130,19 @@
   };
   for (const [k, v] of Object.entries(STYLE_NAMES)) LINES['style/' + k] = v;
   // The names in the name pickers (players and pets) are real lines too, so they can be recorded in the grown-ups' voice.
-  const PICK_NAMES = {
+  const EN_PICK = {
     nicks: ['Sunny', 'Bunny', 'Sprout', 'Star', 'Peanut', 'Buttercup', 'Pumpkin', 'Ladybug', 'Honey', 'Dot', 'Bee', 'Twinkle'],
     pets: ['Biscuit', 'Pip', 'Mochi', 'Nugget', 'Clover', 'Peaches', 'Maple', 'Button', 'Pebble', 'Sprout', 'Waffles', 'Poppy', 'Cocoa', 'Daisy', 'Muffin', 'Twinkle', 'Rex', 'Spike', 'Stompy', 'Dino', 'Waddles', 'Nibbles', 'Whiskers', 'Snowball', 'Ginger', 'Bubbles', 'Oreo', 'Pepper', 'Fluffy', 'Sparkle', 'Bean', 'Noodle']
   };
-  for (const n of new Set([...PICK_NAMES.nicks, ...PICK_NAMES.pets])) LINES['name/' + n] = n;
+  // in another language the pickers offer that language's names (the English ones stay lines too, for pets named before)
+  const PICK_NAMES = { nicks: I.list('nicks', EN_PICK.nicks), pets: I.list('pets', EN_PICK.pets) };
+  for (const n of new Set([...EN_PICK.nicks, ...EN_PICK.pets, ...PICK_NAMES.nicks, ...PICK_NAMES.pets])) LINES['name/' + n] = n;
   const NUMW = ['Zero', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen', 'Twenty'];
   NUMW.forEach((w, n) => { LINES['num/' + n] = w + '!'; });
   Object.assign(LINES, { 'hello': 'Hello!', 'welcome-home': 'Welcome home,' });
   for (const [l, t] of Object.entries(NAMES)) LINES['letter/' + l] = t;
   for (const [l, t] of Object.entries(PHONICS)) LINES['sound/' + l] = t;
-  for (const [l, [w]] of Object.entries(WORDS)) LINES['word/' + l] = w;
+  for (const [l, [w]] of Object.entries(EN_WORDS)) LINES['word/' + l] = w;
   for (const k of CRITTERS) LINES['creature/' + k] = CRITTER_LINE[k];
   // Sound-only keys: no speech fallback. They play only if someone has recorded them.
   const SOUNDS = {};
@@ -175,10 +178,12 @@
   // A lone "Ay" is read like the word "eye" by phone voices; a capital letter on its own is read as the letter.
   const SAY_AS = { 'letter/a': 'A.', 'sound/x': 'kss' };
   const custom = {}; // dynamic lines, e.g. player names: key -> fallback text
+  // what the built-in voice says for a line: the SAY_AS fixes are for the English lines (never a reworded or translated one)
+  const spokenFor = key => (SAY_AS[key] && I.lineLang(key) === 'en' && !reworded(key) ? SAY_AS[key] : textFor(key));
 
   // Two built-in voice slots plus any extra voices the grown-ups add and name (grandparents, cousins, the child herself...).
   // Extra voices live in settings.voices = [{ id, name }]; their clips are stored like the others under "<id>/<line>".
-  const BASE_SETS = [{ id: 'male', name: 'Male voice' }, { id: 'female', name: 'Female voice' }];
+  const BASE_SETS = [{ id: 'male', name: t('Male voice') }, { id: 'female', name: t('Female voice') }];
   const SETS = [...BASE_SETS];
   function syncSets() {
     const extra = (store.settings.voices || []).filter(v => v && v.id && v.name);
@@ -188,31 +193,36 @@
   }
 
   const GROUPS = [
-    { id: 'praise', title: 'Cheering', note: 'Said after something is done well. Turn down how often in the "Praise" setting.', test: k => PRAISE.has(k) },
-    { id: 'prompts', title: 'Prompts and instructions', note: 'Short lines that tell {her} what to do.', test: k => k in LINES && !PRAISE.has(k) && !/^(letter|sound|word|creature|style|name|cook|cookr|cookc|clay|fish|num)\//.test(k) },
-    { id: 'numbers', title: 'Numbers', note: 'Said when counting and adding: "One!", "Two!"... Say just the number. One to ten are on the short list; zero and eleven to twenty are optional.', test: k => k.startsWith('num/') },
-    { id: 'names', title: 'Names in the name pickers', note: 'Said when a name button is touched (player nicknames and pet names) and in "Welcome home, ...".', test: k => k.startsWith('name/') },
-    { id: 'style', title: 'Style Studio names', note: 'Only said when "Extra audio help" is on in Grown-ups. Said when a friend, a hairstyle or a piece of clothing is touched in the dress-up game, like "A ball gown!" or "Fairy wings!".', test: k => k.startsWith('style/') },
-    { id: 'kitchen', title: 'Sprout Kitchen names', note: 'Only said when "Extra audio help" is on in Grown-ups. Said when an ingredient, a cutter shape, a recipe or a food group is touched in the cooking game: "Flour!", "Pink icing!", "A cheeseburger!".', test: k => /^(cook|cookr|cookc)\//.test(k) },
-    { id: 'clay', title: 'Clay Corner names', note: 'Only said when "Extra audio help" is on in Grown-ups. Said when a clay tool, a cookie cutter, a stamp or an eye or bead is touched: "Squish!", "A heart!", "A googly eye!".', test: k => k.startsWith('clay/') },
-    { id: 'fish', title: 'Fishing Pond fish names', note: 'Said by the built-in voice when a fish is caught in the fishing game, like "A bass!" or "A goldfish!". Optional.', test: k => k.startsWith('fish/') },
-    { id: 'letters', title: 'Letter names (A to Z)', note: 'Say the name of the letter: "Bee", "Cee".', test: k => k.startsWith('letter/') },
-    { id: 'sounds', title: 'Letter sounds (A to Z)', note: 'Say the sound the letter makes: "buh", "kuh", "sss". Not the name.', test: k => k.startsWith('sound/') },
-    { id: 'words', title: 'Picture words', note: 'The word for each letter picture: apple, bear, cat...', test: k => k.startsWith('word/') },
-    { id: 'friends', title: 'Garden friend announcements', note: 'Said when a new garden friend appears.', test: k => k.startsWith('creature/') },
-    { id: 'critters', title: 'Critter noises (make the sound!)', note: 'Played when a garden friend is tapped. Just make the noise, like a bee buzz or a frog ribbit.', test: k => k.startsWith('critter/') },
-    { id: 'purrs', title: 'Purring and happy sounds', note: 'Played while a pet is stroked in the close-up view in Pet Care (it loops while the pet is petted). If nothing is recorded the game makes a soft purr of its own. A few seconds of a real purr works best.', test: k => k.startsWith('purr/') },
-    { id: 'players', title: 'Player names', note: 'Say each player\'s greeting, like "Hi Charlotte!".', test: k => k.startsWith('player/') || k.startsWith('pname/') }
+    { id: 'praise', title: t('Cheering'), note: t('Said after something is done well. Turn down how often in the "Praise" setting.'), test: k => PRAISE.has(k) },
+    { id: 'prompts', title: t('Prompts and instructions'), note: t('Short lines that tell {her} what to do.'), test: k => k in LINES && !PRAISE.has(k) && !/^(letter|sound|word|creature|style|name|cook|cookr|cookc|clay|fish|num)\//.test(k) },
+    { id: 'numbers', title: t('Numbers'), note: t('Said when counting and adding: "One!", "Two!"... Say just the number. One to ten are on the short list; zero and eleven to twenty are optional.'), test: k => k.startsWith('num/') },
+    { id: 'names', title: t('Names in the name pickers'), note: t('Said when a name button is touched (player nicknames and pet names) and in "Welcome home, ...".'), test: k => k.startsWith('name/') },
+    { id: 'style', title: t('Style Studio names'), note: t('Only said when "Extra audio help" is on in Grown-ups. Said when a friend, a hairstyle or a piece of clothing is touched in the dress-up game, like "A ball gown!" or "Fairy wings!".'), test: k => k.startsWith('style/') },
+    { id: 'kitchen', title: t('Sprout Kitchen names'), note: t('Only said when "Extra audio help" is on in Grown-ups. Said when an ingredient, a cutter shape, a recipe or a food group is touched in the cooking game: "Flour!", "Pink icing!", "A cheeseburger!".'), test: k => /^(cook|cookr|cookc)\//.test(k) },
+    { id: 'clay', title: t('Clay Corner names'), note: t('Only said when "Extra audio help" is on in Grown-ups. Said when a clay tool, a cookie cutter, a stamp or an eye or bead is touched: "Squish!", "A heart!", "A googly eye!".'), test: k => k.startsWith('clay/') },
+    { id: 'fish', title: t('Fishing Pond fish names'), note: t('Said by the built-in voice when a fish is caught in the fishing game, like "A bass!" or "A goldfish!". Optional.'), test: k => k.startsWith('fish/') },
+    { id: 'letters', title: t('Letter names (A to Z)'), note: t('Say the name of the letter: "Bee", "Cee".'), test: k => k.startsWith('letter/') },
+    { id: 'sounds', title: t('Letter sounds (A to Z)'), note: t('Say the sound the letter makes: "buh", "kuh", "sss". Not the name.'), test: k => k.startsWith('sound/') },
+    { id: 'words', title: t('Picture words'), note: t('The word for each letter picture: apple, bear, cat...'), test: k => k.startsWith('word/') },
+    { id: 'friends', title: t('Garden friend announcements'), note: t('Said when a new garden friend appears.'), test: k => k.startsWith('creature/') },
+    { id: 'critters', title: t('Critter noises (make the sound!)'), note: t('Played when a garden friend is tapped. Just make the noise, like a bee buzz or a frog ribbit.'), test: k => k.startsWith('critter/') },
+    { id: 'purrs', title: t('Purring and happy sounds'), note: t('Played while a pet is stroked in the close-up view in Pet Care (it loops while the pet is petted). If nothing is recorded the game makes a soft purr of its own. A few seconds of a real purr works best.'), test: k => k.startsWith('purr/') },
+    { id: 'players', title: t('Player names'), note: t('Say each player\'s greeting, like "Hi Charlotte!".'), test: k => k.startsWith('player/') || k.startsWith('pname/') }
   ];
 
   const base = key => key.replace(/\//g, '-');
-  const fileFor = (set, key) => `audio/voice/${set}/${base(key)}.mp3`;
+  const fileFor = (set, key) => `audio/voice/${set}/${base(ck(key))}.mp3`;
   // the short list to record (core + each player's greeting), and the optional rest
   const allKeys = () => [...CORE, ...Object.keys(custom).filter(k => /^(pname|player)\//.test(k))];
   const moreKeys = () => [...Object.keys(LINES).filter(k => !CORE_SET.has(k)), ...Object.keys(SOUNDS), ...Object.keys(custom).filter(k => !/^(pname|player)\//.test(k))];
+  // Languages (js/i18n.js): a line the chosen language has is said in it, and its recordings and rewording are kept apart from the
+  // English ones under "<language>~<line>" (ck); a line it does not have (the English ABC in Hindi and Chinese) is the English line.
+  const own = key => typeof key === 'string' && I.lang() !== 'en' && (I.line(key) != null || key.startsWith('player/'));
+  const ck = key => (own(key) ? I.lang() + '~' + key : key);
   // The grown-ups can reword any line (settings.lineText); the reworded text is what the built-in voice says and what shows in the recorder.
-  const textFor = key => (store.settings.lineText && store.settings.lineText[key]) || LINES[key] || SOUNDS[key] || custom[key] || key;
-  const originalText = key => LINES[key] ?? SOUNDS[key] ?? custom[key] ?? key;
+  const reworded = key => (store.settings.lineText && store.settings.lineText[ck(key)]) || '';
+  const textFor = key => reworded(key) || I.line(key) || LINES[key] || SOUNDS[key] || custom[key] || key;
+  const originalText = key => I.line(key) ?? LINES[key] ?? SOUNDS[key] ?? custom[key] ?? key;
 
   /* ------------------------------------------------------------ stored clips */
   const deviceKeys = { male: new Set(), female: new Set() };   // more sets appear as extra voices are added (see syncSets)
@@ -279,14 +289,19 @@
   }
 
   /* ------------------------------------------------------------ playback */
-  let token = 0, current = null, voiceObj, voiceMode = '';
+  let token = 0, current = null;
   // The built-in speaking voice (used for any line nobody has recorded). Phones and tablets list many voices; the plain
   // "compact" ones sound robotic, while network / enhanced / neural ones sound much more like a person. Online we prefer those;
   // offline only voices stored on the device can be used. A grown-up can also pick one by ear (Grown-ups > Voices).
-  const voiceScore = (v, online) => {
+  // Each language has its own voices (LANGS[].speech in js/i18n.js: the best regions first); the English lines in Hindi prefer an Indian English voice.
+  const tagOf = v => String(v.lang || '').replace(/_/g, '-').toLowerCase();
+  const prefsFor = L => (L === 'en' && I.lang() === 'hi' ? ['en-IN', 'en-GB', ...I.of('en').speech] : I.of(L).speech).map(x => x.toLowerCase());
+  const fits = (v, L) => prefsFor(L).some(p => tagOf(v) === p || tagOf(v).startsWith(p.split('-')[0] + '-') || tagOf(v) === p.split('-')[0]) && !(L === 'zh' && /^(yue|zh-hk)/.test(tagOf(v)));
+  const voiceScore = (v, online, L = 'en') => {
     const n = `${v.name} ${v.voiceURI || ''}`;
     let s = 0;
-    if (/^en[-_]US/i.test(v.lang)) s += 10; else if (/^en[-_](GB|AU|CA|IE|NZ|ZA|IN)/i.test(v.lang)) s += 5; else if (/^en/i.test(v.lang)) s += 2; else return -99;
+    if (!fits(v, L)) return -99;
+    { const pr = prefsFor(L), i = pr.indexOf(tagOf(v)); s += i < 0 ? 2 : Math.max(3, 10 - i * 2.5); }
     if (/neural|natural|enhanced|premium|wavenet|studio/i.test(n)) s += 9;
     if (/network|online/i.test(n)) s += online ? 8 : -99;
     if (v.localService === false && !online) s -= 99;
@@ -298,41 +313,48 @@
   // be relied on for the browser's speech. On the website the browser's speech is used.
   const nativeTTS = () => (SPG.native && SPG.native.isApp && window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.TextToSpeech) || null;
   let nativeVoices = [];
-  (async () => { const T = nativeTTS(); if (!T) return; try { const r = await T.getSupportedVoices(); nativeVoices = (r.voices || []).map((v, i) => Object.assign({}, v, { idx: i })); voiceObj = undefined; } catch (_) { /* the default voice is used */ } })();
-  const englishVoices = () => (nativeTTS() ? nativeVoices : ('speechSynthesis' in window ? speechSynthesis.getVoices() : [])).filter(v => /^en/i.test(v.lang));
-  function pickVoice() {
-    const online = navigator.onLine !== false, mode = (store.settings.ttsVoice || '') + (online ? '|on' : '|off');
-    if (voiceObj !== undefined && voiceMode === mode) return voiceObj;
-    const list = englishVoices(); if (!list.length) return null;
-    voiceMode = mode;
-    const chosen = store.settings.ttsVoice && list.find(v => (v.voiceURI || v.name) === store.settings.ttsVoice);
-    voiceObj = chosen || list.map(v => [voiceScore(v, online), v]).filter(x => x[0] > -50).sort((p, q) => q[0] - p[0]).map(x => x[1])[0] || list[0] || null;
-    return voiceObj;
+  (async () => { const T = nativeTTS(); if (!T) return; try { const r = await T.getSupportedVoices(); nativeVoices = (r.voices || []).map((v, i) => Object.assign({}, v, { idx: i })); forget(); } catch (_) { /* the default voice is used */ } })();
+  const allVoices = () => (nativeTTS() ? nativeVoices : ('speechSynthesis' in window ? speechSynthesis.getVoices() : []));
+  const voicesFor = L => allVoices().filter(v => fits(v, L));
+  // the voice a grown-up chose for a language (English keeps its old setting)
+  const chosenId = (L = I.lang()) => (L === 'en' ? store.settings.ttsVoice : (store.settings.ttsVoiceBy || {})[L]) || '';
+  const picked = {};   // language -> [mode, voice]
+  function pickVoice(L = 'en') {
+    const online = navigator.onLine !== false, mode = chosenId(L) + (online ? '|on' : '|off') + '|' + I.lang();
+    if (picked[L] && picked[L][0] === mode) return picked[L][1];
+    const list = voicesFor(L); if (!list.length) return null;
+    const chosen = chosenId(L) && list.find(v => (v.voiceURI || v.name) === chosenId(L));
+    const v = chosen || list.map(x => [voiceScore(x, online, L), x]).filter(x => x[0] > -50).sort((p, q) => q[0] - p[0]).map(x => x[1])[0] || list[0] || null;
+    picked[L] = [mode, v]; return v;
   }
-  if ('speechSynthesis' in window) speechSynthesis.addEventListener?.('voiceschanged', () => { voiceObj = undefined; });
-  addEventListener('online', () => { voiceObj = undefined; }); addEventListener('offline', () => { voiceObj = undefined; });
+  // Can the device say this language? While the list of voices is still loading (or unknown) we try; a device with voices but none
+  // for the language says the English line instead, so she never hears nothing (Grown-ups > Language says how to add the voice).
+  const canSpeak = L => L === 'en' || !allVoices().length || voicesFor(L).length > 0;
+  const forget = () => { for (const k of Object.keys(picked)) delete picked[k]; };
+  if ('speechSynthesis' in window) speechSynthesis.addEventListener?.('voiceschanged', forget);
+  addEventListener('online', forget); addEventListener('offline', forget);
 
   // while a line is spoken the music steps back, and at night the speaking voice is quieter too (like every other sound)
   const duck = on => { try { SPG.music && SPG.music.duck && SPG.music.duck(on); } catch (_) { /* no audio yet */ } };
   const speechVol = () => (SPG.night && SPG.night.on() ? .7 : 1);
-  function speak(text) {
+  function speak(text, L = 'en') {
     if (text) duck(true);
-    return speak1(text).then(() => duck(false));
+    return speak1(text, L).then(() => duck(false));
   }
-  function speak1(text) {
+  function speak1(text, L) {
     const T = nativeTTS();
     if (T && text) return new Promise(resolve => {
       let done = false; const fin = () => { if (!done) { done = true; resolve(); } };
-      const v = pickVoice();
-      T.speak({ text, lang: (v && v.lang) || 'en-US', rate: settings().audioHelp ? .8 : .92, pitch: 1.0, volume: speechVol(), voice: v && v.idx != null ? v.idx : undefined, queueStrategy: 0 }).then(fin, fin);
+      const v = pickVoice(L);
+      T.speak({ text, lang: (v && v.lang) || I.of(L).bcp, rate: settings().audioHelp ? .8 : .92, pitch: 1.0, volume: speechVol(), voice: v && v.idx != null ? v.idx : undefined, queueStrategy: 0 }).then(fin, fin);
       setTimeout(fin, 1500 + text.length * 140);
       current = { stop: () => { try { T.stop(); } catch (_) { /* ignore */ } fin(); } };
     });
     return new Promise(resolve => {
       if (!('speechSynthesis' in window) || !text) return resolve();
       const u = new SpeechSynthesisUtterance(text);
-      u.rate = settings().audioHelp ? .78 : .9; u.pitch = 1.05; u.lang = 'en-US'; u.volume = speechVol();   // a lightly raised pitch only: a lot of it makes voices sound robotic
-      const v = pickVoice(); if (v) u.voice = v;
+      u.rate = settings().audioHelp ? .78 : .9; u.pitch = 1.05; u.volume = speechVol();   // a lightly raised pitch only: a lot of it makes voices sound robotic
+      const v = pickVoice(L); u.lang = (v && v.lang) || I.of(L).bcp; if (v) u.voice = v;
       let done = false;
       const fin = () => { if (!done) { done = true; resolve(); } };
       u.onend = fin; u.onerror = fin;
@@ -377,14 +399,16 @@
   // checked: the line has already passed the checks below (say() decides once, for the voice and the sign-language hands alike)
   async function playOne(item, live = () => true, checked = false) {
     if (!settings().voice || !item || SPG.voice.hushed) return;
-    if (typeof item !== 'string') return item.say ? speak(item.say) : undefined;
+    if (typeof item !== 'string') return item.say ? speak(item.say, canSpeak(I.lang()) ? I.lang() : 'en') : undefined;
     if (!checked && !willSay(item)) return;
     await ready; if (!live()) return;
-    const set = A.ctx ? chooseSet(item) : null;
-    if (set) { const buf = await loadBuffer(set, item); if (!live()) return; if (buf) return playBuffer(buf); }
+    const k = ck(item), set = A.ctx ? chooseSet(k) : null;
+    if (set) { const buf = await loadBuffer(set, k); if (!live()) return; if (buf) return playBuffer(buf); }
     if (item in SOUNDS) return; // sound-only: silent unless recorded
-    const text = SAY_AS[item] && !(store.settings.lineText && store.settings.lineText[item]) ? SAY_AS[item] : textFor(item) === item ? (LINES[item] ?? custom[item]) : textFor(item);
-    if (text) return speak(text);
+    const L = I.lineLang(item);
+    if (L !== 'en' && !canSpeak(L)) return speak(item.startsWith('player/') ? `Hi ${custom['pname/' + item.slice(7)] || ''}!` : LINES[item] ?? custom[item], 'en');
+    const text = spokenFor(item);
+    if (text && text !== item) return speak(text, L);
   }
 
   /* ------------------------------------------------------------ recording (grown-ups) */
@@ -400,7 +424,7 @@
   }
 
   async function saveClip(set, key, blob) {
-    A.unlock();
+    A.unlock(); key = ck(key);
     const buf = await decode(await blob.arrayBuffer()); // throws if the browser cannot read it
     if (!db) throw new Error('This browser cannot store recordings.');
     const ok = await idb('readwrite', st => st.put(blob, set + '/' + key));
@@ -410,13 +434,14 @@
     return buf;
   }
   async function deleteClip(set, key) {
+    key = ck(key);
     await idb('readwrite', st => st.delete(set + '/' + key));
     deviceKeys[set] && deviceKeys[set].delete(key); buffers.delete(set + '/' + key);
     delete stamps[set + '/' + key]; keepStamps();
     try { SPG.sync && SPG.sync.voiceClipGone && SPG.sync.voiceClipGone(set, key); } catch (_) { /* ignore */ }
   }
   async function previewClip(set, key) {
-    A.unlock(); await ready;
+    A.unlock(); await ready; key = ck(key);
     const buf = await loadBuffer(set, key);
     if (!buf) return false;
     current?.stop(); await playBuffer(buf); return true;
@@ -429,27 +454,35 @@
     // the built-in speaking voice, for the grown-ups' picker
     // The same voices sorted for a grown-up: women's and men's voices apart, the most natural first, robotic ones left out.
     ttsChoices() {
-      const online = navigator.onLine !== false, seen = new Set(), out = { female: [], male: [], other: [] };
-      const accent = l => (/^en[-_]GB/i.test(l) ? 'British' : /^en[-_]AU/i.test(l) ? 'Australian' : /^en[-_]IN/i.test(l) ? 'Indian' : /^en[-_]CA/i.test(l) ? 'Canadian' : /^en[-_]IE/i.test(l) ? 'Irish' : /^en[-_]ZA/i.test(l) ? 'South African' : /^en[-_]NZ/i.test(l) ? 'New Zealand' : 'American');
+      const L = I.lang(), online = navigator.onLine !== false, seen = new Set(), out = { female: [], male: [], other: [] };
+      // English voices by accent; other languages by country, named in that language (Intl.DisplayNames)
+      const region = l => { const r = String(l || '').split(/[-_]/)[1]; try { return r ? new Intl.DisplayNames([I.info().bcp], { type: 'region' }).of(r.toUpperCase()) : ''; } catch (_) { return r || ''; } };
+      const accent = l => (L !== 'en' ? region(l) || I.info().native : /^en[-_]GB/i.test(l) ? t('British') : /^en[-_]AU/i.test(l) ? t('Australian') : /^en[-_]IN/i.test(l) ? t('Indian') : /^en[-_]CA/i.test(l) ? t('Canadian') : /^en[-_]IE/i.test(l) ? t('Irish') : /^en[-_]ZA/i.test(l) ? t('South African') : /^en[-_]NZ/i.test(l) ? t('New Zealand') : t('American'));
       const F = /female|woman|x-(iob|iog|sfg|tpc|tpf)\b|samantha|aria|jenny|ava\b|allison|nicky|karen|zira|susan|victoria|kate|serena|moira|tessa|fiona|emma|sonia|libby|natasha|michelle|joanna|salli|kendra|kimberly|ivy|amy|olivia|nova|shimmer|heather|catherine|hazel|jane|clara|leah|molly|ana\b/i;
       const M = /\bmale\b|\bman\b|x-(iol|iom|tpd)\b|aaron|daniel|alex\b|fred|tom\b|guy\b|davis|ryan|brian|matthew|joey|justin|kevin|arthur|james|george|oliver|thomas|mark\b|eric|christopher|roger|steffan|david|rishi|lee\b|gordon|nathan|liam|william|echo|onyx|fable/i;
-      const rows = englishVoices().map(v => ({ v, sc: voiceScore(v, online), n: `${v.name} ${v.voiceURI || ''}` })).filter(x => x.sc > -50 && !/compact|espeak|robot|novelty|bad news|whisper|bubbles|boing|zarvox|trinoids|albert|fred|junior/i.test(x.n)).sort((a, b) => b.sc - a.sc);
+      const rows = voicesFor(L).map(v => ({ v, sc: voiceScore(v, online, L), n: `${v.name} ${v.voiceURI || ''}` })).filter(x => x.sc > -50 && !/compact|espeak|robot|novelty|bad news|whisper|bubbles|boing|zarvox|trinoids|albert|fred|junior/i.test(x.n)).sort((a, b) => b.sc - a.sc);
       for (const x of rows) {
         const id = x.v.voiceURI || x.v.name, key = `${x.v.name}|${x.v.lang}`; if (seen.has(key)) continue; seen.add(key);
         const g = /female|woman/i.test(x.n) ? 'female' : F.test(x.n) && !/\bmale\b/i.test(x.n.replace(/female/ig, '')) ? 'female' : M.test(x.n) ? 'male' : 'other';
         const natural = /neural|natural|enhanced|premium|wavenet|studio|network|online/i.test(x.n) || x.v.localService === false;
         const code = /x-[a-z]{2,4}-?/i.test(x.v.name) || /^[a-z]{2}[-_][a-z]{2}\b/i.test(x.v.name);
         const bucket = out[g]; if (bucket.length >= 6) continue;
-        const nameTxt = code ? `Voice ${bucket.length + 1}` : x.v.name.replace(/^(Microsoft|Google)\s+/i, '').replace(/\s+Online.*$/i, '').replace(/\s*\(.*?\)\s*/g, ' ').replace(/\s+-\s+.*$/, '').trim();
-        bucket.push({ id, label: `${nameTxt} · ${accent(x.v.lang)}`, tag: natural ? (x.v.localService === false ? 'Most natural · needs internet' : 'Most natural') : 'Good', natural });
+        const nameTxt = code ? t('Voice {n}', { n: bucket.length + 1 }) : x.v.name.replace(/^(Microsoft|Google)\s+/i, '').replace(/\s+Online.*$/i, '').replace(/\s*\(.*?\)\s*/g, ' ').replace(/\s+-\s+.*$/, '').trim();
+        bucket.push({ id, label: `${nameTxt} · ${accent(x.v.lang)}`, tag: natural ? (x.v.localService === false ? t('Most natural · needs internet') : t('Most natural')) : t('Good'), natural });
       }
       return out;
     },
-    ttsVoices() { return englishVoices().map(v => ({ id: v.voiceURI || v.name, label: `${v.name} (${v.lang})${v.localService === false ? ' · needs internet' : ''}` })); },
-    ttsChosen() { return store.settings.ttsVoice || ''; },
-    setTtsVoice(id) { store.settings.ttsVoice = id || ''; voiceObj = undefined; store.save(); },
-    ttsCurrentName() { const v = pickVoice(); return v ? v.name : ''; },
-    hearTts() { return speak('Hello! Let’s play and learn together.'); },
+    ttsVoices() { return voicesFor(I.lang()).map(v => ({ id: v.voiceURI || v.name, label: `${v.name} (${v.lang})${v.localService === false ? ' · ' + t('needs internet') : ''}` })); },
+    ttsChosen() { return chosenId(); },
+    setTtsVoice(id) {
+      if (I.lang() === 'en') store.settings.ttsVoice = id || ''; else (store.settings.ttsVoiceBy || (store.settings.ttsVoiceBy = {}))[I.lang()] = id || '';
+      forget(); store.save();
+    },
+    ttsCurrentName() { const v = pickVoice(I.lang()); return v ? v.name : ''; },
+    // false when this device has voices, but none for the chosen language (the games then say the English lines)
+    canSpeak: () => canSpeak(I.lang()),
+    voicesReady: () => allVoices().length > 0,
+    hearTts() { return speak(t('Hello! Let’s play and learn together.'), canSpeak(I.lang()) ? I.lang() : 'en'); },
     addVoice(name) {
       const list = store.settings.voices || (store.settings.voices = []);
       const id = 'v' + Date.now().toString(36) + Math.floor(Math.random() * 1296).toString(36);
@@ -511,14 +544,17 @@
       return changedAny;
     },
     originalText, isExtra,
-    spokenFor: key => (SAY_AS[key] && !(store.settings.lineText && store.settings.lineText[key]) ? SAY_AS[key] : textFor(key)),
+    spokenFor,
     setText(key, text) {
-      const t = String(text || '').trim().slice(0, 120), map = store.settings.lineText || (store.settings.lineText = {});
-      if (!t || t === originalText(key)) delete map[key]; else map[key] = t;
+      const v = String(text || '').trim().slice(0, 120), map = store.settings.lineText || (store.settings.lineText = {});
+      if (!v || v === originalText(key)) delete map[ck(key)]; else map[ck(key)] = v;
       store.save();
     },
-    isReworded: key => !!(store.settings.lineText && store.settings.lineText[key]),
-    fileFor, allKeys, moreKeys, isCore, textFor, hasClip, hasDeviceClip,
+    isReworded: key => !!reworded(key),
+    // the language a line is said in now ('en' for the English ABC in Hindi and Chinese)
+    langOf: key => I.lineLang(key),
+    fileFor, allKeys, moreKeys, isCore, textFor,
+    hasClip: (set, key) => hasClip(set, ck(key)), hasDeviceClip: (set, key) => hasDeviceClip(set, ck(key)),
     groupOf: key => GROUPS.find(g => g.test(key)),
     // Say a line, or a list of lines one after another. Items are keys, {say: 'free text'}, or null.
     async say(...items) {

@@ -7,7 +7,7 @@
   const el = (tag, cls, ...kids) => { const e = document.createElement(tag); if (cls) e.className = cls; e.append(...kids.filter(k => k != null)); return e; };
   const NS = 'http://www.w3.org/2000/svg';
   const icon = id => { const s = document.createElementNS(NS, 'svg'); s.setAttribute('class', 'ico'); s.innerHTML = `<use href="#i-${id}"/>`; return s; };
-  const btn = (cls, label, ...kids) => { const b = el('button', cls, ...kids); b.type = 'button'; b.setAttribute('aria-label', label); return b; };
+  const btn = (cls, label, ...kids) => { const b = el('button', cls, ...kids); b.type = 'button'; b.setAttribute('aria-label', SPG.t(label)); return b; };
   // Act on a finished tap that began on this very button (so the tap that opened a sheet can never press its buttons).
   const tap = (b, fn, guard) => {
     let t = -1e9;
@@ -58,10 +58,10 @@
       const a = P.active(), keep = this.shelf.scrollTop;
       this.nameEl.textContent = a ? a.name : '';
       this.nameRow.classList.toggle('hidden', !a);
-      this.hint.textContent = a ? '' : 'Pick a friend from the shelves to take home!';
+      this.hint.textContent = a ? '' : SPG.t('Pick a friend from the shelves to take home!');
       // the sign row: what you can look at in the shop
       this.signs.replaceChildren();
-      for (const [id, label] of [['pets', 'Pets'], ['head', 'Hats'], ['face', 'Glasses'], ['neck', 'Bows and collars']]) {
+      for (const [id, label] of [['pets', SPG.t('Pets')], ['head', SPG.t('Hats')], ['face', SPG.t('Glasses')], ['neck', SPG.t('Bows and collars')]]) {
         const cv = el('canvas'), b = btn('ps-sign' + (this.tab === id ? ' on' : ''), label, cv, el('span', '', label)); b._sign = id; b._cv = cv;
         tap(b, () => { this.tab = id; sfx.tap(); this.shelf.scrollTop = 0; this.render(); });
         this.signs.append(b);
@@ -91,9 +91,9 @@
     pegboard(slot) {
       const wrap = el('div', 'ps-peg'), a = P.active(), list = P.HATS.filter(h => h.slot === slot);
       const cur = a ? (slot === 'head' ? a.hat : a[slot]) : null;
-      const none = btn('ps-card ps-hook ps-none' + (a && !cur ? ' active' : ''), 'Nothing, take it off', el('canvas'), icon('x'), el('span', 'ps-label', 'None'));
+      const none = btn('ps-card ps-hook ps-none' + (a && !cur ? ' active' : ''), 'Nothing, take it off', el('canvas'), icon('x'), el('span', 'ps-label', SPG.t('None')));
       none._cv = none.firstChild; none._type = 'none';
-      tap(none, () => { if (!a) { this.nope(none, 'Take a friend home first, then pick something to wear!', 'shop-first'); return; } P.unwear(slot); sfx.tap(); this.hop = .6; this.render(); });
+      tap(none, () => { if (!a) { this.nope(none, SPG.t('Take a friend home first, then pick something to wear!'), 'shop-first'); return; } P.unwear(slot); sfx.tap(); this.hop = .6; this.render(); });
       wrap.append(none);
       const mine = list.filter(h => P.ownsHat(h.id)), rest = list.filter(h => !P.ownsHat(h.id));
       const add = item => {
@@ -196,7 +196,7 @@
     }
 
     /* -------------------------------------------------------------- shopping */
-    say(text) { this.hint.textContent = text; clearTimeout(this.hintT); this.hintT = setTimeout(() => { if (this.hint.textContent === text) this.hint.textContent = P.active() ? '' : 'Pick a friend from the shelf to take home!'; }, 3500); }
+    say(text) { this.hint.textContent = text; clearTimeout(this.hintT); this.hintT = setTimeout(() => { if (this.hint.textContent === text) this.hint.textContent = P.active() ? '' : SPG.t('Pick a friend from the shelves to take home!'); }, 3500); }
     nope(b, text, line) {   // she cannot read the hint, so the reason is also said out loud (not again within a few seconds)
       sfx.oops(); b.classList.remove('nope'); void b.offsetWidth; b.classList.add('nope'); if (text) this.say(text);
       const now = performance.now(); if (line && (line !== this.noped || now - this.nopeT > 5000)) { this.noped = line; this.nopeT = now; voice.say(line); }
@@ -205,15 +205,15 @@
       const a = P.active();
       if (type === 'pet') {
         if (P.owns(item.id)) { P.setActive(item.id); sfx.pop(); this.hop = 1; this.render(); return; }
-        if (!P.canAfford(item.price)) return this.nope(b, `${item.name} costs ${item.price} stars. Keep playing to collect more!`, 'shop-stars');
+        if (!P.canAfford(item.price)) return this.nope(b, SPG.t('{name} costs {n} stars. Keep playing to collect more!', { name: item.name, n: item.price }), 'shop-stars');
         this.confirm(item, 'pet');
       } else {
-        if (!a) return this.nope(b, 'Take a friend home first, then pick something to wear!', 'shop-first');
+        if (!a) return this.nope(b, SPG.t('Take a friend home first, then pick something to wear!'), 'shop-first');
         if (P.ownsHat(item.id)) {
           const other = P.wornBy(item.id);
-          if (other) return this.nope(b, `The ${item.name.toLowerCase()} is on ${P.nameOf(other)} right now.`, 'shop-worn');
+          if (other) return this.nope(b, SPG.t('{pet} is wearing this right now: {item}.', { item: item.name, pet: P.nameOf(other) }), 'shop-worn');
           const cur = item.slot === 'head' ? a.hat : a[item.slot]; if (cur === item.id) P.unwear(item.slot); else P.wear(item.id); sfx.pop(); this.hop = 1; this.render(); return; }
-        if (!P.canAfford(item.price)) return this.nope(b, `${item.name} costs ${item.price} stars. Keep playing to collect more!`, 'shop-stars');
+        if (!P.canAfford(item.price)) return this.nope(b, SPG.t('{name} costs {n} stars. Keep playing to collect more!', { name: item.name, n: item.price }), 'shop-stars');
         this.confirm(item, 'hat');
       }
     }
@@ -239,12 +239,12 @@
         if (type === 'pet') { if (P.adopt(item.id)) { sfx.win(); this.askName(item.id, true); } }
         else if (P.buyHat(item.id)) { P.wear(item.id); sfx.chime(); this.celebrate(); this.render(); }
       }, guard);
-      this.openSheet(this.preview(item, type), el('h2', '', type === 'pet' ? `Take ${item.name} home?` : `Get the ${item.name.toLowerCase()}?`), el('div', 'ps-cost', price(item.price)), el('div', 'row', no, yes));
+      this.openSheet(this.preview(item, type), el('h2', '', type === 'pet' ? SPG.t('Take {name} home?', { name: item.name }) : SPG.t('Get the {name}?', { name: item.name.toLowerCase() })), el('div', 'ps-cost', price(item.price)), el('div', 'row', no, yes));
     }
     // Names are picked from a list (touching one says it out loud). Typing needs the keyboard, so it sits behind the grown-up gate.
     askName(id, first) {
       const cur = first ? '' : P.nameOf(id), input = el('input');
-      input.type = 'text'; input.maxLength = 12; input.autocomplete = 'off'; input.setAttribute('autocapitalize', 'words'); input.spellcheck = false; input.placeholder = 'Name'; input.value = '';
+      input.type = 'text'; input.maxLength = 12; input.autocomplete = 'off'; input.setAttribute('autocapitalize', 'words'); input.spellcheck = false; input.placeholder = SPG.t('Name'); input.value = '';
       const field = el('label', 'field hidden', input);
       const grid = SPG.ui.nameGrid(P.NAMES, () => { input.value = ''; });
       if (cur && P.NAMES.includes(cur)) grid.pick(cur, false);
@@ -258,7 +258,7 @@
         P.rename(id, name); this.closeSheet(); this.render();
         if (first) { this.celebrate(); voice.say('welcome-home', voice.LINES['name/' + name] ? 'name/' + name : { say: name }); }
       }, guard);
-      this.openSheet(this.preview({ id }, 'pet'), el('h2', '', first ? 'What is your friend called?' : 'New name'), grid, el('div', 'row ps-tools', dice, kb), field, el('div', 'row ps-ok-row', ...(first ? [ok] : [cancel, ok])));
+      this.openSheet(this.preview({ id }, 'pet'), el('h2', '', first ? SPG.t('What is your friend called?') : SPG.t('New name')), grid, el('div', 'row ps-tools', dice, kb), field, el('div', 'row ps-ok-row', ...(first ? [ok] : [cancel, ok])));
       input.addEventListener('keydown', e => { if (e.key === 'Enter') ok.click(); });
     }
     celebrate() {
@@ -301,7 +301,7 @@
     c.fillStyle = '#ffd54a'; c.beginPath(); c.arc(dx + dw * .78, h - (h - dy) * .42, dw * .06, 0, TAU); c.fill();
     // a little OPEN sign and some paw prints on the mat
     c.save(); c.translate(dx - h * .5, dy + h * .1); c.rotate(-.06);
-    c.fillStyle = '#fff'; art.rr(c, 0, 0, h * .62, h * .26, 8); c.fill(); c.fillStyle = '#59b96e'; c.font = `700 ${h * .16}px Fredoka, system-ui`; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText('OPEN', h * .31, h * .14); c.restore();
+    c.fillStyle = '#fff'; art.rr(c, 0, 0, h * .62, h * .26, 8); c.fill(); c.fillStyle = '#59b96e'; { const tx = SPG.t('OPEN'); c.font = `700 ${h * .16}px Fredoka, system-ui`; const fw = c.measureText(tx).width; if (fw > h * .56) c.font = `700 ${h * .16 * h * .56 / fw}px Fredoka, system-ui`; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(tx, h * .31, h * .14); } c.restore();
     // hanging pets in the middle: a star price tag
     c.save(); c.translate(w * .5, h * .78); c.fillStyle = 'rgba(255,255,255,.0)'; c.restore();
   }

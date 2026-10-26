@@ -82,12 +82,13 @@
     e.append(...kids.flat().filter(k => k != null));
     return e;
   };
-  const GLABEL = { every: 'Everyday', animals: 'Animals', food: 'Food', things: 'Things', colors: 'Colours', numbers: 'Numbers', feelings: 'Feelings', shapes: 'Shapes', letters: 'Letters' };
+  const t = SPG.t;   // the text in the chosen language (js/i18n.js)
+  const GLABEL = { every: t('Everyday'), animals: t('Animals'), food: t('Food'), things: t('Things'), colors: t('Colours'), numbers: t('Numbers'), feelings: t('Feelings'), shapes: t('Shapes'), letters: t('Letters') };
   function groups() {
     const out = (SPG.signGroups || []).map(g => ({ id: g.id, label: GLABEL[g.id] || g.id, words: g.words }));
     const games = [...new Set(Object.values(SPG.signs.GLOSS).join(' ').split(' ').filter(id => id && SPG.sign.SIGNS[id]))].sort();
-    out.push({ id: 'games', label: 'Said in the games', words: games });
-    out.push({ id: 'all', label: 'Every sign', words: Object.keys(SPG.sign.SIGNS).sort((a, b) => a.localeCompare(b, 'en', { numeric: true })) });
+    out.push({ id: 'games', label: t('Said in the games'), words: games });
+    out.push({ id: 'all', label: t('Every sign'), words: Object.keys(SPG.sign.SIGNS).sort((a, b) => a.localeCompare(b, 'en', { numeric: true })) });
     return out;
   }
   const nameOf = id => (SPG.signNameOf ? SPG.signNameOf(id) : id);
@@ -132,13 +133,13 @@
     const redraw = () => render(body);
     const G = groups(), g = G.find(x => x.id === ui.grp) || G[0];
     body.textContent = '';
-    const useSw = h('button', { class: 'switch', type: 'button', role: 'switch', 'aria-checked': String(use()), 'aria-label': 'Use the sign videos' });
+    const useSw = h('button', { class: 'switch', type: 'button', role: 'switch', 'aria-checked': String(use()), 'aria-label': t('Use the sign videos') });
     useSw.addEventListener('click', () => { store.settings.signVideoOff = use(); store.saveSettings(); useSw.setAttribute('aria-checked', String(use())); });
     body.append(
-      h('p', { class: 'lead' }, 'Record yourself making a sign, and your video is shown instead of the drawn hands wherever that sign is used: in the signing corner card and in Sign Along. Choose a word, look at the drawn hands, then tap Record (or choose a video you already have).'),
-      h('div', { class: 'setting' }, h('span', {}, 'Use the sign videos'), useSw),
-      h('p', { class: 'fine' }, `${clips.size} sign${clips.size === 1 ? '' : 's'} with a video. Videos have no sound, stay on this device and are not part of the cloud backup. Your child sees you the way they would if you sat facing them.`));
-    const tabs = h('div', { class: 'seg sv-tabs', role: 'group', 'aria-label': 'Groups of signs' });
+      h('p', { class: 'lead' }, t('Record yourself making a sign, and your video is shown instead of the drawn hands wherever that sign is used: in the signing corner card and in Sign Along. Choose a word, look at the drawn hands, then tap Record (or choose a video you already have).')),
+      h('div', { class: 'setting' }, h('span', {}, t('Use the sign videos')), useSw),
+      h('p', { class: 'fine' }, (clips.size === 1 ? t('1 sign with a video.') : t('{n} signs with a video.', { n: clips.size })) + ' ' + t('Videos have no sound, stay on this device and are not part of the cloud backup. Your child sees you the way they would if you sat facing them.')));
+    const tabs = h('div', { class: 'seg sv-tabs', role: 'group', 'aria-label': t('Groups of signs') });
     for (const x of G) {
       const n = x.words.filter(w => clips.has(w)).length;
       const b = h('button', { type: 'button', class: 'seg-btn', 'aria-pressed': String(x === g) }, x.label + (n ? ` (${n})` : ''));
@@ -159,7 +160,7 @@
 
   function panel(redraw) {
     const id = ui.sel, c = clips.get(id);
-    const handsBox = h('figure', { class: 'sv-box' }, h('canvas', { class: 'sv-hands', 'aria-label': 'The drawn hands' }), h('figcaption', {}, 'Drawn hands'));
+    const handsBox = h('figure', { class: 'sv-box' }, h('canvas', { class: 'sv-hands', 'aria-label': t('The drawn hands') }), h('figcaption', {}, t('Drawn hands')));
     let right, buttons = h('div', { class: 'sv-btns' });
     const btn = (label, cls, fn, dis) => { const b = h('button', { class: 'btn small ' + cls, type: 'button', disabled: !!dis }, label); b.addEventListener('click', fn); buttons.append(b); return b; };
     if (ui.mode === 'camera' || ui.mode === 'count' || ui.mode === 'rec') {
@@ -167,34 +168,34 @@
       live.muted = true; if (ui.stream) { live.srcObject = ui.stream; live.play().catch(() => {}); }
       const big = h('div', { class: 'sv-count' }, ui.mode === 'count' ? String(ui.count) : '');
       const bar = h('div', { class: 'sv-bar' }, h('i', {}));
-      right = h('figure', { class: 'sv-box live' + (ui.mode === 'rec' ? ' rec' : '') }, live, big, bar, h('figcaption', {}, ui.mode === 'rec' ? 'Recording…' : 'Camera (like a mirror)'));
+      right = h('figure', { class: 'sv-box live' + (ui.mode === 'rec' ? ' rec' : '') }, live, big, bar, h('figcaption', {}, ui.mode === 'rec' ? t('Recording…') : t('Camera (like a mirror)')));
       ui.view = { big, bar: bar.firstChild };
-      if (ui.mode === 'camera') btn('● Start', 'vrec', () => countdown(redraw));
-      if (ui.mode === 'rec') btn('■ Stop', 'vrec rec-on', () => finish());
-      btn('Cancel', 'quiet', () => { stopCamera(); ui.mode = 'idle'; redraw(); });
+      if (ui.mode === 'camera') btn(t('● Start'), 'vrec', () => countdown(redraw));
+      if (ui.mode === 'rec') btn(t('■ Stop'), 'vrec rec-on', () => finish());
+      btn(t('Cancel'), 'quiet', () => { stopCamera(); ui.mode = 'idle'; redraw(); });
     } else if (ui.mode === 'review') {
       const v = h('video', { class: 'sv-video', muted: true, playsinline: true, autoplay: true, loop: true, src: ui.take.url }); v.muted = true;
-      right = h('figure', { class: 'sv-box' }, v, h('figcaption', {}, 'Your new video'));
-      btn('✓ Keep it', 'go', async () => {
-        try { await save(id, ui.take.blob, ui.take.dur); ui.msg = 'Saved. This sign now shows your video.'; } catch (e) { ui.msg = 'Sorry, the video could not be saved on this device.'; }
+      right = h('figure', { class: 'sv-box' }, v, h('figcaption', {}, t('Your new video')));
+      btn(t('✓ Keep it'), 'go', async () => {
+        try { await save(id, ui.take.blob, ui.take.dur); ui.msg = t('Saved. This sign now shows your video.'); } catch (e) { ui.msg = t('Sorry, the video could not be saved on this device.'); }
         dropTake(); ui.mode = 'idle'; redraw();
       });
-      if (ui.take.cam) btn('Try again', 'quiet', () => { dropTake(); openCamera(redraw); });
-      btn('Cancel', 'quiet', () => { dropTake(); ui.mode = 'idle'; redraw(); });
+      if (ui.take.cam) btn(t('Try again'), 'quiet', () => { dropTake(); openCamera(redraw); });
+      btn(t('Cancel'), 'quiet', () => { dropTake(); ui.mode = 'idle'; redraw(); });
     } else {
       if (c) {
         const v = h('video', { class: 'sv-video', muted: true, playsinline: true, autoplay: true, loop: true, src: c.url }); v.muted = true;
-        right = h('figure', { class: 'sv-box' }, v, h('figcaption', {}, 'Your video'));
-      } else right = h('figure', { class: 'sv-box empty' }, h('div', { class: 'sv-none' }, 'No video yet'), h('figcaption', {}, 'Your video'));
-      if (canCamera()) btn(c ? '● Record again' : '● Record', 'vrec', () => openCamera(redraw));
-      const file = h('input', { type: 'file', accept: 'video/*', class: 'sv-file', 'aria-label': 'Choose a video' });
+        right = h('figure', { class: 'sv-box' }, v, h('figcaption', {}, t('Your video')));
+      } else right = h('figure', { class: 'sv-box empty' }, h('div', { class: 'sv-none' }, t('No video yet')), h('figcaption', {}, t('Your video')));
+      if (canCamera()) btn(c ? t('● Record again') : t('● Record'), 'vrec', () => openCamera(redraw));
+      const file = h('input', { type: 'file', accept: 'video/*', class: 'sv-file', 'aria-label': t('Choose a video') });
       file.addEventListener('change', () => { const f = file.files && file.files[0]; if (f) chooseFile(f, redraw); });
-      const pick = btn('Choose a video', 'quiet', () => file.click()); pick.after(file);
+      const pick = btn(t('Choose a video'), 'quiet', () => file.click()); pick.after(file);
       if (c) {
-        if (!ui.ask) btn('Delete video', 'quiet', () => { ui.ask = true; redraw(); });
+        if (!ui.ask) btn(t('Delete video'), 'quiet', () => { ui.ask = true; redraw(); });
         else {
-          btn('Yes, delete', 'danger', async () => { ui.ask = false; try { await remove(id); ui.msg = 'Deleted. The drawn hands sign it again.'; } catch (e) { ui.msg = 'Sorry, that did not work.'; } redraw(); });
-          btn('Keep it', 'quiet', () => { ui.ask = false; redraw(); });
+          btn(t('Yes, delete'), 'danger', async () => { ui.ask = false; try { await remove(id); ui.msg = t('Deleted. The drawn hands sign it again.'); } catch (e) { ui.msg = t('Sorry, that did not work.'); } redraw(); });
+          btn(t('Keep it'), 'quiet', () => { ui.ask = false; redraw(); });
         }
       }
     }
@@ -203,7 +204,7 @@
       h('div', { class: 'sv-pair' }, handsBox, right),
       ui.msg ? h('p', { class: 'fine sv-msg', role: 'status' }, ui.msg) : null,
       buttons,
-      ui.mode === 'idle' ? h('p', { class: 'fine' }, `Sign it once, slowly and clearly, with your hands in front of your chest. A recording stops by itself after ${MAX_REC} seconds; a chosen video plays its first ${MAX_PLAY} seconds.`) : null);
+      ui.mode === 'idle' ? h('p', { class: 'fine' }, t('Sign it once, slowly and clearly, with your hands in front of your chest. A recording stops by itself after {rec} seconds; a chosen video plays its first {play} seconds.', { rec: MAX_REC, play: MAX_PLAY })) : null);
   }
 
   async function openCamera(redraw) {
@@ -213,7 +214,7 @@
       if (!ui) { return; }
       ui.mode = 'camera';
     } catch (e) {
-      ui.msg = 'The camera could not be opened. Allow the camera for this app, or use Choose a video instead.'; ui.mode = 'idle';
+      ui.msg = t('The camera could not be opened. Allow the camera for this app, or use Choose a video instead.'); ui.mode = 'idle';
     }
     redraw();
   }
@@ -251,7 +252,7 @@
       stopCamera();
       if (!ui) return;
       const blob = new Blob(chunks, { type: rec.mimeType || type || 'video/webm' });
-      if (!blob.size || dur < .5) { ui.mode = 'idle'; ui.msg = 'That was too short. Try again.'; redraw(); return; }
+      if (!blob.size || dur < .5) { ui.mode = 'idle'; ui.msg = t('That was too short. Try again.'); redraw(); return; }
       ui.take = { blob, dur: Math.min(MAX_REC, dur), url: URL.createObjectURL(blob), cam: true }; ui.mode = 'review'; redraw();
     };
     rec.start(250);
@@ -264,14 +265,14 @@
   }
   function finish() { if (ui && ui.rec && ui.rec.state === 'recording') { clearInterval(ui.tick); ui.tick = 0; ui.rec.stop(); } }
   function chooseFile(f, redraw) {
-    if (!/^video\//.test(f.type || 'video/')) { ui.msg = 'That is not a video.'; redraw(); return; }
-    if (f.size > 40e6) { ui.msg = 'That video is too big. Choose a short clip (a few seconds).'; redraw(); return; }
+    if (!/^video\//.test(f.type || 'video/')) { ui.msg = t('That is not a video.'); redraw(); return; }
+    if (f.size > 40e6) { ui.msg = t('That video is too big. Choose a short clip (a few seconds).'); redraw(); return; }
     const url = URL.createObjectURL(f), v = document.createElement('video'); v.muted = true; v.preload = 'metadata';
     let done = false;
     const go = dur => {
       if (done || !ui) return; done = true;
-      if (!dur) { URL.revokeObjectURL(url); ui.msg = 'That video cannot be played here. Try another one.'; redraw(); return; }
-      ui.take = { blob: f, dur: Math.min(MAX_PLAY, isFinite(dur) ? dur : 4), url, cam: false }; ui.mode = 'review'; ui.msg = dur > MAX_PLAY && isFinite(dur) ? `Only the first ${MAX_PLAY} seconds will be shown.` : ''; redraw();
+      if (!dur) { URL.revokeObjectURL(url); ui.msg = t('That video cannot be played here. Try another one.'); redraw(); return; }
+      ui.take = { blob: f, dur: Math.min(MAX_PLAY, isFinite(dur) ? dur : 4), url, cam: false }; ui.mode = 'review'; ui.msg = dur > MAX_PLAY && isFinite(dur) ? t('Only the first {n} seconds will be shown.', { n: MAX_PLAY }) : ''; redraw();
     };
     v.onloadedmetadata = () => go(v.duration || 4); v.onerror = () => go(0); setTimeout(() => go(0), 6000);
     v.src = url;

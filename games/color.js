@@ -91,7 +91,7 @@
 
   const el = (tag, cls, ...kids) => { const e = document.createElement(tag); if (cls) e.className = cls; e.append(...kids.filter(k => k != null)); return e; };
   const icon = id => { const s = document.createElementNS(NS, 'svg'); s.setAttribute('class', 'ico'); s.innerHTML = `<use href="#i-${id}"/>`; return s; };
-  const btn = (cls, label, ...kids) => { const b = el('button', cls, ...kids); b.type = 'button'; b.setAttribute('aria-label', label); return b; };
+  const btn = (cls, label, ...kids) => { const b = el('button', cls, ...kids); b.type = 'button'; b.setAttribute('aria-label', SPG.t(label)); return b; };
 
   /* ================================================================ engine */
 
@@ -508,7 +508,7 @@
       if (season) { this.bag.seasonSeen = yr + '-' + season; this.bag.seasonsSeen = [...seen, this.bag.seasonSeen].slice(-12); this.tab = season; }
       else this.tab = GROUPS.some(g => g.id === this.bag.tab) ? this.bag.tab : GROUPS[0].id;
       this.tabs.addEventListener('scroll', () => this.tabEdges(), { passive: true });
-      this.toast = el('div', 'cb-toast', icon('check'), el('b', '', 'Saved!'));
+      this.toast = el('div', 'cb-toast', icon('check'), el('b', '', SPG.t('Saved!')));
       this.root.append(this.gallery, this.tabs, this.toast);
     }
     showGallery(justDone) {

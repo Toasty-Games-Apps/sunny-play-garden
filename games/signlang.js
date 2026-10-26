@@ -33,7 +33,9 @@
   const SPELLWORDS = ['CAT', 'DOG', 'SUN', 'PIG', 'COW', 'BEE', 'OWL', 'FISH', 'BALL', 'CAKE', 'MOON', 'STAR', 'TREE', 'MILK', 'BOOK', 'CAR'];
   // what the word is called (spoken, `sign/<ID>`), for the words that are not just their name
   const SAY = { 'THANK-YOU': 'Thank you', 'I-LOVE-YOU': 'I love you', FINISH: 'All done', TOILET: 'Potty', 'ICE-CREAM': 'Ice cream', MOM: 'Mommy', DAD: 'Daddy', N: n => String(n) };
-  const nameOf = SPG.signNameOf = id => (/^N:/.test(id) ? id.slice(2) : /^L:/.test(id) ? id.slice(2).toUpperCase() : SAY[id] || id.charAt(0) + id.slice(1).toLowerCase().replace(/-/g, ' '));
+  const nameOf = id => (/^N:/.test(id) ? id.slice(2) : /^L:/.test(id) ? id.slice(2).toUpperCase() : SAY[id] || id.charAt(0) + id.slice(1).toLowerCase().replace(/-/g, ' '));
+  // the word as shown to grown-ups, in the chosen language (the spoken sign/ line without its punctuation)
+  SPG.signNameOf = id => { const l = SPG.i18n.line('sign/' + id); return l ? l.replace(/[!¡！。.]+/g, '').trim() : nameOf(id); };
   // every word becomes a spoken line (always said: they are what the game is about)
   for (const g of GROUPS) for (const w of g.words) if (!/^L:/.test(w)) voice.LINES['sign/' + w] = nameOf(w) + '!';
   for (const w of SPELLWORDS) voice.LINES['sign/' + w] = voice.LINES['sign/' + w] || nameOf(w) + '!';
