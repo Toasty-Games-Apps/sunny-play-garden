@@ -53,6 +53,14 @@ On your own computer: `cd android-app && npm install && SPG_API_BASE=https://...
   Microphone and touchscreen are marked *not required*.
 * Privacy policy (`privacy.html`) is updated for recorded voices in the cloud copy and for the app being offline. Check it still reads right for you.
 
+## Languages and countries
+* The app is in **English, Spanish (Latin America), Hindi and Chinese (Simplified)**; more languages will be added later. A grown-up picks
+  one in Grown-ups > Language and a new install starts in the phone's language. The translations are `js/lang/*.js`, which `build-web.mjs`
+  copies with the rest of `js/`, so nothing extra is needed in the build. The phone's own text-to-speech speaks each language; a phone
+  without a voice for it says the lines in English until one is installed.
+* **Release to every country and region Play offers** (Release > Production > Countries / regions: select all). The owner asked for this.
+* The translated store listings and graphics are in `store/es`, `store/hi` and `store/zh` (see store/PLAY-STORE-GUIDE.md section 5).
+
 ## Moving testers from the web wrapper to this app
 This is a replacement for the old wrapper, not a second app. The app's saved data is separate from the browser's, so progress does not carry across
 automatically. Before updating, a grown-up can use **Grown-ups > Save a backup file** or turn on **Cloud backup** and then, in the new app,

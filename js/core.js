@@ -455,6 +455,79 @@
         if (i % 2 === 0) noise(.05, { freq: 7000, q: 2.5, vol: i % 4 === 0 ? .03 : .02 }), noise(.04, { freq: 8200, q: 3, vol: .015, at: .05 }); // sleigh bells
         if (m) { tone(m, 1.1, { type: 'sine', vol: .04 }); tone(m * 3, .3, { type: 'sine', vol: .008 }); }
       }
+    },
+    // Valentine's Day: a sweet, slow music-box waltz in F major with a little twinkle at the end of each phrase.
+    valentine: {
+      ms: 360, per: 6,
+      bass: [87.31, 73.42, 116.54, 130.81, 87.31, 110, 116.54, 87.31], chords: [[349.23, 440, 523.25], [293.66, 349.23, 440], [293.66, 349.23, 466.16], [261.63, 329.63, 392], [349.23, 440, 523.25], [261.63, 329.63, 440], [293.66, 349.23, 466.16], [349.23, 440, 523.25]],
+      melody: [[523.25, 0, 0, 440, 523.25, 0], [587.33, 0, 0, 523.25, 440, 0], [466.16, 0, 587.33, 0, 523.25, 466.16], [440, 0, 0, 392, 0, 0], [523.25, 0, 0, 440, 523.25, 698.46], [659.25, 0, 0, 523.25, 440, 0], [466.16, 0, 440, 0, 392, 0], [349.23, 0, 0, 0, 0, 0]],
+      play(bar, i, m, ch, bass) {
+        if (i === 0) tone(bass, .9, { type: 'triangle', vol: .045 });
+        if (i === 2 || i === 4) ch.forEach((f, k) => tone(f, .5, { type: 'sine', vol: .014, at: k * .03 }));
+        if (m) { tone(m, .9, { type: 'sine', vol: .04 }); tone(m * 2, .4, { type: 'sine', vol: .01 }); }
+        if (i === 3 && bar % 4 === 3) tone(1396.91, .6, { type: 'sine', vol: .015 });
+      }
+    },
+    // Easter and spring: a bouncy marimba tune in G major, with a bird that chirps now and then.
+    easter: {
+      ms: 300, per: 8,
+      bass: [98, 130.81, 98, 146.83, 82.41, 130.81, 146.83, 98], chords: [[196, 246.94, 293.66], [261.63, 329.63, 392], [196, 246.94, 293.66], [293.66, 369.99, 440], [164.81, 196, 246.94], [261.63, 329.63, 392], [293.66, 369.99, 440], [196, 246.94, 293.66]],
+      melody: [[392, 0, 493.88, 0, 587.33, 0, 493.88, 0], [523.25, 0, 659.25, 0, 587.33, 523.25, 0, 0], [493.88, 0, 587.33, 0, 783.99, 0, 587.33, 0], [587.33, 0, 440, 0, 369.99, 440, 0, 0], [493.88, 0, 392, 0, 329.63, 392, 493.88, 0], [523.25, 0, 659.25, 0, 523.25, 0, 440, 0], [440, 493.88, 523.25, 0, 587.33, 0, 369.99, 0], [392, 0, 0, 0, 392, 0, 0, 0]],
+      play(bar, i, m, ch, bass) {
+        if (i === 0 || i === 4) tone(i === 0 ? bass : bass * 1.5, .4, { type: 'triangle', vol: .05 });
+        if (i === 2 || i === 6) ch.forEach((f, k) => tone(f, .16, { type: 'triangle', vol: .014, at: k * .015 }));
+        if (m) { tone(m, .3, { type: 'triangle', vol: .045 }); tone(m * 2, .1, { type: 'sine', vol: .012 }); }
+        if (i === 7 && bar % 4 === 1) { tone(2400, .07, { vol: .012, slide: 1.4 }); tone(2800, .06, { vol: .01, slide: 1.3, at: .09 }); }   // tweet tweet
+      }
+    },
+    // Summer: a breezy, sunny calypso in C with a steel-drum tune and a soft shaker.
+    summer: {
+      ms: 260, per: 8,
+      bass: [130.81, 87.31, 98, 130.81, 110, 87.31, 98, 130.81], chords: [[261.63, 329.63, 392], [261.63, 349.23, 440], [246.94, 293.66, 392], [261.63, 329.63, 392], [220, 261.63, 329.63], [261.63, 349.23, 440], [246.94, 293.66, 392], [261.63, 329.63, 392]],
+      melody: [[659.25, 0, 0, 587.33, 0, 523.25, 0, 0], [698.46, 0, 0, 659.25, 0, 587.33, 523.25, 0], [587.33, 0, 0, 493.88, 0, 392, 0, 0], [523.25, 0, 659.25, 0, 783.99, 0, 0, 0], [880, 0, 0, 783.99, 0, 659.25, 0, 0], [698.46, 0, 0, 659.25, 0, 587.33, 0, 523.25], [587.33, 0, 659.25, 0, 587.33, 0, 493.88, 0], [523.25, 0, 0, 0, 392, 0, 0, 0]],
+      play(bar, i, m, ch, bass) {
+        if (i === 0 || i === 3 || i === 4) tone(i === 3 ? bass * 1.5 : bass, .3, { type: 'triangle', vol: .05 });
+        if (i === 2 || i === 6) ch.forEach((f, k) => tone(f, .12, { type: 'triangle', vol: .013, at: k * .01 }));
+        if (i % 2) noise(.03, { freq: 9000, q: 1, vol: .01 });                                        // shaker
+        if (m) { tone(m, .35, { type: 'sine', vol: .04 }); tone(m * 3, .12, { type: 'sine', vol: .008 }); }   // steel drum
+      }
+    },
+    // Birthday party: a jolly oom-pah polka with a glockenspiel tune.
+    birthday: {
+      ms: 280, per: 8,
+      bass: [87.31, 65.41, 65.41, 87.31, 116.54, 87.31, 65.41, 87.31], chords: [[349.23, 440, 523.25], [329.63, 392, 466.16], [329.63, 392, 466.16], [349.23, 440, 523.25], [349.23, 466.16, 587.33], [349.23, 440, 523.25], [329.63, 392, 466.16], [349.23, 440, 523.25]],
+      melody: [[523.25, 0, 440, 0, 523.25, 587.33, 523.25, 0], [466.16, 0, 392, 0, 329.63, 0, 392, 0], [466.16, 0, 466.16, 523.25, 466.16, 0, 392, 0], [440, 0, 349.23, 0, 440, 0, 523.25, 0], [587.33, 0, 587.33, 698.46, 587.33, 0, 466.16, 0], [523.25, 0, 440, 0, 349.23, 0, 440, 0], [392, 0, 466.16, 0, 392, 0, 329.63, 0], [349.23, 0, 0, 0, 349.23, 0, 0, 0]],
+      play(bar, i, m, ch, bass) {
+        if (i === 0 || i === 4) tone(i === 0 ? bass : bass * 1.5, .3, { type: 'triangle', vol: .055 });       // oom...
+        if (i === 2 || i === 6) ch.forEach((f, k) => tone(f, .12, { type: 'triangle', vol: .014, at: k * .01 })); // ...pah
+        if (m) { tone(m, .5, { type: 'sine', vol: .04 }); tone(m * 4, .15, { type: 'sine', vol: .006 }); }
+        if (i === 4 && bar % 8 === 7) noise(.05, { freq: 2000, q: 3, vol: .02 });
+      }
+    },
+    // Hanukkah and winter lights: a gentle, warm tune in D minor on a music box, with soft bells like candle light.
+    hanukkah: {
+      ms: 360, per: 8,
+      bass: [73.42, 98, 110, 73.42, 87.31, 65.41, 110, 73.42], chords: [[293.66, 349.23, 440], [293.66, 392, 466.16], [277.18, 329.63, 440], [293.66, 349.23, 440], [349.23, 440, 523.25], [261.63, 329.63, 392], [277.18, 329.63, 440], [293.66, 349.23, 440]],
+      melody: [[587.33, 0, 440, 0, 587.33, 0, 698.46, 0], [587.33, 0, 466.16, 0, 392, 0, 466.16, 0], [440, 0, 554.37, 0, 659.25, 0, 554.37, 0], [587.33, 0, 0, 0, 440, 0, 0, 0], [523.25, 0, 587.33, 0, 698.46, 0, 659.25, 0], [659.25, 0, 587.33, 0, 523.25, 0, 392, 0], [440, 0, 466.16, 0, 554.37, 0, 659.25, 0], [587.33, 0, 0, 0, 0, 0, 0, 0]],
+      play(bar, i, m, ch, bass) {
+        if (i === 0) { tone(bass, .9, { type: 'triangle', vol: .04 }); ch.forEach((f, k) => tone(f, 2, { type: 'sine', vol: .014, at: k * .05 })); }
+        if (i === 4) tone(bass * 1.5, .6, { type: 'triangle', vol: .03 });
+        if (m) { tone(m, 1, { type: 'sine', vol: .04 }); tone(m * 2, .4, { type: 'sine', vol: .01 }); }
+        if (i === 6 && bar % 4 === 3) tone(1760, 1.2, { type: 'sine', vol: .012 });
+      }
+    },
+    // Lunar New Year: a plucked pentatonic tune (like a zither), a soft gong at the start of each round and a wood block.
+    lunar: {
+      ms: 320, per: 8,
+      bass: [98, 82.41, 130.81, 146.83, 98, 82.41, 146.83, 98], chords: [[196, 293.66, 392], [164.81, 246.94, 329.63], [261.63, 392, 523.25], [293.66, 440, 587.33], [196, 293.66, 392], [164.81, 246.94, 329.63], [293.66, 440, 587.33], [196, 293.66, 392]],
+      melody: [[587.33, 0, 659.25, 587.33, 493.88, 0, 440, 0], [493.88, 0, 587.33, 0, 659.25, 0, 0, 0], [783.99, 0, 659.25, 587.33, 659.25, 0, 493.88, 0], [440, 0, 493.88, 0, 587.33, 0, 0, 0], [587.33, 0, 659.25, 783.99, 880, 0, 783.99, 0], [659.25, 0, 587.33, 0, 493.88, 0, 587.33, 0], [440, 0, 493.88, 440, 392, 0, 440, 0], [392, 0, 0, 0, 0, 0, 0, 0]],
+      play(bar, i, m, ch, bass) {
+        if (i === 0) tone(bass, .8, { type: 'triangle', vol: .04 });
+        if (i === 0 && bar % 8 === 0) { tone(130.81, 2.4, { type: 'sine', vol: .025 }); tone(138.6, 2.2, { type: 'sine', vol: .012 }); }   // soft gong
+        if (i === 2 || i === 6) ch.forEach((f, k) => tone(f, .5, { type: 'triangle', vol: .013, at: k * .05 }));
+        if (i === 4) noise(.02, { freq: 1800, q: 6, vol: .014 });                                                       // wood block
+        if (m) { tone(m, .45, { type: 'triangle', vol: .045 }); tone(m * 2, .2, { type: 'sine', vol: .01 }); }
+      }
     }
   };
   let tbar = 0, tstep = 0, tpass = 0;
@@ -484,7 +557,7 @@
   const musicWrap = fn => () => { outBus = musicBus(); try { fn(); } finally { outBus = null; } };
   // Shuffle: when the menu music is on it plays the songs from across the games, one after another in a random order, each for
   // three to five minutes, fading out and in so the change is gentle.
-  const SONGS = ['box', 'dino', 'thanksgiving', 'main', 'christmas', 'halloween'];
+  const SONGS = ['box', 'dino', 'thanksgiving', 'main', 'christmas', 'halloween', 'valentine', 'easter', 'summer', 'birthday', 'hanukkah', 'lunar'];
   let shuffleTimer = 0, shuffleQueue = [], shuffleSong = '';
   const songStep = song => (song === 'box' ? [boxStep, 640] : song === 'main' ? [musicStep, 950] : [themeStep(THEMES[song]), THEMES[song].ms]);
   function shuffleNext(first) {

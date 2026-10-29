@@ -4,6 +4,7 @@ process.env.PORT = '8144';
 const b = await start(); const errs = [];
 for (const age of [2, 4, 7]) for (const [w, h] of [[390, 844], [844, 390], [1280, 800]]) {
   const page = await newPage(b, w, h); await login(page, { age });
+  if (process.env.SIGNS) await page.evaluate(() => { Object.assign(SPG.store.settings, { signs: true, vision: 'deutan', bigUI: true }); SPG.vision.apply(); });   // SIGNS=1: also the signing hands and the colour filter
   const names = await page.evaluate(() => SPG.games.map(g => g.name));
   for (const name of names) {
     await openGame(page, name);

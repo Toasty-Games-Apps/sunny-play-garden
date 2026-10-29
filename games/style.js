@@ -8,7 +8,7 @@
   const el = (tag, cls, ...kids) => { const e = document.createElement(tag); if (cls) e.className = cls; e.append(...kids.filter(k => k != null)); return e; };
   const NS = 'http://www.w3.org/2000/svg';
   const icon = id => { const s = document.createElementNS(NS, 'svg'); s.setAttribute('class', 'ico'); s.innerHTML = `<use href="#i-${id}"/>`; return s; };
-  const btn = (cls, label, ...kids) => { const b = el('button', cls, ...kids); b.type = 'button'; b.setAttribute('aria-label', label); return b; };
+  const btn = (cls, label, ...kids) => { const b = el('button', cls, ...kids); b.type = 'button'; b.setAttribute('aria-label', SPG.t(label)); return b; };
   const rnd = a => a[Math.floor(Math.random() * a.length)];
   // A tap that still counts when a small finger wobbles: act when the finger lifts within ~22px of where it landed
   // (a scroll or a long drag does not count). Keyboard and screen-reader activation still work.
@@ -109,7 +109,7 @@
   const thumbCv = (px, fn) => { const cv = el('canvas'); const d = SPG.ui.dpr(); cv.width = cv.height = Math.round(px * d); fn(cv); return cv; };
 
   /* ---------------------------------------------------------------- tabs */
-  const TABNAME = { who: 'Friend', hair: 'Hair', makeup: 'Make-up', dress: 'Dresses', top: 'Tops', bottom: 'Bottoms', shoes: 'Shoes', hat: 'Hats', extras: 'Extras', nails: 'Nails', places: 'Places' };
+  const TABNAME = { who: SPG.t('Friend'), hair: SPG.t('Hair'), makeup: SPG.t('Make-up'), dress: SPG.t('Dresses'), top: SPG.t('Tops'), bottom: SPG.t('Bottoms'), shoes: SPG.t('Shoes'), hat: SPG.t('Hats'), extras: SPG.t('Extras'), nails: SPG.t('Nails'), places: SPG.t('Places') };
   const TABS = ['who', 'hair', 'makeup', 'dress', 'top', 'bottom', 'shoes', 'hat', 'extras', 'nails', 'places'];
   const CLOTHCAT = { dress: 1, top: 1, bottom: 1, shoes: 1, hat: 1 };
   const TOOLS = ['comb', 'dryer', 'spray', 'bubbles'];
@@ -323,6 +323,7 @@
     section(kind, title, build) {
       const ic = thumbCv(56, cv => secIcon(cv.getContext('2d'), kind, cv.width, this.look));
       ic.className = 'st-sec-ico';
+      title = SPG.t(title);
       const chip = btn('st-chip' + (this.picker && this.picker.kind === kind ? ' open' : ''), title, ic, el('b', '', title), icon('right'));
       SPG.ui.press(chip, () => { sfx.tap(); this.openPicker(kind, title, build); });
       return chip;

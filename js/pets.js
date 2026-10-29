@@ -34,23 +34,23 @@
   };
   // Prices are in stars earned by playing. The first friends are cheap.
   const PETS = [
-    { id: 'bunny', name: 'Bunny', price: 10 }, { id: 'cat', name: 'Kitten', price: 10 }, { id: 'bear', name: 'Bear cub', price: 15 },
-    { id: 'fox', name: 'Fox pup', price: 20 }, { id: 'frog', name: 'Froggy', price: 25 }, { id: 'panda', name: 'Panda cub', price: 30 },
-    { id: 'dog', name: 'Puppy', price: 12 }, { id: 'hamster', name: 'Hamster', price: 10 }, { id: 'duck', name: 'Duckling', price: 12 }, { id: 'pig', name: 'Piglet', price: 15 },
-    { id: 'lamb', name: 'Lamb', price: 18 }, { id: 'mouse', name: 'Mouse', price: 10 }, { id: 'penguin', name: 'Penguin', price: 25 }, { id: 'owl', name: 'Owl', price: 28 },
-    { id: 'elephant', name: 'Elephant', price: 35 }, { id: 'unicorn', name: 'Unicorn', price: 40 },
-    { id: 'babydino', name: 'Baby dino', price: 20 }, { id: 'trike', name: 'Triceratops', price: 30 }, { id: 'stego', name: 'Stegosaurus', price: 30 }, { id: 'bronto', name: 'Long-neck dino', price: 35 }, { id: 'trex', name: 'T-Rex', price: 40 }
+    { id: 'bunny', name: SPG.t('Bunny'), price: 10 }, { id: 'cat', name: SPG.t('Kitten'), price: 10 }, { id: 'bear', name: SPG.t('Bear cub'), price: 15 },
+    { id: 'fox', name: SPG.t('Fox pup'), price: 20 }, { id: 'frog', name: SPG.t('Froggy'), price: 25 }, { id: 'panda', name: SPG.t('Panda cub'), price: 30 },
+    { id: 'dog', name: SPG.t('Puppy'), price: 12 }, { id: 'hamster', name: SPG.t('Hamster'), price: 10 }, { id: 'duck', name: SPG.t('Duckling'), price: 12 }, { id: 'pig', name: SPG.t('Piglet'), price: 15 },
+    { id: 'lamb', name: SPG.t('Lamb'), price: 18 }, { id: 'mouse', name: SPG.t('Mouse'), price: 10 }, { id: 'penguin', name: SPG.t('Penguin'), price: 25 }, { id: 'owl', name: SPG.t('Owl'), price: 28 },
+    { id: 'elephant', name: SPG.t('Elephant'), price: 35 }, { id: 'unicorn', name: SPG.t('Unicorn'), price: 40 },
+    { id: 'babydino', name: SPG.t('Baby dino'), price: 20 }, { id: 'trike', name: SPG.t('Triceratops'), price: 30 }, { id: 'stego', name: SPG.t('Stegosaurus'), price: 30 }, { id: 'bronto', name: SPG.t('Long-neck dino'), price: 35 }, { id: 'trex', name: SPG.t('T-Rex'), price: 40 }
   ];
   const HATS = [
-    { id: 'bow', name: 'Bow', price: 5 }, { id: 'flowers', name: 'Flower crown', price: 8 }, { id: 'party', name: 'Party hat', price: 8 },
-    { id: 'witch', name: 'Witch hat', price: 10 }, { id: 'leaves', name: 'Fall leaves', price: 10 }, { id: 'santa', name: 'Santa hat', price: 10 },
-    { id: 'antlers', name: 'Reindeer antlers', price: 10 }, { id: 'crown', name: 'Crown', price: 20 },
-    { id: 'tiara', name: 'Tiara', price: 15 }, { id: 'beanie', name: 'Woolly hat', price: 8 }, { id: 'cap', name: 'Cap', price: 8 }, { id: 'wizard', name: 'Wizard hat', price: 12 },
-    { id: 'pirate', name: 'Pirate hat', price: 12 }, { id: 'chef', name: 'Chef hat', price: 10 }, { id: 'sun', name: 'Sun hat', price: 10 }, { id: 'beret', name: 'Beret', price: 8 }, { id: 'halo', name: 'Halo', price: 15 },
-    { id: 'glasses', name: 'Glasses', price: 8, slot: 'face' }, { id: 'shades', name: 'Sunglasses', price: 10, slot: 'face' }, { id: 'hearts', name: 'Heart glasses', price: 12, slot: 'face' },
-    { id: 'stars', name: 'Star glasses', price: 12, slot: 'face' }, { id: 'clown', name: 'Red nose', price: 6, slot: 'face' },
-    { id: 'bowtie', name: 'Bow tie', price: 6, slot: 'neck' }, { id: 'scarf', name: 'Scarf', price: 8, slot: 'neck' }, { id: 'bell', name: 'Bell collar', price: 6, slot: 'neck' },
-    { id: 'pearls', name: 'Pearls', price: 12, slot: 'neck' }, { id: 'medal', name: 'Gold medal', price: 10, slot: 'neck' }, { id: 'lei', name: 'Flower necklace', price: 10, slot: 'neck' }
+    { id: 'bow', name: SPG.t('Bow'), price: 5 }, { id: 'flowers', name: SPG.t('Flower crown'), price: 8 }, { id: 'party', name: SPG.t('Party hat'), price: 8 },
+    { id: 'witch', name: SPG.t('Witch hat'), price: 10 }, { id: 'leaves', name: SPG.t('Fall leaves'), price: 10 }, { id: 'santa', name: SPG.t('Santa hat'), price: 10 },
+    { id: 'antlers', name: SPG.t('Reindeer antlers'), price: 10 }, { id: 'crown', name: SPG.t('Crown'), price: 20 },
+    { id: 'tiara', name: SPG.t('Tiara'), price: 15 }, { id: 'beanie', name: SPG.t('Woolly hat'), price: 8 }, { id: 'cap', name: SPG.t('Cap'), price: 8 }, { id: 'wizard', name: SPG.t('Wizard hat'), price: 12 },
+    { id: 'pirate', name: SPG.t('Pirate hat'), price: 12 }, { id: 'chef', name: SPG.t('Chef hat'), price: 10 }, { id: 'sun', name: SPG.t('Sun hat'), price: 10 }, { id: 'beret', name: SPG.t('Beret'), price: 8 }, { id: 'halo', name: SPG.t('Halo'), price: 15 },
+    { id: 'glasses', name: SPG.t('Glasses'), price: 8, slot: 'face' }, { id: 'shades', name: SPG.t('Sunglasses'), price: 10, slot: 'face' }, { id: 'hearts', name: SPG.t('Heart glasses'), price: 12, slot: 'face' },
+    { id: 'stars', name: SPG.t('Star glasses'), price: 12, slot: 'face' }, { id: 'clown', name: SPG.t('Red nose'), price: 6, slot: 'face' },
+    { id: 'bowtie', name: SPG.t('Bow tie'), price: 6, slot: 'neck' }, { id: 'scarf', name: SPG.t('Scarf'), price: 8, slot: 'neck' }, { id: 'bell', name: SPG.t('Bell collar'), price: 6, slot: 'neck' },
+    { id: 'pearls', name: SPG.t('Pearls'), price: 12, slot: 'neck' }, { id: 'medal', name: SPG.t('Gold medal'), price: 10, slot: 'neck' }, { id: 'lei', name: SPG.t('Flower necklace'), price: 10, slot: 'neck' }
   ];
   for (const h of HATS) if (!h.slot) h.slot = 'head';
   const SLOTS = ['head', 'face', 'neck'];

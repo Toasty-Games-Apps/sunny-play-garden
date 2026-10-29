@@ -19,7 +19,7 @@
           const { Filesystem, Share } = plugins();
           const data = await new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result).split(',')[1]); r.onerror = rej; r.readAsDataURL(blob); });
           const w = await Filesystem.writeFile({ path: name, data, directory: 'CACHE', recursive: true });
-          await Share.share({ title: name, url: w.uri, dialogTitle: 'Save or share' });
+          await Share.share({ title: name, url: w.uri, dialogTitle: SPG.t('Save or share') });
           return true;
         } catch (e) { return false; }   // cancelled, or the share sheet failed
       }
@@ -63,14 +63,14 @@
     // asks the device once, so a grown-up knows it works before it is switched on; resolves a small token to save (or '' in the app)
     async enroll() {
       try {
-        if (isApp) { await plugins().NativeBiometric.verifyIdentity({ reason: 'Use your fingerprint or phone lock for the grown-ups area', title: 'Grown-ups only', subtitle: 'Little Sprout Park', useFallback: true }); return 'app'; }
+        if (isApp) { await plugins().NativeBiometric.verifyIdentity({ reason: SPG.t('Use your fingerprint or phone lock for the grown-ups area'), title: SPG.t('Grown-ups only'), subtitle: 'Little Sprout Park', useFallback: true }); return 'app'; }
         const cred = await navigator.credentials.create({ publicKey: { challenge: crypto.getRandomValues(new Uint8Array(32)), rp: { name: 'Little Sprout Park' }, user: { id: crypto.getRandomValues(new Uint8Array(16)), name: 'grown-up', displayName: 'Grown-up' }, pubKeyCredParams: [{ type: 'public-key', alg: -7 }, { type: 'public-key', alg: -257 }], authenticatorSelection: { authenticatorAttachment: 'platform', userVerification: 'required' }, timeout: 60000 } });
         return cred ? b64(cred.rawId) : '';
       } catch (_) { return ''; }
     },
     async verify(token) {
       try {
-        if (isApp) { await plugins().NativeBiometric.verifyIdentity({ reason: 'Grown-ups only', title: 'Grown-ups only', subtitle: 'Little Sprout Park', useFallback: true }); return true; }
+        if (isApp) { await plugins().NativeBiometric.verifyIdentity({ reason: SPG.t('Grown-ups only'), title: SPG.t('Grown-ups only'), subtitle: 'Little Sprout Park', useFallback: true }); return true; }
         const r = await navigator.credentials.get({ publicKey: { challenge: crypto.getRandomValues(new Uint8Array(32)), allowCredentials: token && token !== 'app' ? [{ type: 'public-key', id: unb64(token) }] : [], userVerification: 'required', timeout: 60000 } });
         return !!r;
       } catch (_) { return false; }

@@ -70,7 +70,9 @@ else {
 
 console.log('Cloud backup');
 const wr = read('wrangler.jsonc');
-/Backups/.test(wr) && /new_sqlite_classes/.test(wr) && /run_worker_first/.test(wr) ? pass('wrangler.jsonc declares the backup Worker and Durable Object') : fail('wrangler.jsonc is missing the backup Worker / Durable Object settings');
+/"main"\s*:\s*"worker\/index\.js"/.test(wr) && /Backups/.test(wr) && /new_sqlite_classes/.test(wr)
+  ? pass('wrangler.jsonc declares the backup Worker and Durable Object')
+  : fail('wrangler.jsonc is missing the backup Worker / Durable Object settings');
 /worker\//.test(read('.assetsignore')) ? pass('worker/ is kept out of the public site') : fail('.assetsignore must list worker/');
 /pathname\.startsWith\('\/api\/'\)/.test(sw) ? pass('service worker never caches /api/') : fail('sw.js must skip /api/ requests');
 /backup/i.test(pv) ? pass('privacy policy describes the cloud backup') : fail('privacy.html does not mention the cloud backup');
@@ -87,6 +89,23 @@ for (const [dev, w, h] of [['phone', 1080, 1920], ['tablet7', 1080, 1920], ['tab
   bad.length ? fail(`${dir}: ${bad.join(', ')} not ${w}x${h} RGB without alpha`) : pass(`${dir}: ${files.length} screenshots at ${w}x${h}, no alpha`);
 }
 if (existsSync('store/feature-graphic.png')) { const b = readFileSync('store/feature-graphic.png'); b.readUInt32BE(16) === 1024 && b.readUInt32BE(20) === 500 && b[25] === 2 ? pass('feature graphic 1024x500, no alpha') : fail('store/feature-graphic.png must be 1024x500 without alpha'); }
+
+// Listing text within Play's limits (app name 30, short description 80, full description 4000 characters), in every language,
+// and each translated listing's own graphics (store/<lang>/: feature graphic and phone screenshots; tablets fall back to English).
+console.log('Store listings');
+const rgb = (f, w, h) => { const b = readFileSync(f); return b.readUInt32BE(16) === w && b.readUInt32BE(20) === h && b[25] === 2; };
+const langDirs = readdirSync('store', { withFileTypes: true }).filter(d => d.isDirectory() && existsSync(`store/${d.name}/listing.md`)).map(d => `store/${d.name}`);
+for (const f of ['store/listing.md', ...langDirs.map(d => `${d}/listing.md`)].filter(existsSync)) {
+  const md = readFileSync(f, 'utf8'), part = name => ((md.match(new RegExp(`^## ${name}[^\\n]*\\n([\\s\\S]*?)(?=\\n## |(?![\\s\\S]))`, 'm')) || [])[1] || '').trim();
+  const over = [['App name', 30], ['Short description', 80], ['Full description', 4000]].map(([k, max]) => [k, [...part(k)].length, max]).filter(([, n, max]) => !n || n > max);
+  over.length ? fail(`${f}: ${over.map(([k, n, max]) => n ? `${k} is ${n} characters (max ${max})` : `no ${k}`).join(', ')}`) : pass(`${f}: name, short and full description within Play's limits`);
+}
+for (const d of langDirs) {
+  const fgf = `${d}/feature-graphic.png`, sd = `${d}/screenshots/phone`, shots = existsSync(sd) ? readdirSync(sd).filter(f => f.endsWith('.png')) : [];
+  existsSync(fgf) && rgb(fgf, 1024, 500) ? pass(`${fgf} 1024x500, no alpha`) : fail(`${fgf} missing or not 1024x500 without alpha; run STORE_LANG=${d.slice(6)} node tools/make-store-assets.mjs`);
+  const bad = shots.filter(f => !rgb(`${sd}/${f}`, 1080, 1920));
+  shots.length >= 4 && shots.length <= 8 && !bad.length ? pass(`${sd}: ${shots.length} screenshots at 1080x1920, no alpha`) : fail(`${sd}: ${shots.length} screenshots${bad.length ? `, ${bad.join(', ')} not 1080x1920 RGB` : ''}; run STORE_LANG=${d.slice(6)} node tools/make-store-assets.mjs`);
+}
 
 console.log(`\n${fails} failed, ${warns} to-do for the owner.`);
 process.exit(fails ? 1 : 0);

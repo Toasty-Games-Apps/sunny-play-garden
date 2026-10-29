@@ -1,4 +1,4 @@
-// Coloring Book: seasonal pictures (Halloween, Thanksgiving and fall, Christmas). Same format and rules as
+// Coloring Book: seasonal pictures (Halloween, Thanksgiving and fall, Christmas, then the holiday collections below). Same format and rules as
 // games/color-pictures.js, which must load first. Each picture has a `group` matching SPG.pictureGroups.
 (() => {
   const SPG = window.SPG;
@@ -482,4 +482,676 @@
     }
   ];
   for (const p of P3) SPG.pictures.push(K.explode(p));
+  // shared with the holiday collections below
+  Object.assign(K, { stars, moonFull, moonCres, hill, thick, arcPts, fir, bowPath, cross, eyeWhite, wrapped, maple, plainCloud });
+})();
+
+// Coloring Book: holiday collections (Valentine's Day, Easter and spring, Summer fun, Birthday party, Hanukkah and winter
+// lights, Lunar New Year). Same format and rules as games/color-pictures.js: plain data, sections back to front, every
+// separate shape its own colorable section (`explode`), all inside 1000 x 800. Run `node tools/check-pictures.mjs`.
+(() => {
+  const SPG = window.SPG;
+  const K = SPG.pictureKit;
+  const { r1, P, ell, circ, rect, poly, rpoly, spline, curve, line, polar, flower, leaf, strip, dome, drop, star, compound, ring, crescent, face, eye, nose, sky, ground, sun, cloud, INK,
+    stars, moonFull, moonCres, hill, thick, arcPts, bowPath, cross, eyeWhite, wrapped, plainCloud } = K;
+  const D2R = Math.PI / 180;
+  // A heart: s is about half its width; the tip is at (cx, cy + .9 s).
+  const heart = (cx, cy, s) => `M${P(cx, cy + .9 * s)}C${P(cx - 1.25 * s, cy + .05 * s)} ${P(cx - 1.05 * s, cy - 1.05 * s)} ${P(cx, cy - .45 * s)}C${P(cx + 1.05 * s, cy - 1.05 * s)} ${P(cx + 1.25 * s, cy + .05 * s)} ${P(cx, cy + .9 * s)}Z`;
+  // A real egg shape (narrower at the top). hw(y) is its half width at height y, used to fit bands inside it.
+  const eggHW = (rx, ry, dy) => { const c = Math.max(-1, Math.min(1, -dy / ry)); return rx * Math.sqrt(Math.max(0, 1 - c * c)) * (1 - .14 * c); };
+  const egg = (cx, cy, rx, ry, rot = 0) => {
+    const a = rot * D2R, co = Math.cos(a), si = Math.sin(a);
+    return poly(Array.from({ length: 72 }, (_, i) => { const t = i / 72 * Math.PI * 2, c = Math.cos(t), x = rx * Math.sin(t) * (1 - .14 * c), y = -ry * c; return [cx + x * co - y * si, cy + x * si + y * co]; }));
+  };
+  // A band across an (upright) egg between heights y1 and y2, with a zigzag (zig > 0) or wavy edge.
+  const eggBand = (cx, cy, rx, ry, y1, y2, zig = 14, n = 6) => {
+    const edge = (y0, dir) => Array.from({ length: n * 2 + 1 }, (_, i) => {
+      const y = y0 + (i % 2 ? zig : -zig) * dir * (i === 0 || i === n * 2 ? 0 : 1), hw = eggHW(rx, ry, y - cy) - 1, x = -hw + (2 * hw) * i / (n * 2);
+      return [cx + Math.max(-eggHW(rx, ry, y - cy) + 2, Math.min(eggHW(rx, ry, y - cy) - 2, x)), y];
+    });
+    const side = (ya, yb, sgn) => Array.from({ length: 9 }, (_, i) => { const y = ya + (yb - ya) * (i + 1) / 10; return [cx + sgn * eggHW(rx, ry, y - cy), y]; });
+    const top = edge(y1, 1), bot = edge(y2, -1).reverse();
+    return poly([...top, ...side(y1, y2, 1), ...bot, ...side(y2, y1, -1)]);
+  };
+  // A rectangle with only its top corners rounded.
+  const rectTop = (x, y, w, h, r) => `M${P(x, y + h)}V${r1(y + r)}A${r} ${r} 0 0 1 ${P(x + r, y)}H${r1(x + w - r)}A${r} ${r} 0 0 1 ${P(x + w, y + r)}V${r1(y + h)}Z`;
+  // A rectangle whose bottom edge is a row of n round scallops hanging d below y + h.
+  const scallop = (x, y, w, h, n, d) => { let s = `M${P(x, y)}H${r1(x + w)}V${r1(y + h)}`; const k = w / n; for (let i = n - 1; i >= 0; i--) s += `Q${P(x + k * (i + .5), y + h + d * 2)} ${P(x + k * i, y + h)}`; return s + 'Z'; };
+  // Rotate a list of points around (cx, cy).
+  const turn = (pts, cx, cy, deg) => { const a = deg * D2R, c = Math.cos(a), s = Math.sin(a); return pts.map(([x, y]) => [cx + (x - cx) * c - (y - cy) * s, cy + (x - cx) * s + (y - cy) * c]); };
+  const box = (x, y, w, h) => [[x, y], [x + w, y], [x + w, y + h], [x, y + h]];
+  // One piece of an elliptical ring (a swim ring, a beach ball band), from angle a0 to a1 in degrees.
+  const ringSeg = (cx, cy, RX, RY, rx, ry, a0, a1, n = 16) => {
+    const pt = (a, X, Y) => [cx + Math.cos(a * D2R) * X, cy + Math.sin(a * D2R) * Y];
+    return poly([...Array.from({ length: n + 1 }, (_, i) => pt(a0 + (a1 - a0) * i / n, RX, RY)), ...Array.from({ length: n + 1 }, (_, i) => pt(a1 - (a1 - a0) * i / n, rx, ry))]);
+  };
+  // The slice of a triangle (apex at top) between heights y1 and y2: for stripes on party hats.
+  const triBand = (apex, bl, br, y1, y2) => {
+    const at = (p, q, y) => p[0] + (q[0] - p[0]) * (y - p[1]) / (q[1] - p[1]);
+    return poly([[at(apex, bl, y1), y1], [at(apex, br, y1), y1], [at(apex, br, y2), y2], [at(apex, bl, y2), y2]]);
+  };
+  const hexagram = (cx, cy, R) => star(cx, cy, R, R / Math.sqrt(3), 6, -90);
+  const smile = (x, y, w, bend = 24, wd = 8) => ({ d: `M${P(x - w, y)}Q${P(x, y + bend)} ${P(x + w, y)}`, w: wd });
+  const blush = (x, y, r = 20) => ({ d: ell(x, y, r, r * .62), f: 'rgba(255,110,140,.35)' });
+  const flowers5 = (list) => compound(...list.map(([x, y, r]) => flower(x, y, r, .38, 5)));
+  const centers = (list) => compound(...list.map(([x, y, r]) => circ(x, y, Math.max(26, r * .4))));
+  const add = (list) => { for (const p of list) SPG.pictures.push(K.explode(p)); };
+  // The lower (or upper) part of an upright egg, cut off at height y1 by a zigzag crack: for hatching shells.
+  const eggPart = (cx, cy, rx, ry, y1, lower, zig = 16, n = 7) => {
+    const t1 = Math.acos(Math.max(-1, Math.min(1, (cy - y1) / ry)));
+    const pt = t => { const c = Math.cos(t); return [cx + rx * Math.sin(t) * (1 - .14 * c), cy - ry * c]; };
+    const arc = Array.from({ length: 41 }, (_, i) => lower ? pt(t1 + (2 * Math.PI - 2 * t1) * i / 40) : pt(-t1 + 2 * t1 * i / 40));
+    const a = arc[arc.length - 1], b = arc[0];
+    const zz = Array.from({ length: n * 2 - 1 }, (_, i) => { const k = (i + 1) / (n * 2); return [a[0] + (b[0] - a[0]) * k, y1 + (i % 2 ? zig : -zig) * (lower ? 1 : -1)]; });
+    return [...arc, ...zz];
+  };
+  // A scalloped, fluffy ellipse (fleece, manes, clouds of fur).
+  const fluffy = (cx, cy, rx, ry, n = 14, amp = .07) => polar(cx, cy, t => rx * ry / Math.hypot(ry * Math.cos(t), rx * Math.sin(t)) * (1 - amp + amp * Math.abs(Math.cos(n * t / 2))), 200);
+  const tulip = (cx, cy, s = 1) => { const p = (x, y) => P(cx + x * s, cy + y * s); return `M${p(-70, -40)}L${p(-35, -8)}L${p(0, -62)}L${p(35, -8)}L${p(70, -40)}Q${p(78, 70)} ${p(0, 82)}Q${p(-78, 70)} ${p(-70, -40)}Z`; };
+  // A tower or wall with battlements on top (n merlons).
+  const battlement = (x, y, w, h, n = 3, mh = 34) => { const u = w / (2 * n - 1), pts = [[x, y + h], [x, y]]; for (let i = 0; i < 2 * n - 1; i++) { const up = i % 2 === 0; pts.push([x + u * (i + 1), up ? y : y + mh]); if (i < 2 * n - 2) pts.push([x + u * (i + 1), up ? y + mh : y]); } pts.push([x + w, y + h]); return poly(pts); };
+  // Like scallop(), but with the top corners rounded to match a rounded box (cake tiers, piñata stripes).
+  const scallopR = (x, y, w, h, n, d, r) => { let s = `M${P(x, y + h)}V${r1(y + r)}A${r} ${r} 0 0 1 ${P(x + r, y)}H${r1(x + w - r)}A${r} ${r} 0 0 1 ${P(x + w, y + r)}V${r1(y + h)}`; const k = w / n; for (let i = n - 1; i >= 0; i--) s += `Q${P(x + k * (i + .5), y + h + d * 2)} ${P(x + k * i, y + h)}`; return s + 'Z'; };
+  const rectBot = (x, y, w, h, r) => `M${P(x, y)}H${r1(x + w)}V${r1(y + h - r)}A${r} ${r} 0 0 1 ${P(x + w - r, y + h)}H${r1(x + r)}A${r} ${r} 0 0 1 ${P(x, y + h - r)}Z`;
+  const pennants = (x1, x2, y, n, sag = 40) => compound(...Array.from({ length: n }, (_, i) => { const t = (i + .5) / n, x = x1 + (x2 - x1) * t, yy = y + Math.sin(t * Math.PI) * sag; return rpoly([[x - 40, yy], [x + 40, yy], [x, yy + 88]], 8); }));
+  const sagLine = (x1, x2, y, sag = 40) => ({ d: `M${P(x1 - 60, y - 6)}Q${P((x1 + x2) / 2, y + sag * 2)} ${P(x2 + 60, y - 6)}`, w: 6 });
+  const weave = (x1, x2, ys) => ys.map(y => ({ d: line(x1, y, x2, y), w: 6 }));
+
+  /* ================================================================ Valentine's Day */
+  const bird = (x, y, s, dir, pre) => [
+    { id: pre + 'tail', d: rpoly([[x - dir * 70 * s, y + 10 * s], [x - dir * 165 * s, y - 40 * s], [x - dir * 150 * s, y + 50 * s]], 14) },
+    { id: pre + 'body', d: ell(x, y, 112 * s, 92 * s), det: [...eye(x + dir * 40 * s, y - 28 * s, 13 * s), blush(x + dir * 62 * s, y + 4 * s, 16)] },
+    { id: pre + 'wing', d: ell(x - dir * 22 * s, y + 18 * s, 62 * s, 40 * s, dir * -18) },
+    { id: pre + 'beak', d: rpoly([[x + dir * 96 * s, y - 44 * s], [x + dir * 160 * s, y - 12 * s], [x + dir * 96 * s, y + 20 * s]], 8) }
+  ];
+  const V = [
+    {
+      id: 'lovebear', name: 'Love bear', group: 'valentine', sections: [
+        sky(), { id: 'hearts', d: compound(heart(140, 150, 52), heart(860, 130, 48), heart(880, 330, 40), heart(110, 360, 40)) }, ground(650),
+        { id: 'ears', d: compound(circ(345, 220, 60), circ(655, 220, 60)) },
+        { id: 'ear-in', d: compound(circ(345, 222, 30), circ(655, 222, 30)) },
+        { id: 'body', d: ell(500, 630, 170, 150) },
+        { id: 'feet', d: compound(ell(405, 765, 72, 36), ell(595, 765, 72, 36)) },
+        { id: 'head', d: ell(500, 375, 180, 158), det: [...face(500, 350, 165, { smile: false }), blush(385, 410, 26), blush(615, 410, 26)] },
+        { id: 'muzzle', d: ell(500, 440, 78, 58), det: [nose(500, 420, 24), { d: line(500, 440, 500, 458), w: 8 }, { d: `M${P(470, 458)}Q${P(500, 482)} ${P(530, 458)}`, w: 8 }] },
+        { id: 'heart', d: heart(500, 600, 118) },
+        { id: 'arms', d: compound(ell(370, 590, 48, 80, 35), ell(630, 590, 48, 80, -35)) }
+      ]
+    },
+    {
+      id: 'lovecard', name: 'Love letter', group: 'valentine', sections: [
+        { id: 'wall', d: rect(0, 0, 1000, 800) },
+        { id: 'hearts', d: compound(heart(120, 130, 50), heart(880, 120, 46), heart(110, 690, 46), heart(890, 690, 50), heart(500, 90, 40)) },
+        { id: 'env-back', d: rect(220, 330, 560, 340, 26) },
+        { id: 'letter', d: rect(290, 170, 420, 360, 20), det: [{ d: curve([[330, 400], [370, 385], [410, 405], [450, 388], [490, 404]]), w: 7 }, { d: curve([[510, 400], [550, 386], [590, 404], [630, 390], [670, 402]]), w: 7 }, { d: curve([[330, 450], [380, 436], [430, 455], [480, 438], [530, 452]]), w: 7 }] },
+        { id: 'letter-heart', d: heart(500, 270, 64) },
+        { id: 'pocket', d: rpoly([[220, 410], [500, 575], [780, 410], [780, 670], [220, 670]], 24) },
+        { id: 'flap', d: rpoly([[232, 662], [500, 505], [768, 662]], 22) },
+        { id: 'seal', d: heart(500, 580, 56) }
+      ]
+    },
+    {
+      id: 'lovecupcake', name: 'Heart cupcake', group: 'valentine', sections: [
+        { id: 'wall', d: rect(0, 0, 1000, 600) }, { id: 'table', d: rect(0, 580, 1000, 220) },
+        { id: 'window', d: rect(70, 80, 220, 220, 18), det: [{ d: line(180, 80, 180, 300), w: 8 }, { d: line(70, 190, 290, 190), w: 8 }] },
+        { id: 'hearts', d: compound(heart(860, 160, 54), heart(760, 300, 40), heart(900, 360, 40)) },
+        { id: 'plate', d: ell(500, 720, 280, 54) },
+        { id: 'wrapper', d: rpoly([[330, 480], [670, 480], [625, 715], [375, 715]], 18), det: [{ d: line(400, 495, 418, 705), w: 7 }, { d: line(465, 495, 472, 708), w: 7 }, { d: line(535, 495, 528, 708), w: 7 }, { d: line(600, 495, 582, 705), w: 7 }] },
+        { id: 'frost-1', d: ell(500, 465, 205, 70) },
+        { id: 'frost-2', d: ell(500, 390, 155, 62), det: [{ d: line(440, 380, 455, 395), w: 8 }, { d: line(560, 375, 548, 392), w: 8 }, { d: line(500, 420, 515, 410), w: 8 }] },
+        { id: 'frost-3', d: ell(500, 322, 102, 52), det: [{ d: line(470, 330, 482, 315), w: 8 }, { d: line(530, 335, 520, 320), w: 8 }] },
+        { id: 'heart', d: heart(500, 225, 78) },
+        { id: 'mini', d: rpoly([[760, 640], [880, 640], [865, 710], [775, 710]], 12) },
+        { id: 'mini-top', d: ell(820, 625, 72, 40) }
+      ]
+    },
+    {
+      id: 'heartballoons', name: 'Heart balloons', group: 'valentine', sections: [
+        { id: 'sky', d: rect(0, 0, 1000, 800), det: [{ d: curve([[330, 312], [420, 360], [636, 424]]), w: 6 }, { d: curve([[520, 254], [560, 330], [640, 420]]), w: 6 }, { d: curve([[700, 326], [680, 380], [644, 420]]), w: 6 }] },
+        cloud(170, 470, .9), ground(650),
+        { id: 'balloon-a', d: heart(330, 230, 92) }, { id: 'balloon-b', d: heart(520, 170, 96) }, { id: 'balloon-c', d: heart(705, 250, 88) },
+        { id: 'flowers', d: flowers5([[120, 720, 56], [880, 720, 56]]) }, { id: 'centers', d: centers([[120, 720, 56], [880, 720, 56]]) },
+        { id: 'tail', d: spline([[600, 700], [690, 680], [750, 610], [740, 540], [780, 530], [800, 600], [770, 690], [690, 745], [600, 750]]) },
+        { id: 'body', d: ell(500, 650, 125, 112) },
+        { id: 'ears', d: compound(rpoly([[385, 440], [390, 330], [470, 400]], 16), rpoly([[615, 440], [610, 330], [530, 400]], 16)) },
+        { id: 'arm', d: thick([[585, 600], [620, 530], [642, 470]], 30) },
+        { id: 'head', d: ell(500, 500, 132, 112), det: [...face(500, 500, 125), nose(500, 520, 11), { d: line(400, 520, 350, 510), w: 6 }, { d: line(400, 540, 352, 552), w: 6 }, { d: line(600, 520, 650, 510), w: 6 }, { d: line(600, 540, 648, 552), w: 6 }] },
+        { id: 'paw', d: ell(645, 440, 40, 44) }
+      ]
+    },
+    {
+      id: 'lovebirds', name: 'Love birds', group: 'valentine', sections: [
+        sky(), sun(870, 120, 62), cloud(170, 140, .85),
+        { id: 'branch', d: thick([[0, 600], [250, 585], [520, 600], [780, 580], [1000, 560]], 28) },
+        { id: 'leaves', d: compound(leaf(140, 590, 80, 500, 34), leaf(860, 572, 940, 485, 34), leaf(660, 590, 720, 680, 32)) },
+        ...bird(330, 470, 1, 1, 'l-'), ...bird(670, 470, 1, -1, 'r-'),
+        { id: 'heart', d: heart(500, 285, 82) },
+        { id: 'hearts', d: compound(heart(380, 180, 44), heart(630, 170, 44)) }
+      ]
+    },
+    {
+      id: 'roses', name: 'Roses', group: 'valentine', sections: [
+        { id: 'wall', d: rect(0, 0, 1000, 620), det: [{ d: line(500, 470, 380, 270), w: 12 }, { d: line(500, 470, 520, 210), w: 12 }, { d: line(500, 470, 640, 295), w: 12 }] },
+        { id: 'table', d: rect(0, 600, 1000, 200) },
+        { id: 'hearts', d: compound(heart(140, 160, 54), heart(860, 150, 54), heart(150, 420, 42), heart(860, 430, 42)) },
+        { id: 'leaves', d: compound(leaf(440, 385, 320, 360, 48), leaf(560, 365, 700, 385, 48), leaf(505, 300, 600, 245, 44)) },
+        { id: 'rose-a', d: circ(380, 265, 74), det: [{ d: curve([[380, 265], [400, 262], [400, 240], [372, 235], [350, 262], [372, 292], [412, 285], [430, 250]]), w: 8 }] },
+        { id: 'rose-c', d: circ(640, 290, 72), det: [{ d: curve([[640, 290], [660, 287], [660, 265], [632, 260], [610, 287], [632, 317], [672, 310], [690, 275]]), w: 8 }] },
+        { id: 'rose-b', d: circ(520, 200, 80), det: [{ d: curve([[520, 200], [542, 197], [542, 172], [512, 167], [488, 197], [512, 230], [556, 222], [576, 184]]), w: 8 }] },
+        { id: 'vase', d: spline([[438, 468], [562, 468], [548, 522], [622, 585], [645, 665], [600, 735], [400, 735], [355, 665], [378, 585], [452, 522]]) },
+        { id: 'vase-heart', d: heart(500, 615, 62) },
+        { id: 'bow', d: bowPath(500, 488, .55) }
+      ]
+    }
+  ];
+  add(V);
+
+  /* ================================================================ Easter and spring */
+  const E = [
+    {
+      id: 'eggbasket', name: 'Egg basket', group: 'easter', sections: [
+        sky(), sun(860, 120, 64), cloud(180, 140, .9), ground(600),
+        { id: 'handle', d: thick(arcPts(500, 525, 215, 180, 360, 24), 22) },
+        { id: 'egg-1', d: egg(375, 500, 60, 80, -14) }, { id: 'egg-2', d: egg(465, 468, 62, 84, -4) }, { id: 'egg-3', d: egg(555, 472, 62, 84, 6) }, { id: 'egg-4', d: egg(640, 502, 60, 80, 15) },
+        { id: 'basket', d: rpoly([[265, 530], [735, 530], [690, 738], [310, 738]], 30), det: [...weave(285, 715, [600, 668]), { d: line(390, 545, 405, 735), w: 6 }, { d: line(500, 545, 500, 738), w: 6 }, { d: line(610, 545, 595, 735), w: 6 }] },
+        { id: 'rim', d: rect(245, 505, 510, 56, 28) },
+        { id: 'egg-l', d: egg(150, 672, 72, 94) }, { id: 'band-l', d: eggBand(150, 672, 72, 94, 650, 698, 13, 4) },
+        { id: 'egg-r', d: egg(862, 680, 68, 90), det: [{ d: circ(842, 635, 9), f: INK }, { d: circ(885, 650, 9), f: INK }, { d: circ(845, 735, 9), f: INK }, { d: circ(890, 728, 9), f: INK }] }, { id: 'band-r', d: eggBand(862, 680, 68, 90, 662, 702, 10, 3) }
+      ]
+    },
+    {
+      id: 'basketbunny', name: 'Bunny and eggs', group: 'easter', sections: [
+        sky(), cloud(820, 140, .9), ground(620),
+        { id: 'flowers', d: flowers5([[110, 705, 54], [905, 700, 50]]) }, { id: 'centers', d: centers([[110, 705, 54], [905, 700, 50]]) },
+        { id: 'ears', d: compound(ell(392, 178, 44, 118, -10), ell(528, 178, 44, 118, 10)) },
+        { id: 'ear-in', d: compound(ell(394, 190, 24, 86, -10), ell(526, 190, 24, 86, 10)) },
+        { id: 'body', d: ell(460, 600, 150, 150) },
+        { id: 'belly', d: ell(450, 625, 88, 100) },
+        { id: 'feet', d: compound(ell(380, 752, 70, 34), ell(540, 752, 70, 34)) },
+        { id: 'head', d: ell(460, 370, 150, 130), det: [...face(460, 370, 140), nose(460, 400, 17), blush(375, 410, 22), blush(545, 410, 22)] },
+        { id: 'egg-a', d: egg(668, 650, 44, 58, -10) }, { id: 'egg-b', d: egg(752, 648, 44, 58, 10) },
+        { id: 'basket', d: rpoly([[600, 655], [820, 655], [790, 755], [630, 755]], 22), det: weave(612, 806, [690, 725]) },
+        { id: 'egg', d: egg(455, 595, 62, 80, 0) }, { id: 'band', d: eggBand(455, 595, 62, 80, 575, 618, 12, 3) },
+        { id: 'paws', d: compound(ell(385, 615, 36, 32), ell(525, 615, 36, 32)) }
+      ]
+    },
+    {
+      id: 'hatching', name: 'Chick hatching', group: 'easter', sections: [
+        sky(), sun(150, 120, 62), ground(660),
+        { id: 'flowers', d: flowers5([[120, 715, 50], [885, 715, 54]]) }, { id: 'centers', d: centers([[120, 715, 50], [885, 715, 54]]) },
+        { id: 'chick', d: circ(500, 385, 150), det: [...eye(448, 360, 15), ...eye(552, 360, 15), blush(415, 410, 22), blush(585, 410, 22)] },
+        { id: 'wings', d: compound(ell(345, 440, 44, 72, -35), ell(655, 440, 44, 72, 35)) },
+        { id: 'shell-bottom', d: poly(eggPart(500, 505, 190, 250, 475, true)) },
+        { id: 'shell-top', d: poly(turn(eggPart(500, 300, 130, 170, 262, false, 13, 5), 500, 230, 14)) },
+        { id: 'beak', d: rpoly([[460, 398], [540, 398], [500, 458]], 10) },
+        { id: 'bits', d: compound(rpoly([[190, 725], [272, 712], [236, 655]], 8), rpoly([[740, 740], [820, 712], [784, 660]], 8)) }
+      ]
+    },
+    {
+      id: 'lamb', name: 'Little lamb', group: 'easter', sections: [
+        sky(), cloud(200, 130, .9), plainCloud(760, 175, .75, 'cloud-b'), ground(600),
+        { id: 'legs', d: compound(rect(388, 600, 54, 125, 24), rect(456, 615, 54, 110, 24), rect(582, 615, 54, 110, 24), rect(650, 600, 54, 125, 24)) },
+        { id: 'hooves', d: compound(rect(386, 702, 58, 52, 20), rect(454, 702, 58, 52, 20), rect(580, 702, 58, 52, 20), rect(648, 702, 58, 52, 20)) },
+        { id: 'tail', d: fluffy(765, 470, 48, 46, 8, .12) },
+        { id: 'fleece', d: fluffy(550, 515, 220, 145, 16, .07) },
+        { id: 'ears', d: compound(ell(248, 418, 60, 28, -25), ell(432, 408, 60, 28, 25)) },
+        { id: 'head', d: ell(340, 440, 92, 86), det: [...eye(310, 440, 12), ...eye(370, 440, 12), nose(340, 475, 11), { d: `M${P(322, 492)}Q${P(340, 505)} ${P(358, 492)}`, w: 7 }, blush(290, 470, 16), blush(390, 470, 16)] },
+        { id: 'tuft', d: fluffy(340, 365, 64, 46, 8, .14) },
+        { id: 'flowers', d: flowers5([[120, 700, 52], [880, 720, 54]]) }, { id: 'centers', d: centers([[120, 700, 52], [880, 720, 54]]) },
+        { id: 'wings', d: compound(ell(822, 330, 46, 34, -35), ell(898, 330, 46, 34, 35)), det: [{ d: ell(860, 335, 11, 34), f: INK }] }
+      ]
+    },
+    {
+      id: 'springtulips', name: 'Tulips', group: 'easter', sections: [
+        sky(), sun(855, 120, 62), cloud(190, 140, .9), ground(650),
+        { id: 'stems', d: compound(rect(275, 420, 50, 340, 22), rect(475, 360, 50, 400, 22), rect(675, 440, 50, 320, 22)) },
+        { id: 'leaf-a1', d: leaf(295, 740, 170, 540, 46) }, { id: 'leaf-a2', d: leaf(325, 700, 420, 570, 38) },
+        { id: 'leaf-b1', d: leaf(480, 740, 380, 590, 40) }, { id: 'leaf-b2', d: leaf(520, 720, 620, 540, 46) },
+        { id: 'leaf-c1', d: leaf(705, 740, 830, 560, 46) }, { id: 'leaf-c2', d: leaf(675, 720, 600, 610, 34) },
+        { id: 'tulip-a', d: tulip(300, 370, 1) }, { id: 'tulip-b', d: tulip(500, 305, 1.06) }, { id: 'tulip-c', d: tulip(700, 392, .96) },
+        { id: 'bug', d: circ(222, 615, 38), det: [{ d: dome(222, 584, 22, 18, 200, 244), f: INK }, { d: line(222, 590, 222, 652), w: 6 }, { d: circ(205, 612, 8), f: INK }, { d: circ(240, 618, 8), f: INK }, { d: circ(212, 640, 7), f: INK }, { d: circ(234, 642, 7), f: INK }] }
+      ]
+    },
+    {
+      id: 'nest', name: 'Bird nest', group: 'easter', sections: [
+        sky(), cloud(160, 130, .85), sun(860, 110, 58),
+        { id: 'branch', d: thick([[0, 565], [300, 545], [600, 565], [1000, 505]], 30) },
+        { id: 'blossoms', d: flowers5([[110, 505, 46], [905, 605, 44], [650, 625, 46], [230, 625, 44]]) }, { id: 'centers', d: centers([[110, 505, 46], [905, 605, 44], [650, 625, 46], [230, 625, 44]]) },
+        { id: 'eggs', d: compound(egg(370, 500, 48, 62, -12), egg(452, 485, 50, 64, 0), egg(534, 500, 48, 62, 12)) },
+        { id: 'nest', d: `M250 515A200 130 0 0 0 650 515Z`, det: [{ d: curve([[280, 560], [380, 585], [480, 575], [600, 560]]), w: 7 }, { d: curve([[320, 605], [420, 625], [520, 615], [590, 595]]), w: 7 }] },
+        ...bird(790, 440, .85, -1, '')
+      ]
+    }
+  ];
+  add(E);
+
+  /* ================================================================ Summer fun */
+  const S = [
+    {
+      id: 'fireworks', name: 'Fireworks', group: 'summer', sections: [
+        sky(), stars([[90, 90, 32], [420, 70, 30], [900, 300, 32], [100, 420, 30], [880, 520, 28]], 'sparkles'),
+        { id: 'burst-a', d: star(250, 230, 150, 76, 10, -90) }, { id: 'burst-a-in', d: circ(250, 230, 54) },
+        { id: 'burst-b', d: star(700, 180, 130, 64, 12, -90) }, { id: 'burst-b-in', d: star(700, 180, 56, 30, 6, -90) },
+        { id: 'burst-c', d: star(500, 410, 105, 54, 8, -90) }, { id: 'burst-c-in', d: circ(500, 410, 40) },
+        hill(660),
+        { id: 'blanket', d: rpoly([[250, 700], [760, 690], [800, 800], [210, 810]], 20) },
+        { id: 'bear-body', d: ell(395, 705, 102, 86) },
+        { id: 'bear-ears', d: compound(circ(342, 548, 30), circ(448, 548, 30)) },
+        { id: 'bear-head', d: circ(395, 605, 74) },
+        { id: 'bunny-body', d: ell(615, 712, 88, 78) },
+        { id: 'bunny-ears', d: compound(ell(588, 525, 26, 64, -10), ell(644, 525, 26, 64, 10)) },
+        { id: 'bunny-head', d: circ(615, 620, 64) },
+        { id: 'bunny-tail', d: circ(615, 748, 26) }
+      ]
+    },
+    {
+      id: 'beachday', name: 'Beach day', group: 'summer', sections: [
+        sky(), sun(130, 120, 62), cloud(780, 130, .85),
+        { id: 'sea', d: `M0 380Q125 355 250 380T500 380T750 380T1000 380V560H0Z` },
+        { id: 'sail', d: rpoly([[780, 352], [780, 215], [880, 352]], 10) },
+        { id: 'hull', d: rpoly([[690, 360], [900, 360], [865, 418], [722, 418]], 12) },
+        { id: 'sand', d: `M0 520C250 480 650 560 1000 500V800H0Z`, det: [{ d: line(250, 430, 250, 690), w: 14 }] },
+        { id: 'canopy-l', d: dome(250, 432, 200, 125, 50, 184) }, { id: 'canopy-m', d: dome(250, 432, 200, 125, 184, 316) }, { id: 'canopy-r', d: dome(250, 432, 200, 125, 316, 450) },
+        { id: 'towel', d: rpoly([[80, 650], [420, 628], [452, 752], [52, 772]], 16), det: [{ d: line(150, 646, 132, 768), w: 7 }, { d: line(370, 632, 395, 756), w: 7 }] },
+        { id: 'ball', d: circ(620, 640, 105) },
+        { id: 'stripe-l', d: `M620 535A105 105 0 0 0 620 745Q540 640 620 535Z` }, { id: 'stripe-r', d: `M620 535A105 105 0 0 1 620 745Q700 640 620 535Z` },
+        { id: 'bucket', d: rpoly([[780, 605], [900, 605], [884, 728], [796, 728]], 12), det: [{ d: `M${P(782, 600)}Q${P(840, 520)} ${P(898, 600)}`, w: 7 }] },
+        { id: 'bucket-rim', d: rect(768, 582, 144, 54, 18) },
+        { id: 'starfish', d: star(480, 742, 54, 26), det: [] },
+        { id: 'shell', d: `M${P(905, 778)}L${P(866, 728)}Q${P(915, 650)} ${P(966, 728)}L${P(927, 778)}Z`, det: [{ d: line(916, 772, 900, 700), w: 6 }, { d: line(916, 772, 935, 700), w: 6 }] }
+      ]
+    },
+    {
+      id: 'icepops', name: 'Ice pops', group: 'summer', sections: [
+        sky(), sun(865, 115, 60), cloud(165, 135, .85), ground(640, 'sand'),
+        { id: 'pop-a', d: rectTop(300, 250, 140, 330, 62) }, { id: 'band-a', d: rectTop(300, 250, 140, 96, 62) }, { id: 'band-a2', d: rect(300, 346, 140, 92) },
+        { id: 'pop-b', d: `M470 580V270A70 70 0 0 1 540 200H560A60 60 0 0 0 620 260V580Z` },
+        { id: 'dip-b', d: `M470 335V270A70 70 0 0 1 540 200H560A60 60 0 0 0 620 260V335Q595 395 570 335Q545 370 520 335Q495 390 470 335Z` },
+        { id: 'pop-c', d: rectTop(650, 270, 130, 310, 60) }, { id: 'band-c1', d: rect(650, 360, 130, 60) }, { id: 'band-c2', d: rect(650, 470, 130, 60) },
+        { id: 'handles', d: compound(rect(200, 580, 70, 100, 26), rect(730, 580, 70, 100, 26)) },
+        { id: 'cooler', d: rpoly([[250, 525], [750, 525], [728, 745], [272, 745]], 26), det: [{ d: circ(500, 640, 40), w: 7 }, ...[0, 60, 120].map(a => ({ d: line(500 + Math.cos(a * D2R) * 62, 640 + Math.sin(a * D2R) * 62, 500 - Math.cos(a * D2R) * 62, 640 - Math.sin(a * D2R) * 62), w: 7 }))] },
+        { id: 'rim', d: rect(232, 492, 536, 60, 24) },
+        { id: 'ice', d: compound(rpoly(turn(box(420, 462, 60, 60), 450, 492, 18), 12), rpoly(turn(box(612, 466, 58, 58), 641, 495, -14), 12)) }
+      ]
+    },
+    {
+      id: 'sandcastle', name: 'Sandcastle', group: 'summer', sections: [
+        sky(), sun(860, 115, 60), cloud(165, 135, .85),
+        { id: 'sea', d: `M0 360Q125 335 250 360T500 360T750 360T1000 360V520H0Z` },
+        { id: 'sand', d: `M0 470C300 440 700 500 1000 450V800H0Z` },
+        { id: 'keep', d: battlement(330, 380, 340, 320, 4, 36) },
+        { id: 'tower-l', d: battlement(210, 260, 140, 440, 3, 34), det: [{ d: line(280, 260, 280, 170), w: 8 }] },
+        { id: 'tower-r', d: battlement(650, 260, 140, 440, 3, 34), det: [{ d: line(720, 260, 720, 170), w: 8 }] },
+        { id: 'flag-l', d: rpoly([[282, 170], [282, 240], [352, 205]], 8) }, { id: 'flag-r', d: rpoly([[722, 170], [722, 240], [792, 205]], 8) },
+        { id: 'door', d: `M445 700V605A55 55 0 0 1 555 605V700Z` },
+        { id: 'windows', d: compound(`M255 410V385A25 25 0 0 1 305 385V410Z`, `M695 410V385A25 25 0 0 1 745 385V410Z`, `M475 520V495A25 25 0 0 1 525 495V520Z`) },
+        { id: 'claws', d: compound(circ(95, 650, 32), circ(265, 650, 32)) },
+        { id: 'crab', d: ell(180, 715, 78, 50), det: [{ d: line(155, 668, 150, 630), w: 7 }, { d: line(205, 668, 210, 630), w: 7 }, { d: circ(150, 622, 13), f: INK }, { d: circ(210, 622, 13), f: INK }, smile(180, 722, 26, 16, 7), { d: line(110, 690, 104, 662), w: 7 }, { d: line(250, 690, 256, 662), w: 7 }] },
+        { id: 'starfish', d: star(880, 700, 58, 27) },
+        { id: 'shell', d: `M${P(760, 778)}L${P(720, 728)}Q${P(770, 650)} ${P(820, 728)}L${P(780, 778)}Z`, det: [{ d: line(770, 772, 754, 700), w: 6 }, { d: line(770, 772, 789, 700), w: 6 }] }
+      ]
+    },
+    {
+      id: 'picnic', name: 'Picnic', group: 'summer', sections: [
+        sky(), sun(865, 110, 58), cloud(470, 120, .8), ground(430, 'grass'),
+        { id: 'trunk', d: rect(70, 200, 90, 330, 18) },
+        { id: 'crown', d: ell(115, 170, 160, 125) },
+        { id: 'blanket', d: rpoly([[170, 560], [830, 560], [965, 792], [35, 792]], 16), det: [{ d: line(390, 560, 340, 792), w: 7 }, { d: line(610, 560, 660, 792), w: 7 }, { d: line(120, 650, 880, 650), w: 7 }, { d: line(75, 722, 925, 722), w: 7 }] },
+        { id: 'handle', d: thick(arcPts(330, 560, 88, 180, 360, 14), 18) },
+        { id: 'basket', d: rpoly([[230, 562], [430, 562], [410, 690], [250, 690]], 18), det: weave(238, 422, [605, 648]) },
+        { id: 'lid', d: rect(212, 538, 236, 50, 22) },
+        { id: 'rind', d: `M500 650A115 105 0 0 0 730 650Z` },
+        { id: 'melon', d: `M522 650A93 82 0 0 0 708 650Z`, det: [{ d: drop(570, 680, 7), f: INK }, { d: drop(615, 700, 7), f: INK }, { d: drop(660, 680, 7), f: INK }] },
+        { id: 'glass', d: rpoly([[788, 548], [880, 548], [868, 690], [800, 690]], 10) },
+        { id: 'lemonade', d: rpoly([[797, 592], [872, 592], [863, 683], [806, 683]], 6) },
+        { id: 'lemon', d: circ(880, 555, 32), det: [{ d: line(856, 555, 904, 555), w: 5 }, { d: line(880, 531, 880, 579), w: 5 }] },
+        { id: 'sandwich', d: rpoly([[462, 612], [588, 520], [612, 612]], 14), det: [{ d: line(492, 590, 600, 590), w: 7 }] },
+        { id: 'apple', d: circ(170, 722, 48), det: [{ d: curve([[170, 674], [174, 652], [188, 640]]), w: 8 }] }
+      ]
+    },
+    {
+      id: 'poolparty', name: 'Pool party', group: 'summer', sections: [
+        sky(), sun(865, 110, 60),
+        { id: 'trunk', d: thick([[110, 640], [126, 450], [168, 250]], 26) },
+        { id: 'frond-1', d: leaf(168, 240, 30, 200, 46) }, { id: 'frond-2', d: leaf(168, 240, 320, 190, 46) }, { id: 'frond-3', d: leaf(168, 240, 80, 340, 34) }, { id: 'frond-4', d: leaf(168, 240, 280, 330, 34) },
+        { id: 'tiles', d: rect(0, 470, 1000, 64), det: [{ d: line(200, 470, 200, 534), w: 6 }, { d: line(400, 470, 400, 534), w: 6 }, { d: line(600, 470, 600, 534), w: 6 }, { d: line(800, 470, 800, 534), w: 6 }] },
+        { id: 'water', d: `M0 545Q125 525 250 545T500 545T750 545T1000 545V800H0Z`, det: [{ d: curve([[80, 720], [130, 705], [180, 720]]), w: 6 }, { d: curve([[760, 760], [810, 745], [860, 760]]), w: 6 }] },
+        { id: 'ring-b1', d: ringSeg(520, 650, 195, 88, 110, 38, 180, 240) }, { id: 'ring-b2', d: ringSeg(520, 650, 195, 88, 110, 38, 240, 300) }, { id: 'ring-b3', d: ringSeg(520, 650, 195, 88, 110, 38, 300, 360) },
+        { id: 'frog-body', d: ell(520, 620, 92, 70) },
+        { id: 'eye-bumps', d: compound(circ(468, 470, 38), circ(572, 470, 38)), det: [...eyeWhite(468, 470, 24, 2), ...eyeWhite(572, 470, 24, -2)] },
+        { id: 'frog-head', d: ell(520, 535, 110, 72), det: [smile(520, 545, 52, 30), blush(445, 555, 18), blush(595, 555, 18)] },
+        { id: 'ring-f1', d: ringSeg(520, 650, 195, 88, 110, 38, 0, 60) }, { id: 'ring-f2', d: ringSeg(520, 650, 195, 88, 110, 38, 60, 120) }, { id: 'ring-f3', d: ringSeg(520, 650, 195, 88, 110, 38, 120, 180) },
+        { id: 'arms', d: compound(ell(420, 625, 26, 48, 50), ell(620, 625, 26, 48, -50)) },
+        { id: 'duck', d: ell(845, 668, 82, 54) },
+        { id: 'duck-head', d: circ(880, 595, 44), det: [...eye(892, 585, 9)] },
+        { id: 'beak', d: rpoly([[910, 568], [972, 598], [910, 630]], 10) },
+        { id: 'wing', d: ell(830, 662, 42, 28, -12) }
+      ]
+    }
+  ];
+  add(S);
+
+  /* ================================================================ Birthday party */
+  const B = [
+    {
+      id: 'bdaycake', name: 'Birthday cake', group: 'birthday', sections: [
+        { id: 'wall', d: rect(0, 0, 1000, 600), det: [sagLine(120, 880, 40), { d: curve([[130, 392], [120, 470], [150, 590]]), w: 6 }, { d: curve([[870, 392], [880, 470], [850, 590]]), w: 6 }] },
+        { id: 'table', d: rect(0, 580, 1000, 220) },
+        { id: 'bunting', d: pennants(120, 880, 40, 6) },
+        { id: 'balloon-l', d: ell(130, 300, 70, 88) }, { id: 'balloon-r', d: ell(870, 300, 70, 88) },
+        { id: 'stand-foot', d: rpoly([[430, 700], [570, 700], [600, 772], [400, 772]], 14) },
+        { id: 'stand', d: ell(500, 690, 255, 34) },
+        { id: 'tier-1', d: rect(290, 520, 420, 168, 20) }, { id: 'icing-1', d: scallopR(290, 520, 420, 44, 7, 14, 20) },
+        { id: 'tier-2', d: rect(350, 400, 300, 128, 20) }, { id: 'icing-2', d: scallopR(350, 400, 300, 42, 5, 13, 20) },
+        { id: 'tier-3', d: rect(410, 300, 180, 108, 18) }, { id: 'icing-3', d: scallopR(410, 300, 180, 40, 3, 12, 18) },
+        { id: 'candles', d: compound(rect(420, 205, 50, 100, 10), rect(475, 205, 50, 100, 10), rect(530, 205, 50, 100, 10)), det: [{ d: line(425, 240, 465, 220), w: 6 }, { d: line(425, 280, 465, 260), w: 6 }, { d: line(480, 240, 520, 220), w: 6 }, { d: line(480, 280, 520, 260), w: 6 }, { d: line(535, 240, 575, 220), w: 6 }, { d: line(535, 280, 575, 260), w: 6 }] },
+        { id: 'flames', d: compound(drop(445, 168, 26), drop(500, 168, 26), drop(555, 168, 26)) }
+      ]
+    },
+    {
+      id: 'partypup', name: 'Party puppy', group: 'birthday', sections: [
+        { id: 'wall', d: rect(0, 0, 1000, 620), det: [{ d: curve([[140, 258], [130, 400], [160, 600]]), w: 6 }, { d: curve([[860, 278], [870, 420], [840, 600]]), w: 6 }] },
+        { id: 'floor', d: rect(0, 600, 1000, 200) },
+        { id: 'balloons', d: compound(ell(140, 180, 62, 78), ell(860, 200, 62, 78)) },
+        { id: 'ears', d: compound(ell(335, 420, 54, 108, 18), ell(625, 420, 54, 108, -18)) },
+        { id: 'body', d: ell(480, 645, 150, 130) },
+        { id: 'paws', d: compound(ell(415, 762, 64, 34), ell(545, 762, 64, 34)) },
+        { id: 'head', d: ell(480, 415, 150, 130), det: [...eye(430, 400, 16), blush(400, 455, 22), blush(560, 455, 22)] },
+        { id: 'patch', d: ell(535, 395, 52, 48), det: [...eye(530, 400, 16)] },
+        { id: 'muzzle', d: ell(480, 475, 74, 54), det: [nose(480, 455, 20), smile(480, 480, 30, 22, 7)] },
+        { id: 'hat', d: rpoly([[390, 300], [480, 88], [570, 300]], 14) },
+        { id: 'hat-band1', d: triBand([480, 88], [390, 300], [570, 300], 146, 198) }, { id: 'hat-band2', d: triBand([480, 88], [390, 300], [570, 300], 224, 276) },
+        { id: 'pom', d: circ(480, 90, 34) },
+        { id: 'horn', d: rpoly([[530, 492], [700, 452], [714, 516], [532, 512]], 12), det: [{ d: line(590, 480, 594, 508), w: 6 }, { d: line(650, 466, 655, 510), w: 6 }] },
+        { id: 'wrapper', d: rpoly([[760, 622], [900, 622], [885, 722], [775, 722]], 10) },
+        { id: 'frosting', d: ell(830, 610, 84, 46) },
+        { id: 'cherry', d: circ(830, 555, 27) }
+      ]
+    },
+    {
+      id: 'balloonbunch', name: 'Balloons', group: 'birthday', sections: [
+        { id: 'sky', d: rect(0, 0, 1000, 800), det: [[330, 325], [470, 268], [610, 315], [400, 450], [545, 442], [690, 462]].map(([x, y]) => ({ d: `M${P(x, y)}Q${P((x + 500) / 2 + (x < 500 ? 20 : -20), (y + 575) / 2)} ${P(500, 578)}`, w: 6 })) },
+        sun(130, 110, 58), cloud(830, 120, .8), ground(650),
+        { id: 'flowers', d: flowers5([[110, 720, 52], [890, 720, 52]]) }, { id: 'centers', d: centers([[110, 720, 52], [890, 720, 52]]) },
+        { id: 'balloon-1', d: ell(330, 230, 78, 95) }, { id: 'balloon-2', d: ell(470, 172, 80, 98) }, { id: 'balloon-3', d: ell(610, 220, 78, 95) },
+        { id: 'balloon-4', d: ell(400, 358, 74, 90) }, { id: 'balloon-5', d: ell(545, 350, 76, 92) }, { id: 'balloon-6', d: ell(690, 372, 72, 88) },
+        { id: 'gift', d: rect(390, 580, 220, 170, 14) },
+        { id: 'ribbon', d: cross(500, 665, 110, 85, 24) },
+        { id: 'bow', d: bowPath(500, 578, .66) }
+      ]
+    },
+    {
+      id: 'pinata', name: 'Piñata', group: 'birthday', sections: [
+        { id: 'sky', d: rect(0, 0, 1000, 800), det: [{ d: line(450, 130, 450, 362), w: 8 }] },
+        sun(130, 250, 58), ground(650),
+        { id: 'branch', d: thick([[0, 118], [300, 92], [700, 104], [1000, 70]], 30) },
+        { id: 'legs', d: compound(rect(300, 520, 58, 180, 22), rect(375, 530, 58, 170, 22), rect(500, 530, 58, 170, 22), rect(562, 520, 58, 180, 22)) },
+        { id: 'tail', d: leaf(288, 402, 196, 530, 30) },
+        { id: 'neck', d: rpoly([[538, 385], [612, 385], [642, 282], [565, 270]], 18) },
+        { id: 'band-4', d: rectBot(280, 500, 340, 60, 30) },
+        { id: 'band-3', d: scallop(280, 450, 340, 60, 6, 14) },
+        { id: 'band-2', d: scallop(280, 400, 340, 60, 6, 14) },
+        { id: 'band-1', d: scallopR(280, 360, 340, 50, 6, 14, 30) },
+        { id: 'ears', d: compound(leaf(602, 228, 568, 108, 46), leaf(638, 222, 684, 106, 46)) },
+        { id: 'head', d: ell(650, 268, 102, 64, 10), det: [...eye(630, 250, 12), blush(650, 290, 16)] },
+        { id: 'snout', d: ell(732, 290, 46, 42), det: [{ d: ell(742, 282, 7, 10), f: INK }, smile(725, 312, 20, 12, 6)] },
+        { id: 'candies', d: compound(wrapped(150, 720, 72, 30, -10), wrapped(850, 730, 72, 30, 12)) }
+      ]
+    },
+    {
+      id: 'surprise', name: 'Surprise present', group: 'birthday', sections: [
+        { id: 'wall', d: rect(0, 0, 1000, 600) }, { id: 'floor', d: rect(0, 580, 1000, 220) },
+        stars([[150, 150, 46], [850, 140, 46], [140, 420, 38], [880, 420, 40]]),
+        { id: 'ears', d: compound(circ(405, 215, 46), circ(595, 215, 46)) },
+        { id: 'head', d: ell(500, 315, 135, 118), det: [...face(500, 300, 125, { smile: false }), blush(410, 345, 20), blush(590, 345, 20)] },
+        { id: 'muzzle', d: ell(500, 362, 60, 44), det: [nose(500, 345, 17), smile(500, 368, 24, 18, 7)] },
+        { id: 'box', d: rect(330, 470, 340, 280, 16) },
+        { id: 'ribbon', d: rect(470, 470, 60, 280) },
+        { id: 'paws', d: compound(ell(400, 472, 44, 36), ell(600, 472, 44, 36)) },
+        { id: 'lid', d: rpoly(turn(box(100, 280, 250, 72), 225, 316, -20), 14) },
+        { id: 'lid-ribbon', d: poly(turn(box(195, 280, 60, 72), 225, 316, -20)) },
+        { id: 'bow', d: bowPath(212, 276, .6) }
+      ]
+    },
+    {
+      id: 'bdaylion', name: 'Birthday lion', group: 'birthday', sections: [
+        { id: 'wall', d: rect(0, 0, 1000, 800), det: [{ d: curve([[150, 280], [140, 420], [170, 560]]), w: 6 }, { d: curve([[860, 270], [870, 420], [840, 560]]), w: 6 }] },
+        { id: 'balloons', d: compound(ell(150, 200, 64, 80), ell(860, 190, 64, 80)) },
+        { id: 'body', d: ell(500, 720, 190, 120) },
+        { id: 'mane', d: fluffy(500, 410, 250, 230, 16, .1) },
+        { id: 'ears', d: compound(circ(345, 255, 48), circ(655, 255, 48)) },
+        { id: 'face', d: ell(500, 430, 170, 150), det: [...eye(440, 400, 16), ...eye(560, 400, 16), blush(405, 465, 22), blush(595, 465, 22)] },
+        { id: 'muzzle', d: ell(500, 492, 96, 58), det: [{ d: circ(455, 495, 6), f: INK }, { d: circ(475, 510, 6), f: INK }, { d: circ(545, 495, 6), f: INK }, { d: circ(525, 510, 6), f: INK }, smile(500, 515, 34, 22, 7)] },
+        { id: 'nose', d: rpoly([[460, 436], [540, 436], [500, 498]], 12) },
+        { id: 'bow-l', d: rpoly([[500, 650], [400, 605], [400, 695]], 14) }, { id: 'bow-r', d: rpoly([[500, 650], [600, 605], [600, 695]], 14) },
+        { id: 'knot', d: circ(500, 650, 30) },
+        { id: 'crown', d: rpoly([[360, 262], [360, 132], [412, 186], [456, 112], [500, 176], [544, 112], [588, 186], [640, 132], [640, 262]], 10) },
+        { id: 'jewels', d: compound(circ(430, 222, 26), circ(500, 218, 26), circ(570, 222, 26)) }
+      ]
+    }
+  ];
+  add(B);
+
+  /* ================================================================ Hanukkah and winter lights */
+  // A Hanukkah menorah (hanukkiah) has nine lights: eight in a row and the helper candle, the shamash, set apart (here raised in the middle).
+  const NUN = [[-14, -52], [8, -52], [8, 50], [-30, 50]];
+  const GIMEL = [[[-14, -52], [6, -52], [14, 50]], [[12, 22], [-20, 56]]];
+  const sheer = (pts, x0, y0, k) => pts.map(([x, y]) => [x0 + x, y0 + y + x * k]);
+  const strokes = (list, w = 14) => list.map(pts => ({ d: 'M' + pts.map(([x, y]) => P(x, y)).join('L'), w }));
+  const H = [
+    {
+      id: 'menorah', name: 'Menorah', group: 'hanukkah', sections: [
+        { id: 'wall', d: rect(0, 0, 1000, 640) }, { id: 'table', d: rect(0, 620, 1000, 180) },
+        { id: 'base', d: rpoly([[400, 742], [600, 742], [568, 660], [432, 660]], 16) },
+        { id: 'stem', d: rect(475, 500, 50, 170, 10) },
+        { id: 'bar', d: rect(120, 468, 760, 52, 24) },
+        { id: 'holder', d: rect(468, 300, 64, 190, 12) },
+        { id: 'candles', d: compound(...[165, 250, 335, 420, 580, 665, 750, 835].map(x => rect(x - 25, 345, 50, 125, 10))) },
+        { id: 'shamash', d: rect(475, 180, 50, 125, 10) },
+        { id: 'flames', d: compound(...[165, 250, 335, 420, 580, 665, 750, 835].map(x => drop(x, 312, 26))) },
+        { id: 'flame-s', d: drop(500, 147, 26) }
+      ]
+    },
+    {
+      id: 'dreidel', name: 'Dreidel', group: 'hanukkah', sections: [
+        { id: 'wall', d: rect(0, 0, 1000, 620), det: [{ d: curve([[250, 330], [215, 420], [250, 510]]), w: 7 }, { d: curve([[750, 330], [785, 420], [750, 510]]), w: 7 }, { d: curve([[200, 360], [175, 420], [200, 480]]), w: 7 }, { d: curve([[800, 360], [825, 420], [800, 480]]), w: 7 }] },
+        { id: 'floor', d: rect(0, 600, 1000, 200) },
+        { id: 'stars', d: compound(hexagram(150, 150, 50), hexagram(850, 140, 46), hexagram(870, 420, 38)) },
+        { id: 'coins', d: compound(ell(200, 705, 72, 44), ell(800, 712, 72, 44), ell(330, 760, 60, 36)), det: [{ d: ell(200, 705, 48, 28), w: 6 }, { d: ell(800, 712, 48, 28), w: 6 }, { d: ell(330, 760, 38, 22), w: 6 }] },
+        { id: 'top', d: poly([[500, 250], [650, 290], [500, 330], [350, 290]]) },
+        { id: 'face-l', d: poly([[350, 290], [500, 330], [500, 560], [350, 520]]), det: strokes([sheer(NUN, 425, 430, 40 / 150)]) },
+        { id: 'face-r', d: poly([[500, 330], [650, 290], [650, 520], [500, 560]]), det: strokes(GIMEL.map(g => sheer(g, 575, 430, -40 / 150))) },
+        { id: 'tip-l', d: poly([[350, 520], [500, 560], [500, 702]]) },
+        { id: 'tip-r', d: poly([[500, 560], [650, 520], [500, 702]]) },
+        { id: 'handle', d: rect(472, 168, 56, 128, 18) }
+      ]
+    },
+    {
+      id: 'latkes', name: 'Latkes', group: 'hanukkah', sections: [
+        { id: 'wall', d: rect(0, 0, 1000, 560) },
+        { id: 'window', d: rect(90, 70, 260, 240, 16), det: [{ d: line(220, 70, 220, 310), w: 8 }, { d: line(90, 190, 350, 190), w: 8 }] },
+        { id: 'table', d: rect(0, 540, 1000, 260) },
+        { id: 'plate', d: ell(420, 655, 280, 92) },
+        { id: 'latke-1', d: ell(410, 665, 178, 50) },
+        { id: 'latke-2', d: ell(432, 622, 172, 48), det: [{ d: curve([[330, 620], [350, 612], [372, 622]]), w: 6 }] },
+        { id: 'latke-3', d: ell(415, 580, 166, 46), det: [{ d: curve([[300, 582], [322, 572], [344, 582]]), w: 6 }, { d: curve([[500, 590], [522, 580], [544, 590]]), w: 6 }] },
+        { id: 'cream', d: spline([[350, 575], [380, 535], [420, 515], [460, 535], [490, 575], [420, 590]]) },
+        { id: 'bowl', d: `M640 602A110 82 0 0 0 860 602Z` },
+        { id: 'sauce', d: ell(750, 602, 110, 26) },
+        { id: 'plate-2', d: ell(820, 742, 140, 40) },
+        { id: 'donut', d: ell(820, 705, 96, 62), det: [{ d: circ(780, 690, 5), f: '#fff' }, { d: circ(800, 730, 5), f: '#fff' }, { d: circ(860, 720, 5), f: '#fff' }, { d: circ(850, 685, 5), f: '#fff' }] },
+        { id: 'jelly', d: ell(822, 670, 34, 27) }
+      ]
+    },
+    {
+      id: 'hanuwindow', name: 'Window lights', group: 'hanukkah', sections: [
+        { id: 'wall', d: rect(0, 0, 1000, 800) },
+        { id: 'night', d: rect(220, 110, 560, 410) },
+        { id: 'moon', d: crescent(340, 185, 56) },
+        { id: 'snow', d: `M220 470Q400 430 560 465T780 450V520H220Z` },
+        { id: 'frame', d: `M180 70H820V560H180ZM220 110V520H780V110Z` },
+        { id: 'sill', d: rect(140, 540, 720, 62, 16) },
+        { id: 'stand', d: rpoly([[440, 542], [560, 542], [530, 430], [470, 430]], 12) },
+        { id: 'bar', d: rect(222, 385, 556, 50, 22) },
+        { id: 'candles', d: compound(...[252, 314, 376, 438, 562, 624, 686, 748].map(x => rect(x - 25, 288, 50, 98, 10))) },
+        { id: 'shamash', d: rect(475, 216, 50, 170, 10) },
+        { id: 'flames', d: compound(...[252, 314, 376, 438, 562, 624, 686, 748].map(x => drop(x, 254, 25))) },
+        { id: 'flame-s', d: drop(500, 182, 25) }
+      ]
+    },
+    {
+      id: 'hanustar', name: 'Shining star', group: 'hanukkah', sections: [
+        sky(), moonCres(860, 140, 80),
+        { id: 'stars', d: compound(hexagram(120, 150, 48), hexagram(160, 420, 40), hexagram(860, 400, 42)) },
+        { id: 'snow', d: `M0 620C250 580 700 640 1000 590V800H0Z` },
+        { id: 'houses', d: compound(rect(110, 620, 170, 150, 8), rect(415, 640, 170, 140, 8), rect(720, 615, 170, 155, 8)), det: [{ d: rect(150, 660, 50, 50, 6), f: INK }, { d: rect(455, 680, 50, 50, 6), f: INK }, { d: rect(760, 655, 50, 50, 6), f: INK }] },
+        { id: 'roofs', d: compound(rpoly([[90, 630], [195, 540], [300, 630]], 12), rpoly([[395, 650], [500, 560], [605, 650]], 12), rpoly([[700, 625], [805, 535], [910, 625]], 12)) },
+        { id: 'star', d: hexagram(500, 310, 225) },
+        { id: 'hexagon', d: poly(Array.from({ length: 6 }, (_, i) => { const a = (-60 + i * 60) * D2R, k = 225 / Math.sqrt(3); return [500 + Math.cos(a) * k, 310 + Math.sin(a) * k]; })) },
+        { id: 'small-star', d: hexagram(500, 310, 88) }
+      ]
+    },
+    {
+      id: 'snowglobe', name: 'Snow globe', group: 'hanukkah', sections: [
+        { id: 'wall', d: rect(0, 0, 1000, 620) }, { id: 'table', d: rect(0, 600, 1000, 200) },
+        { id: 'glass', d: circ(500, 340, 250), det: [{ d: crescent(390, 250, 120, 40, 112), f: 'rgba(255,255,255,.55)' }, ...[[330, 200], [620, 160], [700, 280], [430, 150], [560, 250], [300, 330]].map(([x, y]) => ({ d: circ(x, y, 9), f: '#fff' }))] },
+        { id: 'snow', d: `M275.5 450Q400 420 500 450T724.5 450A250 250 0 0 1 275.5 450Z` },
+        { id: 'tree', d: rpoly([[300, 470], [360, 290], [420, 470]], 22) },
+        { id: 'house', d: rect(440, 370, 150, 110, 8), det: [{ d: rect(470, 395, 40, 40, 4), f: INK }] },
+        { id: 'roof', d: rpoly([[420, 380], [515, 290], [610, 380]], 12) },
+        { id: 'door', d: `M525 480V440A25 25 0 0 1 575 440V480Z` },
+        { id: 'ball-l', d: circ(665, 470, 44) },
+        { id: 'ball-h', d: circ(665, 400, 33), det: [{ d: circ(655, 395, 5), f: INK }, { d: circ(676, 395, 5), f: INK }] },
+        { id: 'base', d: rpoly([[300, 560], [700, 560], [760, 720], [240, 720]], 26) },
+        { id: 'base-band', d: rect(270, 615, 460, 52, 10) }
+      ]
+    }
+  ];
+  add(H);
+
+  /* ================================================================ Lunar New Year */
+  const lantern = (x, y, rx, ry, k) => [
+    { id: 'cap-' + k, d: rect(x - 55, y - ry - 34, 110, 52, 12) },
+    { id: 'tassel-' + k, d: rpoly([[x - 28, y + ry + 30], [x + 28, y + ry + 26], [x + 42, y + ry + 130], [x - 42, y + ry + 130]], 14), det: [{ d: line(x - 14, y + ry + 60, x - 18, y + ry + 125), w: 6 }, { d: line(x + 14, y + ry + 60, x + 18, y + ry + 125), w: 6 }] },
+    { id: 'lantern-' + k, d: ell(x, y, rx, ry), det: [{ d: ell(x, y, rx * .5, ry), w: 7 }, { d: line(x, y - ry, x, y + ry), w: 7 }] },
+    { id: 'base-' + k, d: rect(x - 55, y + ry - 18, 110, 52, 12) }
+  ];
+  const fishPts = L => [[.5, 0], [.36, -.17], [.1, -.22], [-.2, -.15], [-.4, -.05], [-.4, .05], [-.2, .15], [.1, .22], [.36, .17]].map(([a, b]) => [a * L, b * L]);
+  const koi = (cx, cy, L, ang, k) => {
+    const T = pts => turn(pts.map(([a, b]) => [cx + a, cy + b]), cx, cy, ang), at = (a, b) => T([[a * L, b * L]])[0];
+    const eyeAt = at(.3, -.08), sp1 = at(-.02, -.06), sp2 = at(.2, .06);
+    return [
+      { id: 'tail-' + k, d: spline(T([[-.36, 0], [-.6, -.24], [-.68, -.12], [-.56, 0], [-.68, .12], [-.6, .24]].map(([a, b]) => [a * L, b * L]))) },
+      { id: 'fins-' + k, d: compound(ell(...at(.1, -.22), .11 * L, .075 * L, ang - 35), ell(...at(.1, .22), .11 * L, .075 * L, ang + 35)) },
+      { id: 'koi-' + k, d: spline(T(fishPts(L))), det: [...eye(eyeAt[0], eyeAt[1], .035 * L), { d: `M${P(...at(.46, -.03))}Q${P(...at(.52, -.1))} ${P(...at(.5, -.16))}`, w: 6 }, { d: `M${P(...at(.46, .03))}Q${P(...at(.52, .1))} ${P(...at(.5, .16))}`, w: 6 }] },
+      { id: 'spot-' + k + '1', d: ell(sp1[0], sp1[1], .12 * L, .075 * L, ang + 10) },
+      { id: 'spot-' + k + '2', d: ell(sp2[0], sp2[1], .09 * L, .065 * L, ang - 15) }
+    ];
+  };
+  const pad = (cx, cy, r, a = 30) => `M${P(cx, cy)}L${P(cx + Math.cos((a - 11) * D2R) * r, cy + Math.sin((a - 11) * D2R) * r)}A${r} ${r} 0 1 0 ${P(cx + Math.cos((a + 11) * D2R) * r, cy + Math.sin((a + 11) * D2R) * r)}Z`;
+  const dumpling = (x, y, s = 1) => `M${P(x - 72 * s, y + 18 * s)}Q${P(x - 62 * s, y - 58 * s)} ${P(x, y - 62 * s)}Q${P(x + 62 * s, y - 58 * s)} ${P(x + 72 * s, y + 18 * s)}Q${P(x, y + 44 * s)} ${P(x - 72 * s, y + 18 * s)}Z`;
+  const pleats = (x, y, s = 1) => [-36, -12, 12, 36].map(dx => ({ d: `M${P(x + dx * s, y - 52 * s)}Q${P(x + dx * s + 8, y - 34 * s)} ${P(x + dx * s, y - 20 * s)}`, w: 6 }));
+  const L = [
+    {
+      id: 'lanterns', name: 'Lanterns', group: 'lunar', sections: [
+        { id: 'sky', d: rect(0, 0, 1000, 800), det: [{ d: line(220, 96, 220, 155), w: 7 }, { d: line(500, 96, 500, 255), w: 7 }, { d: line(780, 96, 780, 155), w: 7 }] },
+        { id: 'moon', d: circ(870, 660, 72) },
+        { id: 'beam', d: rect(-20, 40, 1040, 58, 20) },
+        ...lantern(220, 300, 140, 115, 'a'), ...lantern(780, 300, 140, 115, 'c'), ...lantern(500, 400, 130, 115, 'b'),
+        { id: 'branch', d: thick([[0, 745], [180, 705], [400, 728]], 24) },
+        { id: 'blossoms', d: flowers5([[110, 690, 46], [270, 680, 46], [390, 735, 44]]) }, { id: 'centers', d: centers([[110, 690, 46], [270, 680, 46], [390, 735, 44]]) }
+      ]
+    },
+    {
+      id: 'dragon', name: 'Friendly dragon', group: 'lunar', sections: (() => {
+        const path = Array.from({ length: 49 }, (_, i) => { const x = 60 + i * 13.4, t = (x - 60) / 640; return [x, 560 - t * 150 + 75 * Math.sin(t * Math.PI * 3)]; });
+        const segs = [0, 8, 16, 24, 32, 40].map((a, i) => ({ id: 'seg-' + (i + 1), d: thick(path.slice(a, Math.min(48, a + 8) + 1), 50) }));
+        const spines = [4, 12, 20, 28, 36, 44].map(i => { const [x, y] = path[i], [x2, y2] = path[i + 1], l = Math.hypot(x2 - x, y2 - y), nx = (y2 - y) / l, ny = -(x2 - x) / l, tx = (x2 - x) / l, ty = (y2 - y) / l, h = 40 + i * .6; return rpoly([[x - tx * 30 + nx * 20, y - ty * 30 + ny * 20], [x + nx * (h + 50), y + ny * (h + 50)], [x + tx * 30 + nx * 20, y + ty * 30 + ny * 20]], 8); });
+        return [
+          sky(), plainCloud(180, 140, 1, 'cloud-a'), plainCloud(560, 110, .8, 'cloud-b'),
+          { id: 'pearl', d: circ(905, 170, 52), det: [{ d: curve([[880, 170], [895, 150], [920, 160], [915, 185]]), w: 7 }] },
+          { id: 'spines', d: compound(...spines) },
+          { id: 'tail-fin', d: rpoly([[70, 560], [10, 470], [30, 610]], 14) },
+          { id: 'legs', d: compound(ell(path[13][0], path[13][1] + 62, 30, 48, 10), ell(path[33][0], path[33][1] + 62, 30, 48, -10)) },
+          ...segs.reverse().reverse(),
+          { id: 'mane', d: polar(740, 360, t => 150 * (1 - .22 + .22 * Math.abs(Math.cos(5 * t))), 180) },
+          { id: 'horns', d: compound(leaf(720, 250, 650, 140, 26), leaf(790, 250, 840, 130, 26)) },
+          { id: 'head', d: spline([[650, 330], [700, 265], [790, 255], [850, 300], [870, 370], [820, 440], [720, 450], [660, 410]]), det: [...eyeWhite(735, 320, 26, 4), ...eyeWhite(805, 318, 24, 4), { d: curve([[712, 286], [735, 276], [758, 288]]), w: 7 }, { d: curve([[785, 284], [805, 276], [828, 288]]), w: 7 }] },
+          { id: 'snout', d: ell(850, 395, 80, 52), det: [{ d: ell(840, 380, 7, 9), f: INK }, { d: ell(872, 380, 7, 9), f: INK }, smile(845, 410, 40, 24), { d: curve([[910, 395], [950, 380], [975, 400]]), w: 6 }, { d: curve([[905, 415], [945, 420], [965, 445]]), w: 6 }] }
+        ];
+      })()
+    },
+    {
+      id: 'envelopes', name: 'Red envelopes', group: 'lunar', sections: [
+        { id: 'wall', d: rect(0, 0, 1000, 660) }, { id: 'table', d: rect(0, 640, 1000, 160) },
+        { id: 'branch', d: thick([[1010, 80], [850, 130], [700, 110]], 25) },
+        { id: 'blossoms', d: flowers5([[930, 95, 44], [800, 140, 46], [690, 95, 42]]) }, { id: 'centers', d: centers([[930, 95, 44], [800, 140, 46], [690, 95, 42]]) },
+        ...[['a', 130, 250, -10], ['b', 380, 240, 7]].flatMap(([k, x, y, a]) => {
+          const cx = x + 110, cy = y + 160, c = turn([[cx, cy + 30]], cx, cy, a)[0];
+          return [
+            { id: 'env-' + k, d: rpoly(turn(box(x, y, 220, 320), cx, cy, a), 16) },
+            { id: 'flap-' + k, d: rpoly(turn([[x + 6, y + 6], [x + 214, y + 6], [x + 110, y + 118]], cx, cy, a), 10) },
+            { id: 'medal-' + k, d: circ(c[0], c[1], 56), det: [{ d: circ(c[0], c[1], 40), w: 6 }, { d: rpoly(turn(box(c[0] - 14, c[1] - 14, 28, 28), c[0], c[1], a), 3), w: 6 }] }
+          ];
+        }),
+        { id: 'plate', d: ell(765, 690, 205, 52) },
+        { id: 'orange-l', d: circ(690, 600, 72), det: [{ d: circ(690, 545, 5), f: INK }] }, { id: 'orange-r', d: circ(840, 600, 72) },
+        { id: 'orange-top', d: circ(765, 480, 72), det: [{ d: circ(765, 425, 5), f: INK }] },
+        { id: 'leaf', d: leaf(765, 412, 848, 352, 30) }
+      ]
+    },
+    {
+      id: 'koi', name: 'Lucky fish', group: 'lunar', sections: [
+        { id: 'water', d: rect(0, 0, 1000, 800), det: [{ d: curve([[300, 120], [340, 108], [380, 120]]), w: 6 }, { d: curve([[600, 720], [640, 708], [680, 720]]), w: 6 }, { d: curve([[100, 520], [140, 508], [180, 520]]), w: 6 }] },
+        { id: 'pad-a', d: pad(150, 160, 95, 20) }, { id: 'pad-b', d: pad(860, 170, 72, 160) }, { id: 'pad-c', d: pad(840, 660, 110, 300) },
+        { id: 'petal-1', d: leaf(840, 650, 760, 555, 36) }, { id: 'petal-2', d: leaf(840, 650, 920, 555, 36) }, { id: 'petal-3', d: leaf(840, 655, 730, 620, 46) }, { id: 'petal-4', d: leaf(840, 655, 950, 620, 46) }, { id: 'petal-5', d: leaf(840, 650, 840, 525, 54) },
+        ...koi(400, 330, 380, -20, 'a'), ...koi(560, 560, 340, 160, 'b'),
+        { id: 'bubbles', d: compound(circ(640, 220, 28), circ(690, 160, 26), circ(300, 650, 28)) }
+      ]
+    },
+    {
+      id: 'dumplings', name: 'Dumplings', group: 'lunar', sections: [
+        { id: 'wall', d: rect(0, 0, 1000, 560), det: [{ d: curve([[400, 380], [380, 330], [405, 290], [385, 240]]), w: 7 }, { d: curve([[500, 370], [480, 320], [505, 280], [485, 230]]), w: 7 }, { d: curve([[600, 380], [580, 330], [605, 290], [585, 240]]), w: 7 }] },
+        { id: 'table', d: rect(0, 540, 1000, 260) },
+        { id: 'spout', d: rpoly([[900, 470], [975, 392], [995, 414], [925, 512]], 14) },
+        { id: 'handle', d: ring(735, 470, 58, 32) },
+        { id: 'teapot', d: ell(830, 475, 108, 90) },
+        { id: 'lid', d: `M770 394A60 54 0 0 1 890 394Z` },
+        { id: 'rim', d: ell(460, 510, 215, 52) },
+        { id: 'dumpling-1', d: dumpling(385, 498, .9), det: pleats(385, 498, .9) }, { id: 'dumpling-2', d: dumpling(535, 492, .9), det: pleats(535, 492, .9) },
+        { id: 'dumpling-3', d: dumpling(460, 540, .95), det: pleats(460, 540, .95) },
+        { id: 'band', d: `M245 510A215 52 0 0 0 675 510V650Q460 700 245 650Z`, det: [{ d: `M${P(245, 590)}Q${P(460, 640)} ${P(675, 590)}`, w: 7 }] },
+        { id: 'dish', d: ell(810, 650, 112, 42) },
+        { id: 'sauce', d: ell(810, 644, 80, 26) },
+        { id: 'cup', d: rpoly([[70, 575], [210, 575], [192, 672], [88, 672]], 18) }
+      ]
+    },
+    {
+      id: 'liondance', name: 'Lion dance', group: 'lunar', sections: [
+        sky(), { id: 'street', d: rect(0, 640, 1000, 160) },
+        { id: 'cloth', d: spline([[600, 470], [770, 390], [910, 440], [985, 580], [910, 720], [720, 760], [580, 700]]), det: [{ d: curve([[720, 700], [800, 690], [880, 660]]), w: 7 }] },
+        { id: 'mane', d: fluffy(450, 410, 285, 255, 18, .08) },
+        { id: 'ears', d: compound(ell(232, 250, 64, 40, -30), ell(668, 250, 64, 40, 30)) },
+        { id: 'head', d: ell(450, 410, 222, 192), det: [...eyeWhite(370, 382, 42, 4), ...eyeWhite(530, 382, 42, -4)] },
+        { id: 'horn', d: rpoly([[418, 236], [482, 236], [450, 150]], 10) },
+        { id: 'mirror', d: circ(450, 278, 38) },
+        { id: 'brows', d: compound(fluffy(365, 322, 72, 32, 8, .16), fluffy(535, 322, 72, 32, 8, .16)) },
+        { id: 'cheeks', d: compound(circ(282, 478, 42), circ(618, 478, 42)) },
+        { id: 'nose', d: ell(450, 452, 62, 40) },
+        { id: 'mouth', d: `M310 510Q450 650 590 510Q450 560 310 510Z`, det: [{ d: rpoly([[400, 534], [430, 538], [415, 562]], 3), f: '#fff' }, { d: rpoly([[470, 538], [500, 534], [485, 562]], 3), f: '#fff' }] },
+        { id: 'beard', d: fluffy(450, 625, 110, 48, 10, .14) }
+      ]
+    }
+  ];
+  add(L);
+
+  const GROUPS = [
+    { id: 'valentine', name: "Valentine's Day", theme: 'valentine', tint: '#ffe0e6', edge: '#f28b9b', emblem: 'lovebear', demo: [['sky', 18], ['ground', 3], ['hearts-1', 0], ['hearts-2', 9], ['ears-1', 11], ['ears-2', 11], ['head', 11], ['body', 11], ['muzzle', 10], ['heart', 14], ['arms-1', 11], ['arms-2', 11]] },
+    { id: 'easter', name: 'Easter and spring', theme: 'easter', tint: '#fff4c7', edge: '#f2d36b', emblem: 'eggbasket', demo: [['sky', 18], ['ground', 3], ['sun', 2], ['egg-1', 9], ['egg-2', 17], ['egg-3', 2], ['egg-4', 20], ['basket', 11], ['rim', 11], ['handle', 11], ['egg-l', 6], ['band-l', 0], ['egg-r', 2], ['band-r', 8]] },
+    { id: 'summer', name: 'Summer fun', theme: 'summer', tint: '#d4f1ff', edge: '#7fc9ef', emblem: 'beachday', demo: [['sky', 18], ['sun', 2], ['sea', 7], ['sand', 10], ['canopy-l', 14], ['canopy-m', 23], ['canopy-r', 14], ['ball', 23], ['stripe-l', 7], ['stripe-r', 2], ['bucket', 0], ['bucket-rim', 2], ['towel', 5], ['sail', 23], ['hull', 0], ['starfish', 1]] },
+    { id: 'birthday', name: 'Birthday party', theme: 'birthday', tint: '#f6e0ff', edge: '#d49af0', emblem: 'bdaycake', demo: [['wall', 20], ['table', 11], ['bunting-1', 0], ['bunting-2', 2], ['bunting-3', 7], ['bunting-4', 3], ['bunting-5', 8], ['bunting-6', 1], ['balloon-l', 9], ['balloon-r', 6], ['stand', 18], ['tier-1', 9], ['icing-1', 23], ['tier-2', 6], ['icing-2', 23], ['tier-3', 2], ['icing-3', 23], ['candles-1', 0], ['candles-2', 7], ['candles-3', 3], ['flames-1', 1], ['flames-2', 1], ['flames-3', 1]] },
+    { id: 'hanukkah', name: 'Hanukkah and winter lights', theme: 'hanukkah', tint: '#dde8ff', edge: '#8fa9ec', emblem: 'menorah', demo: [['wall', 18], ['table', 19], ['base', 16], ['stem', 16], ['bar', 16], ['holder', 16], ...[1, 2, 3, 4, 5, 6, 7, 8].map(i => ['candles-' + i, i % 2 ? 7 : 23]), ['shamash', 7], ...[1, 2, 3, 4, 5, 6, 7, 8].map(i => ['flames-' + i, 2]), ['flame-s', 2]] },
+    { id: 'lunar', name: 'Lunar New Year', theme: 'lunar', tint: '#ffe0d6', edge: '#f08f72', emblem: 'lanterns', demo: [['sky', 19], ['moon', 2], ['beam', 11], ...['a', 'b', 'c'].flatMap(k => [['lantern-' + k, 14], ['cap-' + k, 16], ['base-' + k, 16], ['tassel-' + k, 16]]), ['branch', 11], ['blossoms-1', 9], ['blossoms-2', 9], ['blossoms-3', 9]] }
+  ];
+  SPG.pictureGroups.push(...GROUPS);
 })();

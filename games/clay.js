@@ -637,7 +637,7 @@
         const S = 900, out = document.createElement('canvas'); out.width = out.height = S; const q = out.getContext('2d');
         const bg = q.createLinearGradient(0, 0, 0, S); bg.addColorStop(0, '#fdf1dd'); bg.addColorStop(1, '#f7dfc0'); q.fillStyle = bg; q.fillRect(0, 0, S, S);
         this.drawMat(q, 40, 40, S - 80); this.drawObjs(q, 40, 40, S - 80, this.board.s * this.dpr, false);
-        q.fillStyle = 'rgba(90,63,94,.55)'; q.font = '700 34px Fredoka, system-ui, sans-serif'; q.textAlign = 'center'; q.fillText('Clay Corner', S / 2, S - 12);
+        q.fillStyle = 'rgba(90,63,94,.55)'; q.font = '700 34px Fredoka, system-ui, sans-serif'; q.textAlign = 'center'; q.fillText(SPG.t('Clay Corner'), S / 2, S - 12);
         const small = document.createElement('canvas'); small.width = small.height = 120; small.getContext('2d').drawImage(out, 0, 0, 120, 120); this.snapA = { img: small, t: 0 };
         // the album waits for a picture that is still being saved, so opening it right after the camera never looks empty
         this.saving = new Promise(res => out.toBlob(async b => { try { if (b && this.pid() && SPG.photos) await SPG.photos.add(this.pid(), b, { game: 'clay', recipe: 'clay', name: 'Clay' }); } catch (_) { /* no picture this time */ } res(); }, 'image/jpeg', .9));

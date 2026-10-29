@@ -63,7 +63,7 @@
     buildBar() {
       this.bar = el('div', 'gd-bar'); this.tools = {};
       const add = (id, label, drawFn, cls = '') => {
-        const cv = el('canvas', 'gd-thumb'); const b = el('button', 'gd-tool ' + cls, cv); b.type = 'button'; b.setAttribute('aria-label', label);
+        const cv = el('canvas', 'gd-thumb'); const b = el('button', 'gd-tool ' + cls, cv); b.type = 'button'; b.setAttribute('aria-label', SPG.t(label));
         SPG.ui.press(b, () => { sfx.tap(); this.pick(id); });
         this.tools[id] = { b, cv, drawFn }; this.bar.append(b); thumb(cv, drawFn);
       };
@@ -77,7 +77,7 @@
       add('book', 'My garden friends', (c, w, h) => { disc(c, w, h, '#ffe28a'); c.save(); c.translate(w / 2, h / 2 + 4); art.creature(c, 'butterfly', w * .32, 1); c.restore(); }, 'book');
       this.tray = el('div', 'gd-tray hidden');
       art.PLANTS.forEach(pl => {
-        const cv = el('canvas', 'gd-thumb'); const b = el('button', 'gd-packet', cv); b.type = 'button'; b.dataset.plant = pl.id; b.setAttribute('aria-label', pl.name + ' seeds');
+        const cv = el('canvas', 'gd-thumb'); const b = el('button', 'gd-packet', cv); b.type = 'button'; b.dataset.plant = pl.id; b.setAttribute('aria-label', SPG.t('{name} seeds', { name: SPG.t(pl.name) }));
         SPG.ui.press(b, () => this.chooseSeed(pl.id, b));
         this.tray.append(b);
         b._paint = () => thumb(cv, (c, w, h) => { c.fillStyle = 'rgba(255,255,255,.85)'; art.rr(c, 4, 4, w - 8, h - 8, w * .22); c.fill(); c.save(); c.translate(w / 2, h * .88); art.plant(c, pl.id, 3, h * .8, 0); c.restore(); });
@@ -275,13 +275,13 @@
     // Saying goodbye needs a second, clear step so it can never happen by accident.
     askGoodbye(cr) {
       if (this.dialog) return;
-      const name = CREATURES[cr.kind].name.toLowerCase();
+      const name = SPG.t(CREATURES[cr.kind].name).toLowerCase();
       const canvas = el('canvas', 'gd-bye-art'); canvas.width = canvas.height = 240;
       const c = canvas.getContext('2d'), f = cr.kind in FLIP ? FLIP[cr.kind] : 1;
       c.translate(120, 165); if (f) c.scale(f, 1); art.creature(c, cr.kind, 140, 0, false);
       const armed = { t: 0 };
       const btn = (cls, label, emoji, fn) => {
-        const b = el('button', 'gd-bye-btn ' + cls, el('span', 'gd-bye-emoji', emoji), el('span', '', label)); b.type = 'button';
+        const b = el('button', 'gd-bye-btn ' + cls, el('span', 'gd-bye-emoji', emoji), el('span', '', SPG.t(label))); b.type = 'button';
         b.addEventListener('pointerdown', () => { armed.b = b; armed.t = performance.now(); });
         b.addEventListener('click', e => { if ((e.detail === 0 || armed.b === b) && performance.now() - this.dialog.t0 > 400) fn(); armed.b = null; });
         return b;
@@ -289,7 +289,7 @@
       const close = () => { this.dialog.el.remove(); this.dialog = null; voice.stop(); };
       const stay = btn('stay', 'Stay', '\u{1F49A}', () => { sfx.tap(); close(); });
       const bye = btn('bye', 'Bye-bye', '\u{1F44B}', () => { const target = cr; close(); if (this.creatures.includes(target)) this.sendOff(target); });
-      const sheet = el('div', 'gd-bye-sheet', canvas, el('h2', '', `Say bye-bye to the ${name}?`), el('p', '', 'Tap the soft pink button to say bye-bye. Tap the green one to keep your friend.'), el('div', 'gd-bye-row', stay, bye));
+      const sheet = el('div', 'gd-bye-sheet', canvas, el('h2', '', SPG.t('Say bye-bye to the {name}?', { name })), el('p', '', SPG.t('Tap the soft pink button to say bye-bye. Tap the green one to keep your friend.')), el('div', 'gd-bye-row', stay, bye));
       const overlay = el('div', 'gd-bye', sheet);
       this.host.append(overlay);
       this.dialog = { el: overlay, t0: performance.now() };
@@ -542,7 +542,7 @@
       const sheet = el('div', 'gd-book-sheet'), grid = el('div', 'gd-book-grid'); sheet.setAttribute('data-scroll', '');
       art.CREATURES.forEach(cr => {
         const seen = this.bag.seen[cr.id];
-        const cv = el('canvas', 'gd-book-art'); const tile = el('button', 'gd-book-tile' + (seen ? ' seen' : ''), cv); tile.type = 'button'; tile.setAttribute('aria-label', seen ? cr.name : 'Not met yet');
+        const cv = el('canvas', 'gd-book-art'); const tile = el('button', 'gd-book-tile' + (seen ? ' seen' : ''), cv); tile.type = 'button'; tile.setAttribute('aria-label', seen ? SPG.t(cr.name) : SPG.t('Not met yet'));
         thumb(cv, (c, w, h) => {
           c.translate(w / 2, h * .55);
           if (seen) art.creature(c, cr.id, Math.min(w, h) * .28, 1);

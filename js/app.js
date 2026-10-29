@@ -4,8 +4,9 @@
   const SPG = window.SPG;
   const { store, voice, safe, art } = SPG;
   const $ = id => document.getElementById(id);
+  const t = SPG.t;   // the text in the chosen language (js/i18n.js)
   const screens = { who: $('who'), setup: $('setup'), hub: $('hub'), stage: $('stage') };
-  const overlays = { brk: $('break'), gate: $('gate'), parent: $('parent'), studio: $('studio'), fs: $('fs-resume'), vintro: $('vintro') };
+  const overlays = { brk: $('break'), gate: $('gate'), parent: $('parent'), studio: $('studio'), signvid: $('signvid'), fs: $('fs-resume'), vintro: $('vintro') };
   let current = 'who';
   let running = null;
 
@@ -64,10 +65,10 @@
     $('install-hint').classList.toggle('hidden', !safe.needsInstallForFullscreen());
     const list = $('who-list');
     list.replaceChildren(...store.profiles.map(p => {
-      const tile = h('button', { class: 'who-tile', type: 'button', 'aria-label': 'Play as ' + p.name }, avatarCanvas(p.avatar, 220), h('span', {}, p.name), h('span', { class: 'go-badge' }, icon('play')));
+      const tile = h('button', { class: 'who-tile', type: 'button', 'aria-label': t('Play as {name}', { name: p.name }) }, avatarCanvas(p.avatar, 220), h('span', {}, p.name), h('span', { class: 'go-badge' }, icon('play')));
       tile.addEventListener('click', () => choose(p));
       return tile;
-    }), h('button', { class: 'who-tile add', type: 'button', 'aria-label': 'Add a player', onclick: () => askGate(() => openSetup(true)) }, icon('plus')));
+    }), h('button', { class: 'who-tile add', type: 'button', 'aria-label': t('Add a player'), onclick: () => askGate(() => openSetup(true)) }, icon('plus')));
     show('who');
   }
 
@@ -78,7 +79,7 @@
     refreshHub();
     show('hub');
     SPG.music.sync();
-    voice.custom['player/' + p.id] = `Hi ${p.name}!`; voice.custom['pname/' + p.id] = p.name;
+    voice.custom['player/' + p.id] = t('Hi {name}!', { name: p.name }); voice.custom['pname/' + p.id] = p.name;
     if (!checkLimit()) voice.say('player/' + p.id, 'welcome');
   }
 
@@ -102,7 +103,7 @@
       return b;
     }));
     pickedGender = ''; pickedAge = 0;
-    chipRow($('gender-pick'), [['girl', 'Girl'], ['boy', 'Boy']], () => pickedGender, v => { pickedGender = v; });
+    chipRow($('gender-pick'), [['girl', t('Girl')], ['boy', t('Boy')]], () => pickedGender, v => { pickedGender = v; });
     chipRow($('age-pick'), SPG.level.AGES.map(a => [a, String(a)]), () => pickedAge, v => { pickedAge = v; });
     $('setup-restore').classList.toggle('hidden', store.profiles.length > 0);
     $('name-input').value = ''; $('name-field').classList.add('hidden'); $('type-name').classList.remove('hidden');
@@ -115,11 +116,14 @@
   SPG.ui.press($('type-name'), () => askGate(() => { $('type-name').classList.add('hidden'); $('name-field').classList.remove('hidden'); nickGrid && nickGrid.clear(); setTimeout(() => $('name-input').focus(), 80); }));
   $('setup-cancel').addEventListener('click', renderWho);
   $('setup-restore').addEventListener('click', () => askGate(openParent));
+  // the language is a grown-up choice too (it is the first thing in their panel)
+  $('setup-lang').addEventListener('click', () => askGate(openParent));
+  $('setup-lang-name').textContent = SPG.i18n.info().native;
   $('setup-form').addEventListener('submit', e => {
     e.preventDefault();
     const input = $('name-input');
     const name = input.value.trim() || (nickGrid && nickGrid.value) || '';
-    if (!name) { const t = $('nick-pick'); t.animate([{ transform: 'translateX(-8px)' }, { transform: 'translateX(8px)' }, { transform: 'none' }], { duration: 250 }); SPG.sfx.oops(); return; }
+    if (!name) { const nk = $('nick-pick'); nk.animate([{ transform: 'translateX(-8px)' }, { transform: 'translateX(8px)' }, { transform: 'none' }], { duration: 250 }); SPG.sfx.oops(); return; }
     input.blur();
     choose(store.addProfile(name, pickedAvatar, { gender: pickedGender, level: pickedAge ? { mode: 'age', age: pickedAge } : null }));
   });
@@ -151,7 +155,7 @@
   SPG.ui.press($('hub-who'), () => { voice.stop(); renderWho(); });
   SPG.ui.press($('hub-lock'), () => askGate(openParent));
 
-  const tints = { letters: ['#ffe3ec', '#f5b8cb'], fruit: ['#ffe9c7', '#f5c98a'], rain: ['#d8efff', '#a8d3f2'], fire: ['#ffe1d6', '#f5a58f'], band: ['#ffe3f0', '#f2a9c9'], shapes: ['#e3f0ff', '#9cc5f0'], puzzle: ['#e6f7ec', '#98d4ae'], care: ['#fff0d9', '#f2c88c'], hide: ['#e8f6d8', '#a7d78a'], garden: ['#dff5d0', '#a9d98f'], color: ['#efe4ff', '#cdbcf7'], pets: ['#ffe8ef', '#f6b9cc'], style: ['#ffe3f1', '#f7a8cf'], aquarium: ['#d8f2ff', '#7fc8ec'], cook: ['#fff0dc', '#f5c690'], clay: ['#ffe9d4', '#f2b98c'], fishing: ['#d8f2ff', '#8ccbe8'], pattern: ['#eafbe0', '#a6dc7e'], feelings: ['#fff1f6', '#f5b8cb'], sort: ['#fff6e0', '#f5cf8f'] };
+  const tints = { letters: ['#ffe3ec', '#f5b8cb'], fruit: ['#ffe9c7', '#f5c98a'], rain: ['#d8efff', '#a8d3f2'], fire: ['#ffe1d6', '#f5a58f'], band: ['#ffe3f0', '#f2a9c9'], shapes: ['#e3f0ff', '#9cc5f0'], puzzle: ['#e6f7ec', '#98d4ae'], care: ['#fff0d9', '#f2c88c'], hide: ['#e8f6d8', '#a7d78a'], garden: ['#dff5d0', '#a9d98f'], color: ['#efe4ff', '#cdbcf7'], pets: ['#ffe8ef', '#f6b9cc'], style: ['#ffe3f1', '#f7a8cf'], aquarium: ['#d8f2ff', '#7fc8ec'], cook: ['#fff0dc', '#f5c690'], clay: ['#ffe9d4', '#f2b98c'], fishing: ['#d8f2ff', '#8ccbe8'], pattern: ['#eafbe0', '#a6dc7e'], feelings: ['#fff1f6', '#f5b8cb'], sort: ['#fff6e0', '#f5cf8f'], signs: ['#e9f3ff', '#b9d4f5'] };
   function renderCards() {
     const all = SPG.games.slice().sort((a, b) => a.order - b.order);
     const games = orderedGames(all.filter(g => !g.shop)), shops = all.filter(g => g.shop);
@@ -167,11 +171,11 @@
     // Swipe, or use the big arrows and dots underneath.
     const PER_PAGE = hubPer = perPage(), pages = [];
     for (let i = 0; i < games.length; i += PER_PAGE) pages.push(games.slice(i, i + PER_PAGE));
-    const strip = h('div', { class: 'pages' }, ...pages.map((list, pi) => h('div', { class: 'cards page', 'aria-label': `Page ${pi + 1} of ${pages.length}` }, ...list.map((g, k) => {
+    const strip = h('div', { class: 'pages' }, ...pages.map((list, pi) => h('div', { class: 'cards page', 'aria-label': t('Page {n} of {all}', { n: pi + 1, all: pages.length }) }, ...list.map((g, k) => {
       const [tint, edge] = tints[g.id] || ['#fff', '#ddd'];
       const canvas = document.createElement('canvas');
-      const card = h('button', { class: 'card' + (hubEdit && hubEdit.drag && hubEdit.drag.id === g.id ? ' drag-src' : ''), type: 'button', 'aria-label': g.name, style: `--tint:${tint};--edge:${edge};--d:${-(pi * PER_PAGE + k) * 1.1}s` },
-        h('span', { class: 'lamp', 'aria-hidden': 'true' }), canvas, h('span', { class: 'card-name' }, g.name),
+      const card = h('button', { class: 'card' + (hubEdit && hubEdit.drag && hubEdit.drag.id === g.id ? ' drag-src' : ''), type: 'button', 'aria-label': t(g.name), 'data-id': g.id, style: `--tint:${tint};--edge:${edge};--d:${-(pi * PER_PAGE + k) * 1.1}s` },
+        h('span', { class: 'lamp', 'aria-hidden': 'true' }), canvas, h('span', { class: 'card-name' }, t(g.name)),
         // a game added in an update twinkles until this player has opened it once, so it is found even on the last page
         g.fresh ? h('span', { class: 'card-new', 'data-id': g.id, 'aria-hidden': 'true' }) : null);
       // A swipe must turn the page, not start a game, so a card opens on a short tap (the browser cancels the touch when it becomes a swipe).
@@ -194,9 +198,9 @@
       card._draw = paint(canvas, g);
       return card;
     }))));
-    const prev = h('button', { class: 'pg-arrow', type: 'button', 'aria-label': 'Previous page' }, icon('left'));
-    const next = h('button', { class: 'pg-arrow', type: 'button', 'aria-label': 'Next page' }, icon('right'));
-    const dots = h('div', { class: 'pg-dots' }, ...pages.map((_, i) => h('button', { class: 'pg-dot', type: 'button', 'aria-label': `Page ${i + 1}` })));
+    const prev = h('button', { class: 'pg-arrow', type: 'button', 'aria-label': t('Previous page') }, icon('left'));
+    const next = h('button', { class: 'pg-arrow', type: 'button', 'aria-label': t('Next page') }, icon('right'));
+    const dots = h('div', { class: 'pg-dots' }, ...pages.map((_, i) => h('button', { class: 'pg-dot', type: 'button', 'aria-label': t('Page {n}', { n: i + 1 }) })));
     const go = i => { const n = Math.max(0, Math.min(pages.length - 1, i)); strip.scrollTo({ left: n * strip.clientWidth, behavior: 'smooth' }); };
     const where = () => Math.max(0, Math.min(pages.length - 1, Math.round(strip.scrollLeft / Math.max(1, strip.clientWidth))));
     const mark = () => {
@@ -226,7 +230,7 @@
     // Shops are not games: they get their own storefront under the games.
     $('hub-shop').replaceChildren(...shops.map(g => {
       const canvas = document.createElement('canvas');
-      const front = h('button', { class: 'shopfront', type: 'button', 'aria-label': g.name }, canvas, h('span', { class: 'shop-sign' }, g.name));
+      const front = h('button', { class: 'shopfront', type: 'button', 'aria-label': t(g.name), 'data-id': g.id }, canvas, h('span', { class: 'shop-sign' }, t(g.name)));
       SPG.ui.press(front, () => { if (!hubEdit) openGame(g); });
       front._draw = paint(canvas, g);
       return front;
@@ -251,9 +255,9 @@
   function enterHubEdit() {
     if (hubEdit) return; hubEdit = { drag: null }; document.body.classList.add('hub-editing');
     const bar = h('div', { id: 'hub-editbar', class: 'hub-editbar' },
-      h('span', { class: 'hub-edit-msg' }, 'Drag an app to move it. Hold at the screen edge to go to another page.'),
-      h('button', { class: 'btn quiet small', type: 'button', id: 'hub-edit-reset' }, 'Original order'),
-      h('button', { class: 'btn go', type: 'button', id: 'hub-edit-done' }, icon('check'), ' Done'));
+      h('span', { class: 'hub-edit-msg' }, t('Drag an app to move it. Hold at the screen edge to go to another page.')),
+      h('button', { class: 'btn quiet small', type: 'button', id: 'hub-edit-reset' }, t('Original order')),
+      h('button', { class: 'btn go', type: 'button', id: 'hub-edit-done' }, icon('check'), ' ' + t('Done')));
     $('hub').append(bar);
     SPG.ui.press($('hub-edit-done'), exitHubEdit);
     SPG.ui.press($('hub-edit-reset'), () => { delete store.settings.hubOrder; store.saveSettings(); SPG.sfx.tap(); renderCards(); });
@@ -266,15 +270,15 @@
   }
   function startHubDrag(e, g, card) {
     const r = card.getBoundingClientRect(), src = card.querySelector('canvas'), ghost = h('div', { class: 'card-ghost', style: `width:${r.width}px;height:${r.height}px;--tint:${(tints[g.id] || ['#fff'])[0]};--edge:${(tints[g.id] || [0, '#ddd'])[1]}` });
-    const gc = document.createElement('canvas'); gc.width = src.width; gc.height = src.height; gc.getContext('2d').drawImage(src, 0, 0); gc.style.width = src.getBoundingClientRect().width + 'px'; ghost.append(gc, h('span', { class: 'card-name' }, g.name)); document.body.append(ghost);
+    const gc = document.createElement('canvas'); gc.width = src.width; gc.height = src.height; gc.getContext('2d').drawImage(src, 0, 0); gc.style.width = src.getBoundingClientRect().width + 'px'; ghost.append(gc, h('span', { class: 'card-name' }, t(g.name))); document.body.append(ghost);
     const D = hubEdit.drag = { id: g.id, ghost, ox: e.clientX - r.left, oy: e.clientY - r.top, dwell: 0, dir: 0, pid: e.pointerId };
     const place = ev => { ghost.style.transform = `translate(${ev.clientX - D.ox}px, ${ev.clientY - D.oy}px) scale(1.08) rotate(-3deg)`; };
     place(e); SPG.sfx.tap(); card.classList.add('drag-src');
     const move = ev => {
       if (!hubEdit || hubEdit.drag !== D) return; place(ev);
       const el = document.elementFromPoint(ev.clientX, ev.clientY), tc = el && el.closest && el.closest('#hub-games .card');
-      if (tc && tc.getAttribute('aria-label') !== g.name) {
-        const tg = SPG.games.find(x => x.name === tc.getAttribute('aria-label')); if (tg) {
+      if (tc && tc.dataset.id !== g.id) {
+        const tg = SPG.games.find(x => x.id === tc.dataset.id); if (tg) {
           const ids = gameIds(), from = ids.indexOf(g.id), to = ids.indexOf(tg.id); ids.splice(from, 1); ids.splice(to, 0, g.id);   // takes the place of the app it is dropped on
           store.settings.hubOrder = ids; SPG.sfx.plink(1); renderCards();
         }
@@ -298,7 +302,16 @@
   const perPage = () => (coverTiny() ? 1 : squareOpen() ? 9 : matchMedia('(min-width: 600px) and (min-height: 600px)').matches ? 6 : matchMedia('(orientation: portrait)').matches && !matchMedia('(max-height: 520px)').matches ? 9 : 8);
   function drawCards() {
     const strip = document.querySelector('#hub-games .pages'); if (strip && strip._restore) strip._restore();
-    document.querySelectorAll('#hub-games .card, #hub-shop .shopfront').forEach(c => c._draw && c._draw()); }
+    document.querySelectorAll('#hub-games .card, #hub-shop .shopfront').forEach(c => c._draw && c._draw());
+    document.querySelectorAll('#hub-shop .shop-sign').forEach(fitSign); }
+  // The shop's name sign must leave the OPEN sign by the door showing: a long name (Tienda de mascotas) gets smaller
+  // letters, and only if that is not enough goes on two lines.
+  function fitSign(s) {
+    s.style.fontSize = ''; s.classList.remove('wrap');
+    const max = s.parentNode.clientWidth * .36; if (!max || s.offsetWidth <= max) return;
+    s.style.fontSize = parseFloat(getComputedStyle(s).fontSize) * Math.max(.7, max / s.offsetWidth) + 'px';
+    if (s.offsetWidth > max) s.classList.add('wrap');
+  }
 
   /* ------------------------------------------------------------ games */
   function openGame(g) {
@@ -339,7 +352,6 @@
   };
 
   /* ------------------------------------------------------------ parent gate */
-  const WORDS = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine'];
   let gateState = null;
   // The grown-up gate. With no PIN set it is the spelled-out sum; once a grown-up has set a PIN it is the PIN.
   async function hashPin(pin) {
@@ -358,19 +370,19 @@
     if (store.settings.pin) { askPin(onPass); return; }
     gateState = { onPass, entry: '', max: 2, mode: 'math' };
     newQuestion();
-    openGateSheet('Grown-ups only', 'Answer to continue', false);
+    openGateSheet('Grown-ups only', t('Answer to continue'), false);
   }
   // PIN entry. With opts.capture the typed PIN is handed over (setting a new PIN) instead of being checked.
   function askPin(onPass, opts = {}) {
-    gateState = { onPass, entry: '', max: 4, mode: 'pin', capture: opts.capture, prompt: opts.prompt || 'Type your PIN' };
+    gateState = { onPass, entry: '', max: 4, mode: 'pin', capture: opts.capture, prompt: opts.prompt || t('Type your PIN') };
     $('gate-q').textContent = gateState.prompt; paintGate();
-    openGateSheet(opts.title || 'Grown-ups only', opts.hint || 'Type the PIN to continue', !opts.capture);
+    openGateSheet(opts.title || t('Grown-ups only'), opts.hint || t('Type the PIN to continue'), !opts.capture);
   }
   // A harder sum for a grown-up who forgot the PIN (a small child cannot do it). Two right in a row clears the PIN.
   function forgotPin() {
     const done = gateState && gateState.onPass; if (!done) return;
     gateState = { onPass: done, entry: '', max: 3, mode: 'recover', right: 0 };
-    newRecover(); openGateSheet('Forgot the PIN?', 'Two sums in a row clear the PIN', false);
+    newRecover(); openGateSheet(t('Forgot the PIN?'), t('Two sums in a row clear the PIN'), false);
   }
   function newRecover() {
     const a = 21 + Math.floor(Math.random() * 60), b = 21 + Math.floor(Math.random() * 60);
@@ -384,7 +396,7 @@
   function newQuestion() {
     const a = 3 + Math.floor(Math.random() * 7), b = 3 + Math.floor(Math.random() * 7);
     gateState.answer = String(a + b); gateState.entry = '';
-    $('gate-q').textContent = `${WORDS[a]} plus ${WORDS[b]}`;
+    $('gate-q').textContent = t('{a} plus {b}', { a: SPG.i18n.numWord(a), b: SPG.i18n.numWord(b) });
     $('gate-answer').textContent = '';
   }
   (() => {
@@ -432,7 +444,7 @@
     const g = gateState; if (!g || g.busy) return; g.busy = true;
     const ok = await SPG.native.deviceAuth.verify(store.settings.deviceAuth);
     if (gateState !== g) return; g.busy = false;
-    if (ok) { const cb = g.onPass; gateState = null; closeOverlay(overlays.gate); cb && cb(); } else { SPG.sfx.oops(); $('gate-hint').textContent = 'That did not work. You can still use the PIN or the question.'; }
+    if (ok) { const cb = g.onPass; gateState = null; closeOverlay(overlays.gate); cb && cb(); } else { SPG.sfx.oops(); $('gate-hint').textContent = t('That did not work. You can still use the PIN or the question.'); }
   });
   SPG.ui.press($('gate-back'), () => { gateState = null; closeOverlay(overlays.gate); });
 
@@ -452,6 +464,9 @@
   function openStudio() { SPG.studio.render($('studio-body')); openOverlay(overlays.studio); }
   function closeStudio() { SPG.studio.abort(); voice.stop(); closeOverlay(overlays.studio); renderParent(); }
   $('studio-close').addEventListener('click', closeStudio);
+  function openSignVideos() { SPG.signVideo.render($('signvid-body')); openOverlay(overlays.signvid); }
+  function closeSignVideos() { SPG.signVideo.close(); closeOverlay(overlays.signvid); renderParent(); }
+  $('signvid-close').addEventListener('click', closeSignVideos);
 
   function toggle(label, key) {
     const sw = h('button', { class: 'switch', type: 'button', role: 'switch', 'aria-checked': String(!!store.settings[key]), 'aria-label': label });
@@ -469,7 +484,7 @@
     const b = h('button', { class: `btn small ${cls}`, type: 'button' }, label);
     let armed = false;
     b.addEventListener('click', () => {
-      if (!armed) { armed = true; b.textContent = 'Tap again to confirm'; setTimeout(() => { armed = false; b.textContent = label; }, 3500); return; }
+      if (!armed) { armed = true; b.textContent = t('Tap again to confirm'); setTimeout(() => { armed = false; b.textContent = label; }, 3500); return; }
       action();
     });
     return b;
@@ -479,73 +494,73 @@
   /* ------------------------------------------------------------ backups */
   let backupMsg = '', pendingRecoveryEmail = '';
   const SAY = {
-    offline: 'No internet connection right now. Everything is still safe on this device; try again later.',
-    failed: 'The backup service could not be reached. Everything is still safe on this device; try again later.',
-    badcode: 'That code did not unlock a backup. Check it and try again.',
-    notfound: 'No backup was found for that code. Check it and try again.',
-    shape: 'A family code has 20 letters and numbers.',
-    slow: 'Too many tries. Please wait a little and try again.',
-    big: 'The backup is too large to send.',
-    busy: 'Another device is saving right now. Try again in a moment.',
-    notbackup: 'That file is not a Little Sprout Park backup.',
-    nocode: 'Cloud backup is not turned on.'
+    offline: t('No internet connection right now. Everything is still safe on this device; try again later.'),
+    failed: t('The backup service could not be reached. Everything is still safe on this device; try again later.'),
+    badcode: t('That code did not unlock a backup. Check it and try again.'),
+    notfound: t('No backup was found for that code. Check it and try again.'),
+    shape: t('A family code has 20 letters and numbers.'),
+    slow: t('Too many tries. Please wait a little and try again.'),
+    big: t('The backup is too large to send.'),
+    busy: t('Another device is saving right now. Try again in a moment.'),
+    notbackup: t('That file is not a Little Sprout Park backup.'),
+    nocode: t('Cloud backup is not turned on.')
   };
   function backupSection() {
     const sync = SPG.sync, info = sync.info();
-    const say = t => { backupMsg = t; renderParent(); };
+    const say = text => { backupMsg = text; renderParent(); };
     const msg = () => backupMsg ? h('p', { class: 'note' }, backupMsg) : null;
-    const sec = h('section', {}, h('h3', {}, 'Keep drawings and progress safe'));
-    if (store.saveFailed) sec.append(h('p', { class: 'warn' }, 'This device could not save just now (storage may be full or blocked). Turn on the cloud backup or save a backup file so nothing is lost.'));
+    const sec = h('section', {}, h('h3', {}, t('Keep drawings and progress safe')));
+    if (store.saveFailed) sec.append(h('p', { class: 'warn' }, t('This device could not save just now (storage may be full or blocked). Turn on the cloud backup or save a backup file so nothing is lost.')));
     const busyBtn = (label, cls, fn) => {
       const b = h('button', { class: `btn small ${cls}`, type: 'button' }, label);
-      b.addEventListener('click', async () => { b.disabled = true; b.textContent = 'Working…'; await fn(); });
+      b.addEventListener('click', async () => { b.disabled = true; b.textContent = t('Working…'); await fn(); });
       return b;
     };
-    if (!sync.supported()) sec.append(h('p', {}, 'Cloud backup needs a newer browser. You can still save a backup file below.'));
+    if (!sync.supported()) sec.append(h('p', {}, t('Cloud backup needs a newer browser. You can still save a backup file below.')));
     else if (!info.on) {
-      sec.append(h('p', {}, 'Turn on the cloud backup so players, stars and drawings come back if this device is reset, lost or replaced. It is private: everything is scrambled on the device before it is sent. A family code is all you need; email recovery is optional in the Android app.'));
+      sec.append(h('p', {}, t('Turn on the cloud backup so players, stars and drawings come back if this device is reset, lost or replaced. It is private: everything is scrambled on the device before it is sent. A family code is all you need; email recovery is optional in the Android app.')));
       const row = h('div', { class: 'btn-row' },
-        busyBtn('Turn on cloud backup', 'go', async () => {
+        busyBtn(t('Turn on cloud backup'), 'go', async () => {
           const r = await sync.create();
           if (r.ok) { backupMsg = ''; pendingRecoveryEmail = ''; showCode(r.code, true); } else say(SAY[r.error] || SAY.failed);
         }));
       const input = h('input', { type: 'text', maxlength: '32', autocomplete: 'off', autocapitalize: 'characters', spellcheck: 'false', placeholder: 'XXXXX-XXXXX-XXXXX-XXXXX' });
-      const join = busyBtn('Restore from this code', 'go', async () => {
+      const join = busyBtn(t('Restore from this code'), 'go', async () => {
         const r = await sync.join(input.value);
-        if (r.ok) { backupMsg = `Welcome back! Everything from the backup is here now${r.added ? ` (${r.added} player${r.added > 1 ? 's' : ''} restored)` : ''}${r.voices && r.voices.got ? `, and ${r.voices.got} recorded voice${r.voices.got > 1 ? 's' : ''}` : ''}.`; renderParent(); } else say(SAY[r.error] || SAY.failed);
+        if (r.ok) { backupMsg = t('Welcome back! Everything from the backup is here now.') + (r.added ? ' ' + (r.added > 1 ? t('{n} players restored.', { n: r.added }) : t('1 player restored.')) : '') + (r.voices && r.voices.got ? ' ' + (r.voices.got > 1 ? t('{n} recorded voices restored.', { n: r.voices.got }) : t('1 recorded voice restored.')) : ''); renderParent(); } else say(SAY[r.error] || SAY.failed);
       });
-      sec.append(row, h('label', { class: 'field small-field' }, 'Already have a family code (for example from another device)?', input), join);
+      sec.append(row, h('label', { class: 'field small-field' }, t('Already have a family code (for example from another device)?'), input), join);
     } else {
-      const when = info.last ? new Date(info.last).toLocaleString() : 'not yet';
-      sec.append(h('p', {}, 'Cloud backup is on. ', h('span', { class: 'fine' }, `Last saved: ${when}`)),
+      const when = info.last ? new Date(info.last).toLocaleString(SPG.i18n.info().bcp) : t('not yet');
+      sec.append(h('p', {}, t('Cloud backup is on.') + ' ', h('span', { class: 'fine' }, t('Last saved: {when}', { when }))),
         h('div', { class: 'btn-row' },
-          busyBtn('Sync now', 'go', async () => { const r = await sync.syncNow(); say(r.ok ? 'Saved! Everything is backed up and up to date' + (r.voices && (r.voices.sent || r.voices.got) ? ` (voices: ${r.voices.sent} sent, ${r.voices.got} received).` : '.') : (SAY[r.error] || SAY.failed)); }),
-          (() => { const b = h('button', { class: 'btn small', type: 'button' }, 'Show family code'); b.addEventListener('click', () => showCode(sync.code(), false)); return b; })(),
-          confirmButton('Turn off and delete cloud copy', 'danger', async () => { const r = await sync.turnOff(); if (r.ok) pendingRecoveryEmail = ''; say(r.ok ? 'Cloud backup is off and the cloud copy was deleted. Your data is still on this device.' : (SAY[r.error] || SAY.failed)); })),
-        h('p', { class: 'fine' }, 'Changes, including recorded voices, are also saved in the background whenever the device is online (recordings are encrypted first). To use the same players on another device, choose “I already have a family code” there.'));
+          busyBtn(t('Sync now'), 'go', async () => { const r = await sync.syncNow(); say(r.ok ? t('Saved! Everything is backed up and up to date.') + (r.voices && (r.voices.sent || r.voices.got) ? ' ' + t('Voices: {sent} sent, {got} received.', { sent: r.voices.sent, got: r.voices.got }) : '') : (SAY[r.error] || SAY.failed)); }),
+          (() => { const b = h('button', { class: 'btn small', type: 'button' }, t('Show family code')); b.addEventListener('click', () => showCode(sync.code(), false)); return b; })(),
+          confirmButton(t('Turn off and delete cloud copy'), 'danger', async () => { const r = await sync.turnOff(); if (r.ok) pendingRecoveryEmail = ''; say(r.ok ? t('Cloud backup is off and the cloud copy was deleted. Your data is still on this device.') : (SAY[r.error] || SAY.failed)); })),
+        h('p', { class: 'fine' }, t('Changes, including recorded voices, are also saved in the background whenever the device is online (recordings are encrypted first). To use the same players on another device, choose “I already have a family code” there.')));
     }
     if (info.on && sync.emailRecoveryAvailable()) {
       const recovery = h('div', {},
-        h('h4', {}, 'Keep the family code in your inbox'),
-        h('p', { class: 'fine' }, 'Optional for grown-ups. Enter your email, then type the six-digit code we send to prove the inbox is yours. Only then will we email your family code. This backup will be linked to that verified inbox. Anyone with the family code can still restore the backup, so keep the email private.'));
+        h('h4', {}, t('Keep the family code in your inbox')),
+        h('p', { class: 'fine' }, t('Optional for grown-ups. Enter your email, then type the six-digit code we send to prove the inbox is yours. Only then will we email your family code. This backup will be linked to that verified inbox. Anyone with the family code can still restore the backup, so keep the email private.')));
       if (!pendingRecoveryEmail) {
         const email = h('input', { type: 'email', inputmode: 'email', autocomplete: 'email', maxlength: '254', placeholder: 'you@example.com' });
-        recovery.append(h('label', { class: 'field small-field' }, 'Grown-up email address', email),
-          busyBtn('Send verification code', 'go', async () => {
+        recovery.append(h('label', { class: 'field small-field' }, t('Grown-up email address'), email),
+          busyBtn(t('Send verification code'), 'go', async () => {
             const r = await sync.startEmailRecovery(email.value);
-            if (r.ok) { pendingRecoveryEmail = email.value.trim(); say('Check your inbox for the six-digit verification code. It expires after 10 minutes.'); }
-            else say({ 'bad email': 'Check the email address and try again.', 'linked to another email': 'This backup is already linked to another verified inbox.', 'slow down': 'Please wait before trying again.', unavailable: 'Email recovery is not available yet. Your family code still works.', 'email unavailable': 'Email is unavailable right now. Your family code is still safe on this device.' }[r.error] || SAY[r.error] || SAY.failed);
+            if (r.ok) { pendingRecoveryEmail = email.value.trim(); say(t('Check your inbox for the six-digit verification code. It expires after 10 minutes.')); }
+            else say({ 'bad email': t('Check the email address and try again.'), 'linked to another email': t('This backup is already linked to another verified inbox.'), 'slow down': t('Please wait before trying again.'), unavailable: t('Email recovery is not available yet. Your family code still works.'), 'email unavailable': t('Email is unavailable right now. Your family code is still safe on this device.') }[r.error] || SAY[r.error] || SAY.failed);
           }));
       } else {
         const code = h('input', { type: 'text', inputmode: 'numeric', autocomplete: 'one-time-code', maxlength: '6', pattern: '[0-9]{6}', placeholder: '123456' });
-        recovery.append(h('p', { class: 'fine' }, `Verification email sent to ${pendingRecoveryEmail}.`),
-          h('label', { class: 'field small-field' }, 'Six-digit code from email', code),
-          busyBtn('Verify and email family code', 'go', async () => {
+        recovery.append(h('p', { class: 'fine' }, t('Verification email sent to {email}.', { email: pendingRecoveryEmail })),
+          h('label', { class: 'field small-field' }, t('Six-digit code from email'), code),
+          busyBtn(t('Verify and email family code'), 'go', async () => {
             const r = await sync.confirmEmailRecovery(code.value);
-            if (r.ok) { pendingRecoveryEmail = ''; say(`Family code sent to ${r.email}. Keep that message private.`); }
-            else { if (r.error === 'verification expired' || r.error === 'too many attempts') pendingRecoveryEmail = ''; say({ 'wrong verification code': 'That code did not match. Check the email and try again.', 'verification expired': 'That code expired. Start again with your email address.', 'too many attempts': 'Too many tries. Start again after a short wait.', 'slow down': 'Please wait before trying again.', 'email unavailable': 'Email is unavailable right now. You can retry the same verification code.' }[r.error] || SAY[r.error] || SAY.failed); }
+            if (r.ok) { pendingRecoveryEmail = ''; say(t('Family code sent to {email}. Keep that message private.', { email: r.email })); }
+            else { if (r.error === 'verification expired' || r.error === 'too many attempts') pendingRecoveryEmail = ''; say({ 'wrong verification code': t('That code did not match. Check the email and try again.'), 'verification expired': t('That code expired. Start again with your email address.'), 'too many attempts': t('Too many tries. Start again after a short wait.'), 'slow down': t('Please wait before trying again.'), 'email unavailable': t('Email is unavailable right now. You can retry the same verification code.') }[r.error] || SAY[r.error] || SAY.failed); }
           }),
-          (() => { const b = h('button', { class: 'btn small quiet', type: 'button' }, 'Use a different email'); b.addEventListener('click', () => { pendingRecoveryEmail = ''; renderParent(); }); return b; })());
+          (() => { const b = h('button', { class: 'btn small quiet', type: 'button' }, t('Use a different email')); b.addEventListener('click', () => { pendingRecoveryEmail = ''; renderParent(); }); return b; })());
       }
       sec.append(recovery);
     }
@@ -554,80 +569,82 @@
     file.addEventListener('change', async () => {
       const f = file.files && file.files[0]; if (!f) return;
       const r = sync.restoreFileText(await f.text());
-      say(r.ok ? `Backup file restored (${r.total} player${r.total > 1 ? 's' : ''} here now). Nothing that was already here was lost.` : SAY[r.error]);
+      say(r.ok ? (r.total > 1 ? t('Backup file restored ({n} players here now). Nothing that was already here was lost.', { n: r.total }) : t('Backup file restored (1 player here now). Nothing that was already here was lost.')) : SAY[r.error]);
     });
-    const save = h('button', { class: 'btn small', type: 'button' }, 'Save a backup file');
+    const save = h('button', { class: 'btn small', type: 'button' }, t('Save a backup file'));
     save.addEventListener('click', () => {
       const blob = new Blob([sync.fileText()], { type: 'application/json' });
-      SPG.native.saveFile(blob, sync.fileName(), 'application/json').then(ok => say(SPG.native.isApp ? (ok ? 'Choose where to keep the backup file.' : 'The backup file was not saved.') : 'Backup file saved to this device’s downloads.'));
+      SPG.native.saveFile(blob, sync.fileName(), 'application/json').then(ok => say(SPG.native.isApp ? (ok ? t('Choose where to keep the backup file.') : t('The backup file was not saved.')) : t('Backup file saved to this device’s downloads.')));
     });
-    const restore = h('button', { class: 'btn small quiet', type: 'button' }, 'Restore from a backup file');
+    const restore = h('button', { class: 'btn small quiet', type: 'button' }, t('Restore from a backup file'));
     restore.addEventListener('click', () => file.click());
     sec.append(h('div', { class: 'btn-row' }, save, restore, file));
     const undo = store.undoInfo();
     if (undo) {
-      const b = h('button', { class: 'btn small quiet', type: 'button' }, 'Undo the last restore or sync');
-      b.addEventListener('click', () => { store.undoRestore(); say('Undone. This device is back to how it was before.'); });
-      sec.append(h('p', { class: 'fine' }, `A copy of this device from ${new Date(undo.t).toLocaleString()} (${undo.players} player${undo.players === 1 ? '' : 's'}) is kept in case a restore was a mistake.`), b);
+      const b = h('button', { class: 'btn small quiet', type: 'button' }, t('Undo the last restore or sync'));
+      b.addEventListener('click', () => { store.undoRestore(); say(t('Undone. This device is back to how it was before.')); });
+      sec.append(h('p', { class: 'fine' }, (undo.players === 1 ? t('A copy of this device from {when} (1 player) is kept in case a restore was a mistake.', { when: new Date(undo.t).toLocaleString(SPG.i18n.info().bcp) }) : t('A copy of this device from {when} ({n} players) is kept in case a restore was a mistake.', { when: new Date(undo.t).toLocaleString(SPG.i18n.info().bcp), n: undo.players }))), b);
     }
     sec.append(msg());
     return sec;
   }
   function showCode(code, first) {
     const body = $('parent-body');
-    const done = h('button', { class: 'btn small go', type: 'button' }, icon('check'), first ? ' I have written it down' : ' Done');
+    const done = h('button', { class: 'btn small go', type: 'button' }, icon('check'), ' ' + (first ? t('I have written it down') : t('Done')));
     done.addEventListener('click', renderParent);
     body.replaceChildren(h('section', { style: 'border-top:0;padding-top:0' },
-      h('h3', {}, first ? 'Cloud backup is on' : 'Your family code'),
+      h('h3', {}, first ? t('Cloud backup is on') : t('Your family code')),
       h('div', { class: 'code-box' }, code),
-      h('p', {}, first ? 'Write this code down or take a photo of it, and keep it somewhere safe. It is the only way to get the drawings and progress back on a new device, and nobody (including us) can look it up for you.' : 'Keep this code private. Anyone with it can restore this family’s players on another device.'),
+      h('p', {}, first ? t('Write this code down or take a photo of it, and keep it somewhere safe. It is the only way to get the drawings and progress back on a new device, and nobody (including us) can look it up for you.') : t('Keep this code private. Anyone with it can restore this family’s players on another device.')),
       done));
   }
 
   function renderParent() {
     const body = $('parent-body');
     const fsNow = safe.isFullscreen();
-    const fsBtn = h('button', { class: 'btn small', type: 'button' }, fsNow ? 'Leave full screen' : 'Go full screen');
+    const fsBtn = h('button', { class: 'btn small', type: 'button' }, fsNow ? t('Leave full screen') : t('Go full screen'));
     fsBtn.addEventListener('click', async () => { fsNow ? await safe.exitFullscreen() : await safe.enterFullscreen(); setTimeout(renderParent, 250); });
 
     const safeSection = h('section', {},
-      h('h3', {}, 'Safe mode'),
-      h('p', {}, 'The games never link to other websites. Full screen hides the address bar and tabs, and the back button stays inside the app. Only this grown-ups panel can change that.'),
-      safe.standalone() ? h('p', { class: 'fine' }, 'Running as an installed app, which is already full screen.') : (safe.canFullscreen ? fsBtn : h('p', { class: 'fine' }, 'This browser cannot go full screen. Install the app from the browser menu instead.')));
+      h('h3', {}, t('Safe mode')),
+      h('p', {}, t('The games never link to other websites. Full screen hides the address bar and tabs, and the back button stays inside the app. Only this grown-ups panel can change that.')),
+      safe.standalone() ? h('p', { class: 'fine' }, t('Running as an installed app, which is already full screen.')) : (safe.canFullscreen ? fsBtn : h('p', { class: 'fine' }, t('This browser cannot go full screen. Install the app from the browser menu instead.'))));
     if (safe.isIOS && !safe.standalone()) {
-      safeSection.append(h('p', {}, h('b', {}, 'Full screen on iPhone and iPad: ')), h('ol', { class: 'steps' },
-        h('li', {}, 'In Safari, tap the Share button (the square with an arrow).'),
-        h('li', {}, 'Choose \u201CAdd to Home Screen\u201D, then tap Add.'),
-        h('li', {}, 'Open Little Sprout Park from your home screen. It opens full screen with no browser bars.')),
-        h('p', { class: 'fine' }, 'To keep a child inside the app on iPhone/iPad, also turn on Guided Access: Settings \u2192 Accessibility \u2192 Guided Access, then triple-click the side (or Home) button while the app is open.'));
+      safeSection.append(h('p', {}, h('b', {}, t('Full screen on iPhone and iPad: '))), h('ol', { class: 'steps' },
+        h('li', {}, t('In Safari, tap the Share button (the square with an arrow).')),
+        h('li', {}, t('Choose “Add to Home Screen”, then tap Add.')),
+        h('li', {}, t('Open Little Sprout Park from your home screen. It opens full screen with no browser bars.'))),
+        h('p', { class: 'fine' }, t('To keep a child inside the app on iPhone/iPad, also turn on Guided Access: Settings → Accessibility → Guided Access, then triple-click the side (or Home) button while the app is open.')));
     }
     if (installPrompt) {
-      const b = h('button', { class: 'btn small go', type: 'button', style: 'margin-top:8px' }, 'Install on this tablet');
+      const b = h('button', { class: 'btn small go', type: 'button', style: 'margin-top:8px' }, t('Install on this tablet'));
       b.addEventListener('click', async () => { installPrompt.prompt(); await installPrompt.userChoice; installPrompt = null; b.remove(); });
       safeSection.append(b);
     }
 
-    const players = h('section', {}, h('h3', {}, 'Players'));
+    const players = h('section', {}, h('h3', {}, t('Players')));
     for (const p of store.profiles) {
       players.append(h('div', { class: 'player-row' },
-        avatarCanvas(p.avatar, 104), h('div', { class: 'name' }, p.name, h('div', { class: 'stat' }, `${p.stars} stars`)),
-        confirmButton('Reset progress', 'quiet', () => { store.resetProfile(p.id); renderParent(); }),
-        confirmButton('Remove', 'danger', () => { store.removeProfile(p.id); renderParent(); })));
+        avatarCanvas(p.avatar, 104), h('div', { class: 'name' }, p.name, h('div', { class: 'stat' }, t('{n} stars', { n: p.stars }))),
+        confirmButton(t('Reset progress'), 'quiet', () => { store.resetProfile(p.id); renderParent(); }),
+        confirmButton(t('Remove'), 'danger', () => { store.removeProfile(p.id); renderParent(); })));
     }
     if (store.trash.length) {
-      players.append(h('p', { class: 'fine', style: 'margin-top:10px' }, 'Recently removed or reset (nothing is lost right away):'));
+      players.append(h('p', { class: 'fine', style: 'margin-top:10px' }, t('Recently removed or reset (nothing is lost right away):')));
       store.trash.forEach((item, i) => {
-        const b = h('button', { class: 'btn small quiet', type: 'button' }, `Bring back ${item.p.name}`);
+        const b = h('button', { class: 'btn small quiet', type: 'button' }, t('Bring back {name}', { name: item.p.name }));
         b.addEventListener('click', () => { store.restoreTrash(i); renderParent(); });
-        players.append(h('div', { class: 'player-row' }, h('div', { class: 'name' }, item.p.name, h('div', { class: 'stat' }, `${item.why === 'reset' ? 'Progress reset' : 'Removed'} ${new Date(item.t).toLocaleDateString()}`)), b));
+        players.append(h('div', { class: 'player-row' }, h('div', { class: 'name' }, item.p.name, h('div', { class: 'stat' }, (item.why === 'reset' ? t('Progress reset') : t('Removed')) + ' ' + SPG.i18n.date(item.t))), b));
       });
     }
-    const add = h('button', { class: 'btn small go', type: 'button', style: 'margin-top:8px' }, icon('plus'), ' Add player');
+    const add = h('button', { class: 'btn small go', type: 'button', style: 'margin-top:8px' }, icon('plus'), ' ' + t('Add player'));
     add.addEventListener('click', () => { closeOverlay(overlays.parent); openSetup(true); });
     players.append(add);
 
     body.replaceChildren(
-      h('section', { style: 'border-top:0;padding-top:0' }, h('h3', {}, 'Sound'), toggle('Voice prompts', 'voice'), toggle('Extra audio help', 'audioHelp'), h('p', { class: 'fine' }, 'For children who need more help hearing what things are: the games also say the name of each menu item, ingredient, piece of clothing or shop item as it is touched, give extra hints and say more cheers, and speak a little slower. Off by default, so the games stay quiet and calm (the short list of recorded lines is always said).'), toggle('Sound effects', 'sound'), toggle('Soft background music', 'music'), toggle('Coloring Book music', 'colorMusic')),
+      languageSection(),
+      h('section', {}, h('h3', {}, t('Sound')), toggle(t('Voice prompts'), 'voice'), toggle(t('Extra audio help'), 'audioHelp'), h('p', { class: 'fine' }, t('For children who need more help hearing what things are: the games also say the name of each menu item, ingredient, piece of clothing or shop item as it is touched, give extra hints and say more cheers, and speak a little slower. Off by default, so the games stay quiet and calm (the short list of recorded lines is always said).')), toggle(t('Sound effects'), 'sound'), toggle(t('Soft background music'), 'music'), toggle(t('Coloring Book music'), 'colorMusic')),
+      accessSection(),
       voicesSection(),
       timerSection(),
       pinSection(),
@@ -638,19 +655,37 @@
       photoSection(),
       backupSection(),
       safeSection, players,
-      h('section', {}, h('h3', {}, 'Locking the tablet properly'),
-        h('p', {}, 'A website cannot stop a child using the tablet’s own buttons. For a true lock, use Android screen pinning together with full screen:'),
+      h('section', {}, h('h3', {}, t('Locking the tablet properly')),
+        h('p', {}, t('To help keep your child in Little Sprout Park, use Android app pinning. The steps and names may vary by device:')),
         h('ol', { class: 'steps' },
-          h('li', {}, 'Settings → Security (or Security & privacy) → App pinning, and turn it on.'),
-          h('li', {}, 'Open Little Sprout Park, then open Recent apps.'),
-          h('li', {}, 'Tap the app icon at the top of its card and choose Pin.'),
-          h('li', {}, 'To unpin later, hold Back and Recent apps together (or swipe up and hold, depending on the tablet).'))),
-      h('section', {}, h('h3', {}, 'About'),
-        h('p', {}, `Little Sprout Park version ${SPG.version}. No ads or tracking. Children's play needs no account.`),
-        h('p', { class: 'fine' }, 'Names, stars, gardens, coloring pictures and voice recordings stay on this device unless a grown-up turns on cloud backup. Grown-ups can optionally email their family code to a verified inbox.'),
-        h('a', { href: 'privacy.html', target: '_blank', rel: 'noopener noreferrer' }, 'Read the privacy policy')),
-      h('section', {}, h('h3', {}, 'Voice recordings'),
-        h('p', {}, 'Prompts are spoken by the tablet’s built-in voice until you add recordings. See RECORDING.md in the project for the list of lines and where the files go.')));
+          h('li', {}, t('Settings → Security (or Security & privacy) → App pinning, and turn it on.')),
+          h('li', {}, t('Open Little Sprout Park, then open Recent apps.')),
+          h('li', {}, t('Tap the app icon at the top of its card and choose Pin.')),
+          h('li', {}, t('To unpin later, hold Back and Recent apps together (or swipe up and hold, depending on the tablet).')))),
+      h('section', {}, h('h3', {}, t('About')),
+        h('p', {}, t('Little Sprout Park version {v}. No ads or tracking. Children\'s play needs no account.', { v: SPG.version })),
+        h('p', { class: 'fine' }, t('Names, stars, gardens, coloring pictures and voice recordings stay on this device unless a grown-up turns on cloud backup. Grown-ups can optionally email their family code to a verified inbox.')),
+        h('a', { href: 'privacy.html', target: '_blank', rel: 'noopener noreferrer' }, t('Read the privacy policy'))),
+      h('section', {}, h('h3', {}, t('Voice recordings')),
+        h('p', {}, t('Prompts are spoken by the tablet’s built-in voice until you add recordings. See RECORDING.md in the project for the list of lines and where the files go.'))));
+  }
+
+  // Language (js/i18n.js): what the games say and what the screens show. Choosing another one restarts the app in it.
+  function languageSection() {
+    const cur = SPG.i18n.lang(), info = SPG.i18n.info();
+    const seg = h('div', { class: 'seg', role: 'group', 'aria-label': t('Language') });
+    for (const L of SPG.i18n.LANGS) {
+      const b = h('button', { type: 'button', class: 'seg-btn', lang: L.bcp, 'aria-pressed': String(cur === L.id) }, L.native);
+      b.addEventListener('click', () => { if (L.id === cur) return; [...seg.children].forEach(x => { x.disabled = true; }); b.textContent = L.native + ' …'; SPG.i18n.set(L.id); });
+      seg.append(b);
+    }
+    // the word "Language" stays in English too, for a grown-up who cannot read the language the device picked
+    const sec = h('section', { style: 'border-top:0;padding-top:0' }, h('h3', {}, cur === 'en' ? 'Language' : t('Language') + ' · Language'),
+      h('p', {}, t('The games speak, and the menus are written, in the language chosen here. The app restarts in the new language; nothing is lost.')), seg);
+    if (cur === 'hi' || cur === 'zh') sec.append(h('p', { class: 'fine' }, t('Letter Garden teaches the English alphabet: the letter names, letter sounds and picture words are said in English.')));
+    if (cur !== 'en') sec.append(h('p', { class: 'fine' }, t('Sign language stays American Sign Language (ASL). Voice recordings and reworded lines are kept separately for each language.')));
+    if (cur !== 'en' && voice.voicesReady() && !voice.canSpeak()) sec.append(h('p', { class: 'warn' }, t('This device has no {lang} voice yet, so the games say the English lines for now. To add one: Settings → System (or General management) → Languages → Text-to-speech → Google speech engine → Install voice data → {lang}. Then open the app again.', { lang: info.native })));
+    return sec;
   }
 
   /* ------------------------------------------------------------ daily play time */
@@ -730,27 +765,82 @@
   function voicesSection() {
     const keys = voice.allKeys();
     const n = set => keys.filter(k => voice.hasClip(set, k)).length;
-    const b = h('button', { class: 'btn small go', type: 'button' }, 'Record and choose voices');
+    const b = h('button', { class: 'btn small go', type: 'button' }, t('Record and choose voices'));
     b.addEventListener('click', openStudio);
-    return h('section', {}, h('h3', {}, 'Voices'),
-      h('p', {}, 'Record your family\u2019s voices for the games (everyone\u2019s recordings can be mixed), choose the built-in voice, switch off lines you don\u2019t want, and choose how often the games cheer.'),
-      h('p', { class: 'fine' }, 'Recorded so far: ' + voice.SETS.map(v => `${v.name} ${n(v.id)}`).join(', ') + ` of ${keys.length} lines.`), b);
+    return h('section', {}, h('h3', {}, t('Voices')),
+      h('p', {}, t('Record your family’s voices for the games (everyone’s recordings can be mixed), choose the built-in voice, switch off lines you don’t want, and choose how often the games cheer.')),
+      h('p', { class: 'fine' }, t('Recorded so far: {list} of {n} lines.', { list: voice.SETS.map(v => `${v.extra ? v.name : t(v.name)} ${n(v.id)}`).join(', '), n: keys.length })), b);
+  }
+
+  // Accessibility. Hearing: everything the games say is also signed (ASL) by a pair of hands in a corner card (js/signs.js).
+  // Seeing: colour filters for colour vision deficiency, stronger contrast, bigger buttons (js/access.js). All off by default.
+  // colour symbols: on by themselves with a colour filter, and the switch can change that either way
+  function marksRow() {
+    const st = store.settings, sw = h('button', { class: 'switch', type: 'button', role: 'switch', 'aria-checked': String(SPG.vision.marks()), 'aria-label': t('Colour symbols') });
+    sw.addEventListener('click', () => { st.colourMarks = !SPG.vision.marks(); store.saveSettings(); sw.setAttribute('aria-checked', String(st.colourMarks)); });
+    return h('div', {}, h('div', { class: 'setting' }, h('span', {}, t('Colour symbols: a little white heart, sun, leaf, drop… on each colour')), sw),
+      h('p', { class: 'fine', style: 'margin:0' }, t('In Shape Builder and Caterpillars, where things are matched by colour, every colour also has its own symbol (red a heart, orange a lightning bolt, yellow a sun, green a leaf, blue a drop, purple a moon, pink a flower, brown a paw), so colour is never the only difference. On by itself with a colour filter.')));
+  }
+  function accessSection() {
+    const st = store.settings; if (st.signWords == null) st.signWords = true;
+    const sw = h('button', { class: 'switch', type: 'button', role: 'switch', 'aria-checked': String(!!st.signs), 'aria-label': t('Signing hands') });
+    sw.addEventListener('click', () => { st.signs = !st.signs; store.saveSettings(); sw.setAttribute('aria-checked', String(st.signs)); if (st.signs) SPG.signs.sample(); else SPG.signs.stop(); renderParent(); });
+    const seg = (label, key, opts) => {
+      const g = h('div', { class: 'seg', role: 'group', 'aria-label': label });
+      for (const [id, text, col] of opts) {
+        const b = h('button', { type: 'button', class: 'seg-btn', 'aria-pressed': String((st[key] || opts[0][0]) === id) }, col ? h('span', { class: 'sign-swatch', style: `background:${col}` }) : '', text);
+        b.addEventListener('click', () => { st[key] = id; store.saveSettings(); SPG.signs.sample(); renderParent(); });
+        g.append(b);
+      }
+      return h('div', {}, h('p', { class: 'fine', style: 'margin:10px 0 0' }, label), g);
+    };
+    const show = h('button', { class: 'btn small go', type: 'button', style: 'margin-top:10px' }, t('Show me'));
+    show.addEventListener('click', () => SPG.signs.sample());
+    const sec = h('section', {}, h('h3', {}, t('Accessibility')),
+      h('p', {}, t('Extra help for children who are deaf or hard of hearing, or who see colours differently or need things bigger. Everything here is off until you turn it on.')),
+      h('h4', {}, t('Hearing: sign language (ASL)')),
+      h('div', { class: 'setting' }, h('span', {}, t('Signing hands, for children who are deaf or hard of hearing')), sw),
+      h('p', { class: 'fine' }, SPG.pron.fill(t('Everything the games say is also signed in American Sign Language by a pair of hands in a small card in a corner (taps go through it). Instructions are signed as their key words, letters and names are fingerspelled, and numbers, colours, shapes and feelings have their own signs. For signs made at the face or chest, a little smiley face shows where (a pink dot), and its expression shows the feeling or the question. The voice still speaks unless you switch Voice prompts off. The Sign Along game teaches the signs to any child.'))));
+    if (st.signs) sec.append(
+      seg(t('Corner'), 'signSide', [['left', t('Bottom left')], ['right', t('Bottom right')]]),
+      seg(t('Size'), 'signSize', [['small', t('Small')], ['big', t('Big')]]),
+      seg(t('Hand colour'), 'signSkin', [['medium', t('Medium'), SPG.sign.SKINS.medium.base], ['light', t('Light'), SPG.sign.SKINS.light.base], ['tan', t('Tan'), SPG.sign.SKINS.tan.base], ['deep', t('Deep'), SPG.sign.SKINS.deep.base]]),
+      toggle(t('Show the words under the hands'), 'signWords'), show);
+    { const n = SPG.signVideo.count(), vb = h('button', { class: 'btn small quiet', type: 'button', style: 'margin-top:10px' }, t('Sign videos: record your own'));
+      vb.addEventListener('click', openSignVideos);
+      sec.append(h('h4', {}, t('Your own sign videos')),
+        h('p', { class: 'fine', style: 'margin:6px 0 0' }, t('Record yourself (or a Deaf friend or teacher) making any sign, and that video is shown instead of the drawn hands, in the corner card and in Sign Along.') + ' ' + (n ? (n === 1 ? t('1 sign has a video.') : t('{n} signs have a video.', { n })) : t('No videos yet.'))), vb); }
+    sec.append(h('p', { class: 'fine' }, t('The signs are drawn by the app from standard ASL. Signing differs from place to place: if your child learns with a Deaf signer or an ASL teacher, ask them to look through Sign Along, and tell us about any sign that should change.')));
+    // seeing
+    const vis = h('div', { class: 'seg', role: 'group', 'aria-label': t('Colour vision') });
+    for (const [id, text] of [['', t('Usual colours')], ['deutan', t('Red–green (most common)')], ['protan', t('Red–green, reds look dark')], ['tritan', t('Blue–yellow')]]) {
+      const b = h('button', { type: 'button', class: 'seg-btn', 'aria-pressed': String((st.vision || '') === id) }, text);
+      b.addEventListener('click', () => { st.vision = id; store.saveSettings(); SPG.vision.apply(); renderParent(); });
+      vis.append(b);
+    }
+    const tog = (label, key) => { const row = toggle(label, key); row.querySelector('.switch').addEventListener('click', () => SPG.vision.apply()); return row; };
+    sec.append(h('h4', {}, t('Seeing: colours and size')),
+      h('p', { class: 'fine', style: 'margin:6px 0 0' }, t('Colour filter for colour blindness: the colours that are easy to mix up are shifted into colours that can be told apart, in every game and menu. Tidy Time also leaves out sorting by colour while a filter is on.')),
+      vis, marksRow(),
+      tog(t('Stronger contrast and colours'), 'contrast'),
+      tog(t('Bigger buttons on the menus and around the games'), 'bigUI'));
+    return sec;
   }
 
   // Fruit Splash for older kids: naughty water balloons that shake the screen, spray water and take points away.
   function nightSection() {
     const cur = SPG.night.mode();
-    const seg = h('div', { class: 'seg', role: 'group', 'aria-label': 'Night mode' });
-    for (const [id, label] of [['off', 'Day'], ['on', 'Night'], ['auto', 'Auto (schedule)']]) {
+    const seg = h('div', { class: 'seg', role: 'group', 'aria-label': t('Night mode') });
+    for (const [id, label] of [['off', t('Day')], ['on', t('Night')], ['auto', t('Auto (schedule)')]]) {
       const b = h('button', { type: 'button', class: 'seg-btn', 'aria-pressed': String(cur === id) }, label);
       b.addEventListener('click', () => { SPG.night.set(id); renderParent(); });
       seg.append(b);
     }
-    const sec = h('section', {}, h('h3', {}, 'Night mode'),
-      h('p', {}, 'Tones everything down for bedtime: a night sky behind the games, softer colors and quieter sounds. Choose Day or Night yourself, or Auto to switch on by a schedule.'),
+    const sec = h('section', {}, h('h3', {}, t('Night mode')),
+      h('p', {}, t('Tones everything down for bedtime: a night sky behind the games, softer colors and quieter sounds. Choose Day or Night yourself, or Auto to switch on by a schedule.')),
       seg);
     if (cur === 'auto') {
-      const hourLabel = n => (n % 12 || 12) + (n < 12 ? ' am' : ' pm');
+      const hourLabel = n => new Date(2020, 0, 1, n).toLocaleTimeString(SPG.i18n.info().bcp, { hour: 'numeric' });
       const picker = (title, key, hours, def) => {
         const row = h('div', { class: 'seg', role: 'group', 'aria-label': title });
         const now = key === 'nightFrom' ? SPG.night.from() : SPG.night.to();
@@ -761,43 +851,43 @@
         }
         return h('div', {}, h('p', {}, h('b', {}, title)), row);
       };
-      sec.append(picker('Night starts at', 'nightFrom', [17, 18, 19, 20, 21], 19), picker('Night ends at', 'nightTo', [5, 6, 7, 8, 9], 7),
-        h('p', {}, `Right now: ${SPG.night.on() ? 'night' : 'day'}. Night runs from ${hourLabel(SPG.night.from())} to ${hourLabel(SPG.night.to())}.`));
+      sec.append(picker(t('Night starts at'), 'nightFrom', [17, 18, 19, 20, 21], 19), picker(t('Night ends at'), 'nightTo', [5, 6, 7, 8, 9], 7),
+        h('p', {}, (SPG.night.on() ? t('Right now: night.') : t('Right now: day.')) + ' ' + t('Night runs from {from} to {to}.', { from: hourLabel(SPG.night.from()), to: hourLabel(SPG.night.to()) })));
     }
     return sec;
   }
 
   // Learning and play: what each player has done in the games (read straight from the saved progress) and how long they played this week
   function learnSection() {
-    const sec = h('section', {}, h('h3', {}, 'Learning and play'), h('p', { class: 'fine' }, 'What each player has done in the games on this device, and how long they played.'));
-    const mins = sec => { if (sec > 0 && sec < 60) return 'less than 1 min'; const m = Math.round(sec / 60); return m < 60 ? `${m} min` : `${Math.floor(m / 60)} h ${m % 60} min`; };
+    const sec = h('section', {}, h('h3', {}, t('Learning and play')), h('p', { class: 'fine' }, t('What each player has done in the games on this device, and how long they played.')));
+    const mins = sec => { if (sec > 0 && sec < 60) return t('less than 1 min'); const m = Math.round(sec / 60); return m < 60 ? t('{m} min', { m }) : t('{h} h {m} min', { h: Math.floor(m / 60), m: m % 60 }); };
     for (const p of store.profiles) {
       const d = p.data || {}, g = k => d[k] || {}, L = g('letters'), done = L.done || {};
       const traced = 'abcdefghijklmnopqrstuvwxyz'.split('').filter(c => done[c] || done[c.toUpperCase()]);
       const play = d.play || {}, week = Array.from({ length: 7 }, (_, i) => play[dayKey(new Date(Date.now() - i * 864e5))] || 0);
       const rows = [
-        ['Letters traced', traced.length ? `${traced.length} of 26: ${traced.join(' ').toUpperCase()}` : 'none yet'],
-        ['Letter games answered right', L.correct || 0],
+        [t('Letters traced'), traced.length ? t('{n} of 26: {list}', { n: traced.length, list: traced.join(' ').toUpperCase() }) : t('none yet')],
+        [t('Letter games answered right'), L.correct || 0],
         // from the find-the-letter and sounds games: right first time at least twice and mostly right = known; often needing another try = to practise
-        ['Letters known', Object.keys(L.lt || {}).sort().filter(k => L.lt[k][0] >= 2 && L.lt[k][0] >= L.lt[k][1] * 3).join(' ').toUpperCase()],
-        ['Letters to practise', Object.keys(L.lt || {}).sort().filter(k => L.lt[k][1] > 0 && L.lt[k][1] * 2 >= L.lt[k][0]).join(' ').toUpperCase()],
-        ['Counting questions right', L.numOk || 0],
-        ['Adding and taking away right', L.mathOk || 0],
-        ['Patterns finished (Caterpillars)', g('pattern').done || 0],
-        ['Friends helped (Feeling Friends)', g('feelings').helped || 0],
-        ['Things sorted (Tidy Time)', g('sort').sorted || 0],
-        ['Shape pictures built', g('shapes').built || 0],
-        ['Puzzles solved', g('puzzle').solved || 0],
-        ['Tunes copied (Bunny Band)', g('band').wins || 0],
-        ['Coloring pictures finished', Object.values(g('color').pics || {}).filter(r => r && r.done).length],
-        ['Recipes cooked', g('cook').total || 0],
-        ['Kinds of fish caught', Object.keys(g('fishing').caught || {}).length ? `${Object.keys(g('fishing').caught).length} of 9` : 0],
-        ['Flowers grown', g('garden').blooms || 0],
-        ['Friends found (Hide and Seek)', g('hide').found || 0]
+        [t('Letters known'), Object.keys(L.lt || {}).sort().filter(k => L.lt[k][0] >= 2 && L.lt[k][0] >= L.lt[k][1] * 3).join(' ').toUpperCase()],
+        [t('Letters to practise'), Object.keys(L.lt || {}).sort().filter(k => L.lt[k][1] > 0 && L.lt[k][1] * 2 >= L.lt[k][0]).join(' ').toUpperCase()],
+        [t('Counting questions right'), L.numOk || 0],
+        [t('Adding and taking away right'), L.mathOk || 0],
+        [t('Patterns finished (Caterpillars)'), g('pattern').done || 0],
+        [t('Friends helped (Feeling Friends)'), g('feelings').helped || 0],
+        [t('Things sorted (Tidy Time)'), g('sort').sorted || 0],
+        [t('Shape pictures built'), g('shapes').built || 0],
+        [t('Puzzles solved'), g('puzzle').solved || 0],
+        [t('Tunes copied (Bunny Band)'), g('band').wins || 0],
+        [t('Coloring pictures finished'), Object.values(g('color').pics || {}).filter(r => r && r.done).length],
+        [t('Recipes cooked'), g('cook').total || 0],
+        [t('Kinds of fish caught'), Object.keys(g('fishing').caught || {}).length ? t('{n} of {all}', { n: Object.keys(g('fishing').caught).length, all: 9 }) : 0],
+        [t('Flowers grown'), g('garden').blooms || 0],
+        [t('Friends found (Hide and Seek)'), g('hide').found || 0]
       ].filter(([, v], i) => i === 0 || v);
-      const time = week.some(Boolean) ? `${mins(week[0])} today, ${mins(week.reduce((a, b) => a + b, 0))} in the last 7 days` : 'No play time recorded yet';
+      const time = week.some(Boolean) ? t('{today} today, {week} in the last 7 days', { today: mins(week[0]), week: mins(week.reduce((a, b) => a + b, 0)) }) : t('No play time recorded yet');
       sec.append(h('details', { class: 'lvl-block learn' },
-        h('summary', {}, h('span', { class: 'lvl-head' }, avatarCanvas(p.avatar, 104), h('span', { class: 'name' }, p.name, h('span', { class: 'stat' }, `${p.stars} stars \u00b7 ${time}`))), h('span', { class: 'learn-more' }, 'More')),
+        h('summary', {}, h('span', { class: 'lvl-head' }, avatarCanvas(p.avatar, 104), h('span', { class: 'name' }, p.name, h('span', { class: 'stat' }, t('{n} stars', { n: p.stars }) + ' · ' + time))), h('span', { class: 'learn-more' }, t('More'))),
         ...rows.map(([k, v]) => h('div', { class: 'lvl-line' }, h('b', {}, k), h('span', { class: 'fine' }, String(v))))));
     }
     return sec;
@@ -805,21 +895,21 @@
 
   // Age and difficulty (and boy or girl, for the wording of grown-up screens), one block for each player
   function levelSection() {
-    const sec = h('section', {}, h('h3', {}, 'Age and difficulty'),
-      h('p', {}, 'Pick an exact age and each game picks its own mix of easier and harder things, or pick an age group and every game uses that group\u2019s settings. Open \u201CWhat the games do\u201D to see exactly what changes. Nothing is ever lost or failed at any level.'));
+    const sec = h('section', {}, h('h3', {}, t('Age and difficulty')),
+      h('p', {}, t('Pick an exact age and each game picks its own mix of easier and harder things, or pick an age group and every game uses that group’s settings. Open “What the games do” to see exactly what changes. Nothing is ever lost or failed at any level.')));
     for (const p of store.profiles) {
       const cfg = SPG.level.cfg(p), redo = () => renderParent();
       const block = h('div', { class: 'lvl-block' }, h('div', { class: 'lvl-head' }, avatarCanvas(p.avatar, 104), h('div', { class: 'name' }, p.name, h('div', { class: 'stat' }, SPG.level.label(p)))));
       const row = (label, rowEl) => h('div', {}, h('p', { class: 'fine' }, label), rowEl);
-      const gSeg = h('div', { class: 'seg', role: 'group', 'aria-label': `Boy or girl for ${p.name}` });
-      chipRow(gSeg, [['girl', 'Girl'], ['boy', 'Boy']], () => p.gender || '', v => { if (v) p.gender = v; else delete p.gender; p.t = Date.now(); store.save(); redo(); });
-      const mSeg = h('div', { class: 'seg', role: 'group', 'aria-label': `How to set the level for ${p.name}` });
-      chipRow(mSeg, [['age', 'Pick an age'], ['group', 'Pick an age group']], () => cfg.mode, v => { if (!v) return; SPG.level.set(p, v === 'age' ? { mode: 'age', age: cfg.mode === 'age' ? cfg.age : 4 } : { mode: 'group', group: cfg.mode === 'group' ? cfg.group : 'little' }); redo(); });
-      const cSeg = h('div', { class: 'seg', role: 'group', 'aria-label': `Level for ${p.name}` });
+      const gSeg = h('div', { class: 'seg', role: 'group', 'aria-label': t('Boy or girl for {name}', { name: p.name }) });
+      chipRow(gSeg, [['girl', t('Girl')], ['boy', t('Boy')]], () => p.gender || '', v => { if (v) p.gender = v; else delete p.gender; p.t = Date.now(); store.save(); redo(); });
+      const mSeg = h('div', { class: 'seg', role: 'group', 'aria-label': t('How to set the level for {name}', { name: p.name }) });
+      chipRow(mSeg, [['age', t('Pick an age')], ['group', t('Pick an age group')]], () => cfg.mode, v => { if (!v) return; SPG.level.set(p, v === 'age' ? { mode: 'age', age: cfg.mode === 'age' ? cfg.age : 4 } : { mode: 'group', group: cfg.mode === 'group' ? cfg.group : 'little' }); redo(); });
+      const cSeg = h('div', { class: 'seg', role: 'group', 'aria-label': t('Level for {name}', { name: p.name }) });
       if (cfg.mode === 'age') chipRow(cSeg, SPG.level.AGES.map(a => [a, String(a)]), () => cfg.age, v => { if (v) { SPG.level.set(p, { mode: 'age', age: v }); redo(); } });
       else chipRow(cSeg, SPG.level.GROUPS.map(g => [g.id, `${g.name} (${g.ages})`]), () => cfg.group, v => { if (v) { SPG.level.set(p, { mode: 'group', group: v }); redo(); } });
-      const det = h('details', { class: 'vgroup' }, h('summary', {}, 'What the games do'), ...SPG.level.describe(p).map(([g, d]) => h('div', { class: 'lvl-line' }, h('b', {}, g), h('span', { class: 'fine' }, d))));
-      block.append(row('Boy or girl', gSeg), row('How should the level be chosen?', mSeg), row(cfg.mode === 'age' ? 'Age' : 'Age group', cSeg), det);
+      const det = h('details', { class: 'vgroup' }, h('summary', {}, t('What the games do')), ...SPG.level.describe(p).map(([g, d]) => h('div', { class: 'lvl-line' }, h('b', {}, g), h('span', { class: 'fine' }, d))));
+      block.append(row(t('Boy or girl'), gSeg), row(t('How should the level be chosen?'), mSeg), row(cfg.mode === 'age' ? t('Age') : t('Age group'), cSeg), det);
       sec.append(block);
     }
     return sec;
@@ -828,41 +918,41 @@
   // Kitchen photos: the camera button in Sprout Kitchen keeps photos in the game's own album; a grown-up can also let them go to the device's photos
   function photoSection() {
     const app = SPG.native && SPG.native.isApp, ios = safe.isIOS && !app;
-    const sw = h('button', { class: 'switch', type: 'button', role: 'switch', 'aria-checked': String(!!store.settings.photoSave), 'aria-label': 'Save kitchen photos to this device' });
+    const sw = h('button', { class: 'switch', type: 'button', role: 'switch', 'aria-checked': String(!!store.settings.photoSave), 'aria-label': t('Save kitchen photos to this device') });
     sw.addEventListener('click', () => { store.settings.photoSave = !store.settings.photoSave; store.saveSettings(); sw.setAttribute('aria-checked', String(store.settings.photoSave)); });
-    const count = h('p', { class: 'fine' }, 'Counting photos…');
-    if (SPG.photos) SPG.photos.count('kitchen').then(n => { count.textContent = `${n} photo${n === 1 ? '' : 's'} in the kitchen album on this device (the newest 60 for each player are kept).`; });
-    const clear = confirmButton('Delete all kitchen photos', 'danger', async () => { if (SPG.photos) await SPG.photos.clear('kitchen'); renderParent(); });
-    const clayCount = h('p', { class: 'fine' }, 'Counting clay pictures…');
-    if (SPG.photos) SPG.photos.count('clay').then(n => { clayCount.textContent = `${n} picture${n === 1 ? '' : 's'} in the Clay Corner album on this device (the newest 60 for each player are kept). The clay a child is working on is kept too, until they start over.`; });
-    const clayClear = confirmButton('Delete all clay pictures', 'danger', async () => { if (SPG.photos) await SPG.photos.clear('clay'); renderParent(); });
-    return h('section', {}, h('h3', {}, 'Photos and pictures'),
-      h('p', {}, 'In Sprout Kitchen the camera button takes a photo of the food your child made, and in Clay Corner it takes a picture of the clay creation. Pictures are always kept in the game\u2019s own album, on this device only.'),
-      h('p', {}, app ? 'In the Coloring Book the Save picture button always puts the finished picture into this phone\u2019s photo gallery (album \u201CSprout Park\u201D). Every picture also stays in the Coloring Book\u2019s own gallery.' : 'In the Coloring Book the Save picture button downloads the picture to this device. Every picture also stays in the Coloring Book\u2019s own gallery.'),
-      ios ? h('p', { class: 'fine' }, 'On iPhone and iPad the photos stay in the kitchen album.') : h('div', { class: 'setting' }, h('span', {}, app ? 'Also save them to this phone\u2019s photo gallery (album \u201CSprout Park\u201D)' : 'Also save them to this device (as a download)'), sw),
+    const count = h('p', { class: 'fine' }, t('Counting photos…'));
+    if (SPG.photos) SPG.photos.count('kitchen').then(n => { count.textContent = n === 1 ? t('1 photo in the kitchen album on this device (the newest 60 for each player are kept).') : t('{n} photos in the kitchen album on this device (the newest 60 for each player are kept).', { n }); });
+    const clear = confirmButton(t('Delete all kitchen photos'), 'danger', async () => { if (SPG.photos) await SPG.photos.clear('kitchen'); renderParent(); });
+    const clayCount = h('p', { class: 'fine' }, t('Counting clay pictures…'));
+    if (SPG.photos) SPG.photos.count('clay').then(n => { clayCount.textContent = (n === 1 ? t('1 picture in the Clay Corner album on this device (the newest 60 for each player are kept).') : t('{n} pictures in the Clay Corner album on this device (the newest 60 for each player are kept).', { n })) + ' ' + t('The clay a child is working on is kept too, until they start over.'); });
+    const clayClear = confirmButton(t('Delete all clay pictures'), 'danger', async () => { if (SPG.photos) await SPG.photos.clear('clay'); renderParent(); });
+    return h('section', {}, h('h3', {}, t('Photos and pictures')),
+      h('p', {}, t('In Sprout Kitchen the camera button takes a photo of the food your child made, and in Clay Corner it takes a picture of the clay creation. Pictures are always kept in the game’s own album, on this device only.')),
+      h('p', {}, app ? t('In the Coloring Book the Save picture button always puts the finished picture into this phone’s photo gallery (album “Sprout Park”). Every picture also stays in the Coloring Book’s own gallery.') : t('In the Coloring Book the Save picture button downloads the picture to this device. Every picture also stays in the Coloring Book’s own gallery.')),
+      ios ? h('p', { class: 'fine' }, t('On iPhone and iPad the photos stay in the kitchen album.')) : h('div', { class: 'setting' }, h('span', {}, app ? t('Also save them to this phone’s photo gallery (album “Sprout Park”)') : t('Also save them to this device (as a download)')), sw),
       count, clear,
-      h('h4', {}, 'Clay Corner pictures'),
-      h('p', {}, 'The camera in Clay Corner takes a picture of the clay creation. Pictures are kept in the game\u2019s own album, and the same switch above also sends them to the device\u2019s photo gallery.'),
+      h('h4', {}, t('Clay Corner pictures')),
+      h('p', {}, t('The camera in Clay Corner takes a picture of the clay creation. Pictures are kept in the game’s own album, and the same switch above also sends them to the device’s photo gallery.')),
       clayCount, clayClear);
   }
 
   function pinSection() {
     const has = !!store.settings.pin;
-    const set = h('button', { class: 'btn small go', type: 'button' }, has ? 'Change PIN' : 'Set a PIN');
+    const set = h('button', { class: 'btn small go', type: 'button' }, has ? t('Change PIN') : t('Set a PIN'));
     const setNew = () => askPin(first => askPin(again => {
-      if (again !== first) { SPG.sfx.oops(); pinNote = 'Those two did not match. Please try again.'; renderParent(); return; }
-      hashPin(first).then(hx => { store.settings.pin = hx; store.saveSettings(); pinNote = 'PIN saved. Remember it: it opens the rest screen and this panel.'; renderParent(); });
-    }, { capture: true, title: 'Type it again', prompt: 'Type the same PIN again', hint: 'Just to be sure' }), { capture: true, title: has ? 'New PIN' : 'Choose a PIN', prompt: 'Choose 4 numbers', hint: 'Pick numbers only you know' });
+      if (again !== first) { SPG.sfx.oops(); pinNote = t('Those two did not match. Please try again.'); renderParent(); return; }
+      hashPin(first).then(hx => { store.settings.pin = hx; store.saveSettings(); pinNote = t('PIN saved. Remember it: it opens the rest screen and this panel.'); renderParent(); });
+    }, { capture: true, title: t('Type it again'), prompt: t('Type the same PIN again'), hint: t('Just to be sure') }), { capture: true, title: has ? t('New PIN') : t('Choose a PIN'), prompt: t('Choose 4 numbers'), hint: t('Pick numbers only you know') });
     set.addEventListener('click', () => { if (has) askPin(setNew); else setNew(); });
     const kids = [set];
     if (has) {
-      const off = h('button', { class: 'btn small quiet', type: 'button' }, 'Remove PIN');
-      off.addEventListener('click', () => askPin(() => { store.settings.pin = ''; store.saveSettings(); pinNote = 'PIN removed. The grown-up question is used again.'; renderParent(); }));
+      const off = h('button', { class: 'btn small quiet', type: 'button' }, t('Remove PIN'));
+      off.addEventListener('click', () => askPin(() => { store.settings.pin = ''; store.saveSettings(); pinNote = t('PIN removed. The grown-up question is used again.'); renderParent(); }));
       kids.push(off);
     }
     const note = pinNote; pinNote = '';
-    return h('section', {}, h('h3', {}, 'Grown-up PIN'),
-      h('p', {}, has ? 'A PIN is set. It is needed to close the rest screen and to open this panel.' : 'No PIN yet: a spelled-out sum is used to keep little fingers out. Set a 4-number PIN for a stronger lock on the rest screen and this panel.'),
+    return h('section', {}, h('h3', {}, t('Grown-up PIN')),
+      h('p', {}, has ? t('A PIN is set. It is needed to close the rest screen and to open this panel.') : t('No PIN yet: a spelled-out sum is used to keep little fingers out. Set a 4-number PIN for a stronger lock on the rest screen and this panel.')),
       h('div', { class: 'row' }, ...kids), note ? h('p', { class: 'fine' }, note) : null);
   }
   let pinNote = '';
@@ -872,32 +962,32 @@
     if (deviceAuthOk === null) { deviceAuthOk = false; SPG.native.deviceAuth.available().then(v => { if (v) { deviceAuthOk = true; renderParent(); } }); }
     if (!deviceAuthOk) return null;
     const on = !!store.settings.deviceAuth;
-    const btn = h('button', { class: 'btn small ' + (on ? 'quiet' : 'go'), type: 'button' }, on ? 'Turn off' : 'Turn on');
+    const btn = h('button', { class: 'btn small ' + (on ? 'quiet' : 'go'), type: 'button' }, on ? t('Turn off') : t('Turn on'));
     btn.addEventListener('click', async () => {
-      if (on) { store.settings.deviceAuth = ''; store.saveSettings(); pinNote = 'Fingerprint / phone lock is off.'; renderParent(); return; }
+      if (on) { store.settings.deviceAuth = ''; store.saveSettings(); pinNote = t('Fingerprint / phone lock is off.'); renderParent(); return; }
       const tok = await SPG.native.deviceAuth.enroll();
-      if (tok) { store.settings.deviceAuth = tok; store.saveSettings(); pinNote = 'Done. The grown-up screens now also have a "Use fingerprint or phone lock" button. The PIN still works too.'; } else pinNote = 'That did not work, so it was not turned on.';
+      if (tok) { store.settings.deviceAuth = tok; store.saveSettings(); pinNote = t('Done. The grown-up screens now also have a "Use fingerprint or phone lock" button. The PIN still works too.'); } else pinNote = t('That did not work, so it was not turned on.');
       renderParent();
     });
-    return h('section', {}, h('h3', {}, 'Fingerprint or phone lock'),
-      h('p', {}, on ? 'On: grown-up screens can be opened with this device\u2019s fingerprint, face or screen lock, as well as the PIN or question.' : 'Let a grown-up open the grown-up screens with this device\u2019s own fingerprint, face or screen lock, as well as the PIN. It stays on this device.'),
+    return h('section', {}, h('h3', {}, t('Fingerprint or phone lock')),
+      h('p', {}, on ? t('On: grown-up screens can be opened with this device’s fingerprint, face or screen lock, as well as the PIN or question.') : t('Let a grown-up open the grown-up screens with this device’s own fingerprint, face or screen lock, as well as the PIN. It stays on this device.')),
       h('div', { class: 'row' }, btn));
   }
 
   function timerSection() {
     const cur = store.settings.timer || 0;
-    const seg = h('div', { class: 'seg', role: 'group', 'aria-label': 'Daily play time' });
+    const seg = h('div', { class: 'seg', role: 'group', 'aria-label': t('Daily play time') });
     for (const m of [0, 15, 30, 45, 60]) {
-      const b = h('button', { type: 'button', class: 'seg-btn', 'aria-pressed': String(cur === m) }, m ? `${m} min` : 'No limit');
+      const b = h('button', { type: 'button', class: 'seg-btn', 'aria-pressed': String(cur === m) }, m ? t('{m} min', { m }) : t('No limit'));
       b.addEventListener('click', () => { store.settings.timer = m; store.saveSettings(); renderParent(); });
       seg.append(b);
     }
     const used = Math.floor(playLog().sec / 60);
-    const reset = h('button', { class: 'btn small quiet', type: 'button' }, 'Give more time today');
+    const reset = h('button', { class: 'btn small quiet', type: 'button' }, t('Give more time today'));
     reset.addEventListener('click', () => { playLog().sec = 0; store.saveSettings(); renderParent(); });
-    return h('section', {}, h('h3', {}, 'Play time'),
-      h('p', {}, 'When the daily limit is reached, a friendly rest screen appears. It can only be closed by a grown-up.'),
-      seg, h('p', { class: 'fine' }, `Played today: ${used} min`), reset);
+    return h('section', {}, h('h3', {}, t('Play time')),
+      h('p', {}, t('When the daily limit is reached, a friendly rest screen appears. It can only be closed by a grown-up.')),
+      seg, h('p', { class: 'fine' }, t('Played today: {m} min', { m: used })), reset);
   }
 
   /* ------------------------------------------------------------ safe mode wiring */
@@ -905,6 +995,7 @@
     if (!overlays.gate.classList.contains('hidden')) { gateState = null; closeOverlay(overlays.gate); return; }
     if (!overlays.vintro.classList.contains('hidden')) return;
     if (!overlays.studio.classList.contains('hidden')) { closeStudio(); return; }
+    if (!overlays.signvid.classList.contains('hidden')) { closeSignVideos(); return; }
     if (!overlays.parent.classList.contains('hidden')) { closeParent(); return; }
     if (!overlays.fs.classList.contains('hidden') || !overlays.brk.classList.contains('hidden')) return;
     if (current === 'stage') { if (!running?.inst?.back?.()) closeGame(); }

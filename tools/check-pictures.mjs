@@ -47,6 +47,18 @@ const report = await page.evaluate(() => {
       pe.remove();
     }
   }
+  // Every collection (a tab in the gallery) needs pictures, an emblem picture and tab colors that point at real sections.
+  const gids = new Set();
+  for (const g of SPG.pictureGroups) {
+    const say = (level, msg) => out.push([level, `collection ${g.id}: ${msg}`]);
+    if (gids.has(g.id)) say('FAIL', 'duplicate collection id'); gids.add(g.id);
+    const list = SPG.pictures.filter(p => p.group === g.id);
+    if (!list.length) say('FAIL', 'has no pictures'); else if (list.length < 6) say('WARN', `only ${list.length} pictures`);
+    const em = SPG.pictures.find(p => p.id === g.emblem);
+    if (!em) { say('FAIL', `emblem "${g.emblem}" is not a picture`); continue; }
+    for (const [sec] of g.demo || []) if (!em.sections.some(s => s.id === sec) && !(em.alias || {})[sec]) say('FAIL', `tab color for "${sec}" points at a missing section of ${em.id}`);
+  }
+  for (const pic of SPG.pictures) if (!gids.has(pic.group)) out.push(['FAIL', `${pic.id}: group "${pic.group}" is not a collection`]);
   return { out, pictures: SPG.pictures.length };
 });
 await browser.close();

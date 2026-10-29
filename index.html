@@ -69,84 +69,85 @@
   <main id="who" class="screen who hidden">
     <h1 class="logo">Little Sprout Park</h1>
     <div id="who-list" class="who-list"></div>
-    <p id="install-hint" class="install-hint hidden">For full screen on iPhone or iPad: tap <b>Share</b>, then <b>Add to Home Screen</b>, then open it from your home screen.</p>
+    <p id="install-hint" class="install-hint hidden" data-i18n-html>For full screen on iPhone or iPad: tap <b>Share</b>, then <b>Add to Home Screen</b>, then open it from your home screen.</p>
   </main>
 
   <!-- First-time / add-player setup -->
   <main id="setup" class="screen setup hidden">
     <form id="setup-form" class="sheet" autocomplete="off" data-scroll>
-      <h1>Welcome!</h1>
-      <p class="lead">Who is going to play?</p>
-      <p class="field-label">Pick a name</p>
+      <h1 data-i18n>Welcome!</h1>
+      <p class="lead" data-i18n>Who is going to play?</p>
+      <p class="field-label" data-i18n>Pick a name</p>
       <div id="nick-pick"></div>
-      <button type="button" id="type-name" class="btn quiet small"><svg><use href="#i-lock"/></svg><svg><use href="#i-keyboard"/></svg> Grown-up: type a name</button>
-      <label class="field hidden" id="name-field">Name
-        <input id="name-input" type="text" maxlength="16" autocomplete="off" autocapitalize="words" spellcheck="false" enterkeyhint="done" placeholder="Type a name">
+      <button type="button" id="type-name" class="btn quiet small" data-i18n><svg><use href="#i-lock"/></svg><svg><use href="#i-keyboard"/></svg> Grown-up: type a name</button>
+      <label class="field hidden" id="name-field" data-i18n>Name
+        <input id="name-input" type="text" maxlength="16" autocomplete="off" autocapitalize="words" spellcheck="false" enterkeyhint="done" placeholder="Type a name" data-i18n-attr="placeholder">
       </label>
-      <p class="field-label">Boy or girl? <span class="fine">(only used for wording in grown-up screens)</span></p>
-      <div id="gender-pick" class="seg" role="group" aria-label="Boy or girl"></div>
-      <p class="field-label">How old? <span class="fine">(sets how hard the games are; can be changed any time in Grown-ups)</span></p>
-      <div id="age-pick" class="seg" role="group" aria-label="Age"></div>
-      <p class="field-label">Pick a friend</p>
+      <p class="field-label" data-i18n>Boy or girl? <span class="fine" data-i18n>(only used for wording in grown-up screens)</span></p>
+      <div id="gender-pick" class="seg" role="group" aria-label="Boy or girl" data-i18n-attr="aria-label"></div>
+      <p class="field-label" data-i18n>How old? <span class="fine" data-i18n>(sets how hard the games are; can be changed any time in Grown-ups)</span></p>
+      <div id="age-pick" class="seg" role="group" aria-label="Age" data-i18n-attr="aria-label"></div>
+      <p class="field-label" data-i18n>Pick a friend</p>
       <div id="avatar-pick" class="avatar-pick"></div>
       <div class="row">
-        <button type="button" id="setup-cancel" class="btn quiet">Back</button>
-        <button type="submit" id="setup-go" class="btn go"><svg><use href="#i-check"/></svg> Let's play!</button>
+        <button type="button" id="setup-cancel" class="btn quiet" data-i18n>Back</button>
+        <button type="submit" id="setup-go" class="btn go" data-i18n><svg><use href="#i-check"/></svg> Let's play!</button>
       </div>
-      <p class="fine">Everything stays on this device unless a grown-up turns on the private cloud backup.</p>
-      <button type="button" id="setup-restore" class="btn quiet small hidden">Grown-up: I have a family code</button>
+      <p class="fine" data-i18n>Everything stays on this device unless a grown-up turns on the private cloud backup.</p>
+      <button type="button" id="setup-restore" class="btn quiet small hidden" data-i18n>Grown-up: I have a family code</button>
+      <button type="button" id="setup-lang" class="btn quiet small"><svg><use href="#i-lock"/></svg> 🌐 <span data-i18n>Language</span>: <span id="setup-lang-name" lang=""></span></button>
     </form>
   </main>
 
   <!-- Game hub -->
   <main id="hub" class="screen hub hidden">
     <header class="hub-top">
-      <button id="hub-who" class="chip" type="button" aria-label="Switch player"><canvas id="hub-avatar" width="64" height="64"></canvas><span id="hub-name"></span></button>
+      <button id="hub-who" class="chip" type="button" aria-label="Switch player" data-i18n-attr="aria-label"><canvas id="hub-avatar" width="64" height="64"></canvas><span id="hub-name"></span></button>
       <h1 class="hub-title">Little Sprout Park</h1>
       <div class="hub-right">
-        <div class="chip stars" aria-label="Stars"><svg class="ico"><use href="#i-star"/></svg><b id="hub-stars">0</b></div>
-        <button id="hub-lock" class="chip round" type="button" aria-label="Grown-ups"><svg class="ico"><use href="#i-lock"/></svg></button>
+        <div class="chip stars" aria-label="Stars" data-i18n-attr="aria-label"><svg class="ico"><use href="#i-star"/></svg><b id="hub-stars">0</b></div>
+        <button id="hub-lock" class="chip round" type="button" aria-label="Grown-ups" data-i18n-attr="aria-label"><svg class="ico"><use href="#i-lock"/></svg></button>
       </div>
     </header>
-    <section id="hub-games" class="cards" aria-label="Games"></section>
-    <section id="hub-shop" class="hub-shop" aria-label="Shop"></section>
+    <section id="hub-games" class="cards" aria-label="Games" data-i18n-attr="aria-label"></section>
+    <section id="hub-shop" class="hub-shop" aria-label="Shop" data-i18n-attr="aria-label"></section>
   </main>
 
   <!-- A running game -->
   <main id="stage" class="screen stage hidden">
     <div id="game-host" class="game-host"></div>
-    <button id="btn-home" class="hud-btn home" type="button" aria-label="Home"><svg><use href="#i-house"/></svg></button>
-    <div class="hud-stars" aria-label="Stars"><svg class="ico"><use href="#i-star"/></svg><b id="stage-stars">0</b></div>
+    <button id="btn-home" class="hud-btn home" type="button" aria-label="Home" data-i18n-attr="aria-label"><svg><use href="#i-house"/></svg></button>
+    <div class="hud-stars" aria-label="Stars" data-i18n-attr="aria-label"><svg class="ico"><use href="#i-star"/></svg><b id="stage-stars">0</b></div>
   </main>
 
   <!-- Daily play time is up -->
   <div id="break" class="overlay hidden" role="dialog" aria-modal="true" aria-labelledby="break-title">
     <div class="break-card">
       <canvas id="break-art" width="800" height="450"></canvas>
-      <h2 id="break-title">Time for a little rest</h2>
-      <p>Play time is up for today.</p>
-      <button id="break-adult" class="btn quiet" type="button"><svg><use href="#i-lock"/></svg> Grown-up</button>
+      <h2 id="break-title" data-i18n>Time for a little rest</h2>
+      <p data-i18n>Play time is up for today.</p>
+      <button id="break-adult" class="btn quiet" type="button" data-i18n><svg><use href="#i-lock"/></svg> Grown-up</button>
     </div>
   </div>
 
   <!-- Parent gate -->
   <div id="gate" class="overlay hidden" role="dialog" aria-modal="true" aria-labelledby="gate-title">
     <div class="sheet gate">
-      <button id="gate-back" type="button" class="btn go gate-back"><svg class="ico"><use href="#i-house"/></svg><span>Back to the games</span></button>
+      <button id="gate-back" type="button" class="btn go gate-back"><svg class="ico"><use href="#i-house"/></svg><span data-i18n>Back to the games</span></button>
       <h2 id="gate-title">Grown-ups only</h2>
       <p id="gate-hint" class="fine">Answer to continue</p>
       <p id="gate-q" class="gate-q"></p>
       <div id="gate-answer" class="gate-answer" aria-live="polite"></div>
       <div id="numpad" class="numpad"></div>
-      <button id="gate-forgot" type="button" class="btn quiet small hidden">Forgot the PIN?</button>
-      <button id="gate-device" type="button" class="btn go gate-device hidden"><svg class="ico"><use href="#i-lock"/></svg><span>Use fingerprint or phone lock</span></button>
+      <button id="gate-forgot" type="button" class="btn quiet small hidden" data-i18n>Forgot the PIN?</button>
+      <button id="gate-device" type="button" class="btn go gate-device hidden"><svg class="ico"><use href="#i-lock"/></svg><span data-i18n>Use fingerprint or phone lock</span></button>
     </div>
   </div>
 
   <!-- Grown-ups panel -->
   <div id="parent" class="overlay hidden" role="dialog" aria-modal="true" aria-labelledby="parent-title">
     <div class="sheet wide" data-scroll>
-      <div class="sheet-head"><h2 id="parent-title">Grown-ups</h2><button id="parent-close" class="btn go small" type="button"><svg><use href="#i-check"/></svg> Done</button></div>
+      <div class="sheet-head"><h2 id="parent-title" data-i18n>Grown-ups</h2><button id="parent-close" class="btn go small" type="button" data-i18n><svg><use href="#i-check"/></svg> Done</button></div>
       <div id="parent-body"></div>
     </div>
   </div>
@@ -154,29 +155,43 @@
   <!-- Record and choose voices -->
   <div id="studio" class="overlay hidden" role="dialog" aria-modal="true" aria-labelledby="studio-title">
     <div class="sheet wide" data-scroll>
-      <div class="sheet-head"><h2 id="studio-title">Voices</h2><button id="studio-close" class="btn go small" type="button"><svg><use href="#i-check"/></svg> Done</button></div>
+      <div class="sheet-head"><h2 id="studio-title" data-i18n>Voices</h2><button id="studio-close" class="btn go small" type="button" data-i18n><svg><use href="#i-check"/></svg> Done</button></div>
       <div id="studio-body"></div>
     </div>
   </div>
 
+  <!-- Record videos of signs (Grown-ups > Accessibility) -->
+  <div id="signvid" class="overlay hidden" role="dialog" aria-modal="true" aria-labelledby="signvid-title">
+    <div class="sheet wide" data-scroll>
+      <div class="sheet-head"><h2 id="signvid-title" data-i18n>Sign videos</h2><button id="signvid-close" class="btn go small" type="button" data-i18n><svg><use href="#i-check"/></svg> Done</button></div>
+      <div id="signvid-body"></div>
+    </div>
+  </div>
+
   <!-- First run: pick the family voices -->
-  <div id="vintro" class="overlay hidden" role="dialog" aria-modal="true" aria-label="Set up voices">
+  <div id="vintro" class="overlay hidden" role="dialog" aria-modal="true" aria-label="Set up voices" data-i18n-attr="aria-label">
     <div class="sheet wide" data-scroll><div id="vintro-body"></div></div>
   </div>
 
   <!-- Shown if fullscreen was left by accident -->
-  <div id="fs-resume" class="overlay hidden" role="dialog" aria-modal="true" aria-label="Keep playing">
-    <button id="fs-play" class="btn-play" type="button" aria-label="Keep playing"><svg><use href="#i-play"/></svg></button>
+  <div id="fs-resume" class="overlay hidden" role="dialog" aria-modal="true" aria-label="Keep playing" data-i18n-attr="aria-label">
+    <button id="fs-play" class="btn-play" type="button" aria-label="Keep playing" data-i18n-attr="aria-label"><svg><use href="#i-play"/></svg></button>
   </div>
 
   <div id="night-veil" aria-hidden="true"></div>
   <script src="js/native.js"></script>
   <script src="js/glyphs.js"></script>
   <script src="js/core.js"></script>
+  <script src="js/i18n.js"></script>
+  <script src="js/access.js"></script>
   <script src="js/photos.js"></script>
   <script src="js/level.js"></script>
   <script src="js/sync.js"></script>
   <script src="js/voice.js"></script>
+  <script src="js/sign.js"></script>
+  <script src="js/sign-words.js"></script>
+  <script src="js/signs.js"></script>
+  <script src="js/signvideo.js"></script>
   <script src="js/art.js"></script>
   <script src="js/art-garden.js"></script>
   <script src="js/art-pets.js"></script>
@@ -205,6 +220,7 @@
   <script src="games/pattern.js"></script>
   <script src="games/feelings.js"></script>
   <script src="games/sort.js"></script>
+  <script src="games/signlang.js"></script>
   <script src="games/garden.js"></script>
   <script src="games/color-pictures.js"></script>
   <script src="games/color-seasons.js"></script>

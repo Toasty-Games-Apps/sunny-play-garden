@@ -82,6 +82,7 @@
     c.fillStyle = 'rgba(255,255,255,.4)'; c.beginPath(); c.ellipse(-r * .3, -r * .45, r * .36, r * .17, -.5, 0, TAU); c.fill();
     c.restore();
     c.beginPath(); c.arc(0, 0, r, 0, TAU); c.lineWidth = Math.max(1.5, r * .07); c.strokeStyle = art.shade(col, -.32); c.stroke();
+    if (SPG.vision && SPG.vision.marks() && r > 9) SPG.vision.mark(c, u.c, r * .42);   // colour symbols (Grown-ups > Accessibility): colour is never the only difference
     if (o.glow) { c.globalAlpha = o.glow; c.lineWidth = r * .16; c.strokeStyle = '#fff6b0'; c.beginPath(); c.arc(0, 0, r * 1.18, 0, TAU); c.stroke(); c.globalAlpha = 1; }
     c.restore();
   }

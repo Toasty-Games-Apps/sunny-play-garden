@@ -31,7 +31,8 @@
     { id: 'thunder', mood: 'scared' }, { id: 'dark', mood: 'scared' },
     { id: 'tower', mood: 'mad' }, { id: 'splash', mood: 'mad' },
     { id: 'jack', mood: 'wow' }, { id: 'party', mood: 'wow' },
-    { id: 'yawn', mood: 'sleep' }
+    { id: 'yawn', mood: 'sleep' },
+    { id: 'bubbles', mood: 'happy' }, { id: 'rainbow', mood: 'wow' }, { id: 'spider', mood: 'scared' }, { id: 'grab', mood: 'mad' }
   ];
   const HELPS = { happy: ['dance', 'high5', 'hug'], wow: ['dance', 'high5', 'hug'], sad: ['hug', 'gift', 'song'], scared: ['hug', 'light', 'teddy'], mad: ['hug', 'breath', 'build'], sleep: ['blanket', 'song', 'teddy'] };
   const STORY_T = 3.0, EV = 1.15;   // how long a story plays, and when the thing happens
@@ -48,7 +49,10 @@
     const others = shuffle(moods.filter(m => m !== mood && !(LOOKALIKE[mood] || []).includes(m))).slice(0, k - 1);
     let helps = HELPS[mood].slice();
     if (story.id === 'splash') helps[2] = 'wash';
-    return { story: story.id, mood, choices: shuffle([mood, ...others]), helps: shuffle(helps) };
+    if (story.id === 'grab') helps[2] = 'gift';
+    // tier 3: after the feeling, "Why did I feel that way?" with the picture of what happened and two from other feelings
+    const whys = tier >= 3 ? shuffle([story.id, ...shuffle(STORIES.filter(o => o.mood !== mood)).reduce((a, o) => (a.length < 2 && !a.some(x => STORIES.find(q => q.id === x).mood === o.mood) ? a.concat(o.id) : a), [])]) : null;
+    return { story: story.id, mood, choices: shuffle([mood, ...others]), helps: shuffle(helps), whys };
   }
 
   /* ---------------------------------------------------------------- small drawings */
@@ -131,6 +135,59 @@
     c.fillStyle = '#ffd1e3'; for (let i = 0; i < 3; i++) for (let j = 0; j < 2; j++) if ((i + j) % 2 === 0) { rr(c, -s / 2 + i * s / 3 + s * .03, -s * .3 + j * s * .3 + s * .03, s / 3 - s * .06, s * .24, s * .05); c.fill(); }
     c.fillStyle = '#ffd54a'; for (let i = 0; i < 3; i++) art.star(c, -s * .33 + i * s * .33, s * .15 - (i % 2) * s * .3, s * .05);
   }
+  function wand(c, s) {
+    c.strokeStyle = '#ff8fc0'; c.lineWidth = s * .05; c.lineCap = 'round'; c.beginPath(); c.moveTo(0, 0); c.lineTo(s * .12, -s * .42); c.stroke();
+    c.lineWidth = s * .04; c.beginPath(); c.ellipse(s * .15, -s * .52, s * .1, s * .11, .25, 0, TAU); c.stroke();
+  }
+  function bubble(c, x, y, r) {
+    c.fillStyle = 'rgba(200,235,255,.22)'; ell(c, x, y, r, r); c.fill();
+    c.strokeStyle = 'rgba(150,200,255,.75)'; c.lineWidth = Math.max(1, r * .09); c.stroke();
+    c.fillStyle = 'rgba(255,255,255,.85)'; ell(c, x - r * .35, y - r * .38, r * .22, r * .14); c.fill();
+    c.strokeStyle = 'rgba(255,170,230,.45)'; c.lineWidth = Math.max(1, r * .06); c.beginPath(); c.arc(x, y, r * .8, .3, 1.3); c.stroke();
+  }
+  function rainbow(c, x, y, r, k = 1) {
+    ['#ff6b6b', '#ffa24d', '#ffd54a', '#7ed957', '#5aa8f0', '#b58cf0'].forEach((col, i) => { c.strokeStyle = col; c.lineWidth = r * .075; c.beginPath(); c.arc(x, y, r * (1 - i * .075), Math.PI, Math.PI + Math.PI * k); c.stroke(); });
+  }
+  // a small, friendly spider (round body, smiling eyes) on its thread
+  function spider(c, s, t) {
+    c.strokeStyle = '#4a3a5c'; c.lineWidth = s * .05; c.lineCap = 'round';
+    for (const side of [-1, 1]) for (let i = 0; i < 4; i++) { const a = -.6 + i * .42, wig = Math.sin(t * 6 + i) * .08; c.beginPath(); c.moveTo(0, 0); c.quadraticCurveTo(side * s * .5 * Math.cos(a - .5), s * (-.25 + i * .12) - s * .1, side * s * (.62 + wig * .4), s * (-.05 + i * .17 + wig)); c.stroke(); }
+    c.fillStyle = '#5b4a70'; ell(c, 0, 0, s * .36, s * .32); c.fill();
+    c.fillStyle = 'rgba(255,255,255,.25)'; ell(c, -s * .12, -s * .14, s * .12, s * .07); c.fill();
+    for (const ex of [-.13, .13]) { c.fillStyle = '#fff'; ell(c, ex * s, -s * .02, s * .1, s * .11); c.fill(); c.fillStyle = '#2c2235'; ell(c, ex * s, 0, s * .05, s * .06); c.fill(); }
+    c.strokeStyle = '#ffb3c6'; c.lineWidth = s * .035; c.beginPath(); c.arc(0, s * .1, s * .09, .3, Math.PI - .3); c.stroke();
+    c.fillStyle = 'rgba(255,140,170,.5)'; ell(c, -s * .24, s * .1, s * .05, s * .035); c.fill(); ell(c, s * .24, s * .1, s * .05, s * .035); c.fill();
+  }
+  function beachBall(c, r, spin = 0) {
+    c.save(); c.rotate(spin); ['#ff6b6b', '#fff', '#5aa8f0', '#fff', '#ffd54a', '#fff'].forEach((col, i) => { c.fillStyle = col; c.beginPath(); c.moveTo(0, 0); c.arc(0, 0, r, i * TAU / 6, (i + 1) * TAU / 6); c.closePath(); c.fill(); });
+    c.restore(); c.strokeStyle = 'rgba(90,63,94,.35)'; c.lineWidth = Math.max(1, r * .06); ell(c, 0, 0, r, r); c.stroke();
+    c.fillStyle = 'rgba(255,255,255,.5)'; ell(c, -r * .35, -r * .4, r * .25, r * .15); c.fill();
+  }
+  function moon(c, x, y, r, sky) { c.fillStyle = '#fff3b0'; ell(c, x, y, r, r); c.fill(); c.fillStyle = sky; ell(c, x + r * .42, y - r * .22, r * .85, r * .85); c.fill(); }
+  // tier 3, "Why did I feel that way?": a little picture of what happened in each story
+  function storyIcon(c, id, r, t) {
+    c.save(); c.lineCap = c.lineJoin = 'round';
+    switch (id) {
+      case 'present': c.translate(0, r * .42); present(c, r * .75, 0, '#ff8fc0'); break;
+      case 'cake': c.translate(0, r * .58); cake(c, r * 1.12, t); break;
+      case 'pal': c.save(); c.translate(-r * .36, r * .15); art.avatar(c, 'bear', r * .38, { mood: 'cheer' }); c.restore(); c.save(); c.translate(r * .36, r * .15); art.avatar(c, 'bunny', r * .38, { mood: 'cheer' }); c.restore(); art.heart(c, 0, -r * .5, r * .2, '#ff7a9a'); break;
+      case 'icecream': c.fillStyle = '#ffb3c6'; ell(c, 0, r * .5, r * .62, r * .17); c.fill(); ell(c, -r * .05, r * .36, r * .36, r * .2); c.fill(); c.fillStyle = 'rgba(255,255,255,.6)'; ell(c, -r * .2, r * .3, r * .1, r * .05); c.fill(); c.translate(r * .05, r * .32); c.rotate(Math.PI + .25); cone(c, r * 1.7, false); break;
+      case 'balloon': c.translate(-r * .05, r * .8); balloon(c, r * 1.05, '#ff6b81', r * .05); break;
+      case 'rain': cloud(c, 0, -r * .2, r * .55, '#9aa0b8'); c.strokeStyle = '#5aa8f0'; c.lineWidth = r * .08; for (const x of [-.35, 0, .35]) { c.beginPath(); c.moveTo(x * r, r * .15); c.lineTo(x * r - r * .08, r * .45); c.stroke(); } break;
+      case 'thunder': cloud(c, 0, -r * .25, r * .55, '#7d8199'); c.fillStyle = '#ffd54a'; c.beginPath(); c.moveTo(r * .05, -r * .05); c.lineTo(-r * .22, r * .32); c.lineTo(0, r * .3); c.lineTo(-r * .12, r * .62); c.lineTo(r * .25, r * .18); c.lineTo(r * .02, r * .2); c.closePath(); c.fill(); break;
+      case 'dark': c.fillStyle = '#2c2f66'; ell(c, 0, 0, r * .75, r * .75); c.fill(); c.translate(0, r * .45); lamp(c, r * .85, 0); break;
+      case 'tower': { const s = r * .52; [[-.45, .5, .4, '#ff6b81', 'A'], [.42, .55, -.3, '#5aa8f0', 'B'], [-.02, -.12, .7, '#ffd54a', 'C']].forEach(([x, y, rot, col, l]) => blockAt(c, { x: x * r, y: y * r - r * .15, r: rot, col, l }, s)); break; }
+      case 'splash': c.fillStyle = '#8a6448'; ell(c, 0, r * .45, r * .62, r * .16); c.fill(); ell(c, 0, r * .5, r * .75, r * .18); c.fill(); for (const [x, y, rad] of [[-.5, -.35, .1], [.45, -.45, .09], [-.15, -.62, .08], [.2, -.3, .07]]) { ell(c, x * r, y * r, rad * r, rad * r); c.fill(); } c.translate(0, r * .48); car(c, r * 1.2); break;
+      case 'jack': c.translate(0, r * .78); jackBox(c, r * .88, true, 1, t); break;
+      case 'party': { c.strokeStyle = '#c9a0dc'; c.lineWidth = r * .05; c.beginPath(); c.moveTo(-r * .7, -r * .55); c.quadraticCurveTo(0, -r * .3, r * .7, -r * .55); c.stroke(); for (let i = 0; i < 4; i++) { const x = -r * .5 + i * r * .33, y = -r * .5 + Math.sin((i + .5) / 4 * Math.PI) * r * .12; c.fillStyle = ['#ff6b81', '#ffd54a', '#5aa8f0', '#7ed957'][i]; c.beginPath(); c.moveTo(x - r * .1, y); c.lineTo(x + r * .1, y); c.lineTo(x, y + r * .24); c.closePath(); c.fill(); } c.save(); c.translate(-r * .28, r * .95); balloon(c, r * .85, '#ff6b81'); c.restore(); c.translate(r * .28, r * 1.02); balloon(c, r * .9, '#5aa8f0'); break; }
+      case 'yawn': c.fillStyle = '#d6e4ff'; rr(c, -r * .6, r * .02, r * 1.2, r * .42, r * .18); c.fill(); moon(c, -r * .15, -r * .3, r * .3, '#ffffff'); c.fillStyle = '#7b8fd0'; c.font = `800 ${r * .4}px Fredoka, system-ui`; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText('z', r * .3, -r * .2); c.font = `800 ${r * .28}px Fredoka, system-ui`; c.fillText('z', r * .52, -r * .5); break;
+      case 'bubbles': c.translate(-r * .3, r * .6); wand(c, r * 1.2); c.translate(r * .3, -r * .6); bubble(c, r * .2, -r * .05, r * .26); bubble(c, r * .5, -r * .5, r * .18); bubble(c, -r * .15, -r * .55, r * .14); break;
+      case 'rainbow': c.translate(0, r * .35); rainbow(c, 0, 0, r * .75); break;
+      case 'spider': c.strokeStyle = 'rgba(120,110,140,.8)'; c.lineWidth = r * .03; c.beginPath(); c.moveTo(0, -r * .9); c.lineTo(0, -r * .1); c.stroke(); c.translate(0, r * .15); spider(c, r * .75, t); break;
+      case 'grab': c.translate(-r * .1, r * .1); beachBall(c, r * .42, t * 2); c.strokeStyle = 'rgba(90,63,94,.45)'; c.lineWidth = r * .07; for (const y of [-.25, 0, .25]) { c.beginPath(); c.moveTo(r * .55, y * r); c.lineTo(r * .85, y * r); c.stroke(); } break;
+    }
+    c.restore();
+  }
   // the picture on each "how can I help?" button
   function helpIcon(c, id, r, t) {
     c.save(); c.lineCap = c.lineJoin = 'round';
@@ -186,7 +243,11 @@
       if (this.round && this.phase !== 'enter' && this.phase !== 'leave') this.x = this.fx0;   // after a turn of the screen the friend stands in its new spot
       if (this.round && this.round.blocks) this.placeBlocks(this.round.fallen);
     }
-    start() { this.resize(); this.newRound(); this.resume(); voice.say('feel-start'); this.firstSaid = true; }
+    start() {
+      this.resize(); this.newRound(); this.resume();
+      // the hello is said while the first friend walks in; the friend then waits for it to end, because the story line would cut it off
+      this.introOn = true; this.introUntil = this.t + 7; voice.say('feel-start').then(() => { this.introOn = false; });
+    }
     resume() { if (this.running) return; this.running = true; this.last = performance.now(); this.raf = requestAnimationFrame(this.tick); }
     pause() { this.running = false; cancelAnimationFrame(this.raf); }
     destroy() { this.pause(); this.canvas.remove(); this.counter.el.remove(); }
@@ -222,6 +283,7 @@
       this.idle = 0; const R = this.round; if (!R) return;
       const b = (this.btns || []).find(b => b.in > .6 && Math.hypot(x - b.x, y - b.y) < this.br * 1.15);
       if (this.phase === 'ask' && b) return this.answer(b);
+      if (this.phase === 'why' && b) return this.because(b);
       if (this.phase === 'help' && b) return this.doHelp(b);
       // touching the friend: a little hop and a happy sound, at any time
       if (Math.abs(x - this.x) < this.S * .4 && y < this.gy && y > this.gy - this.S) { this.jump(.6); sfx.squeak ? sfx.squeak() : sfx.pop(); }
@@ -231,7 +293,7 @@
       if (b.id === R.mood) {
         b.pop = 1; sfx.chime(); this.btns.forEach(o => { if (o !== b) o.dim = true; });
         R.picked = b.id; this.phase = 'yes'; this.pt = 0; this.jump(1);
-        voice.say('feel/' + R.mood, this.helpLine());
+        voice.say('feel/' + R.mood, R.whys ? 'feel-why' : this.helpLine());
         this.fx.burst(b.x, b.y, 12, { colors: [RING[R.mood], '#fff', '#ffd54a'], speed: 180, g: 200, life: .7, size: 6 * this.ui, shape: 'star', up: 80 });
         return;
       }
@@ -239,6 +301,19 @@
       R.wrong++; b.shake = 1; b.dim = true; this.shake = 1; sfx.instrument('bell', 1, .12);
       if (R.wrong === 1) voice.say('feel-look');
       if (R.wrong >= 2) R.glow = true;
+    }
+    // tier 3: which picture shows why the friend felt that way
+    because(b) {
+      const R = this.round;
+      if (b.id === R.story) {
+        b.pop = 1; sfx.chime(); this.btns.forEach(o => { if (o !== b) o.dim = true; });
+        this.phase = 'yes2'; this.pt = 0; this.jump(.8); voice.say(this.helpLine());
+        this.fx.burst(b.x, b.y, 12, { colors: ['#9ad0f5', '#fff', '#ffd54a'], speed: 180, g: 200, life: .7, size: 6 * this.ui, shape: 'star', up: 80 });
+        return;
+      }
+      if (b.dim) { b.shake = 1; sfx.tap(); return; }
+      R.wwrong = (R.wwrong || 0) + 1; b.shake = 1; b.dim = true; this.shake = .6; sfx.instrument('bell', 1, .12);
+      if (R.wwrong >= 2) R.wglow = true;
     }
     helpLine() { const m = this.round.mood; return m === 'happy' || m === 'wow' ? 'feel-joy' : m === 'sleep' ? 'feel-help-sleep' : 'feel-help'; }
     doHelp(b) {
@@ -270,8 +345,9 @@
       this.hopT = Math.max(0, this.hopT - dt); this.shake = Math.max(0, this.shake - dt * 1.6);
       for (const b of this.btns || []) { b.in = Math.min(1, b.in + dt * 3); b.pop = Math.max(0, b.pop - dt * 2); b.shake = Math.max(0, b.shake - dt * 2.4); }
       if (this.phase === 'enter') {
-        const u = ease(this.pt / 1.4); this.x = -this.S + (this.fx0 + this.S) * u; if (this.pt % .35 < dt) this.jump(.35, .35);
-        if (this.pt >= 1.4) { this.x = this.fx0; this.phase = 'story'; this.pt = 0; voice.say('feel-s-' + R.story, 'feel-how'); this.evDone = false; }
+        const u = ease(this.pt / 1.4); this.x = -this.S + (this.fx0 + this.S) * u; if (this.pt < 1.4 && this.pt % .35 < dt) this.jump(.35, .35);
+        if (this.pt >= 1.4 && this.introOn && this.t < this.introUntil) { this.x = this.fx0; this.idle = 0; }
+        else if (this.pt >= 1.4) { this.x = this.fx0; this.phase = 'story'; this.pt = 0; voice.say('feel-s-' + R.story, 'feel-how'); this.evDone = false; }
       } else if (this.phase === 'story') {
         this.storyStep(dt);
         if (!this.evDone && this.pt >= EV) { this.evDone = true; this.event(); }
@@ -283,7 +359,14 @@
         if (this.idle > 10) { this.idle = 0; R.glow = R.glow || R.wrong > 0; voice.say('feel-how'); }
       } else if (this.phase === 'yes') {
         this.storyStep(dt);
-        if (this.pt > 1.6) { this.phase = 'help'; this.pt = 0; this.idle = 0; this.setButtons(R.helps, 'help'); }
+        if (this.pt > 1.6 && R.whys) { this.phase = 'why'; this.pt = 0; this.idle = 0; this.setButtons(R.whys, 'why'); }
+        else if (this.pt > 1.6) { this.phase = 'help'; this.pt = 0; this.idle = 0; this.setButtons(R.helps, 'help'); }
+      } else if (this.phase === 'why') {
+        this.storyStep(dt);
+        if (this.idle > 10) { this.idle = 0; R.wglow = true; voice.say('feel-why'); }
+      } else if (this.phase === 'yes2') {
+        this.storyStep(dt);
+        if (this.pt > 1.3) { this.phase = 'help'; this.pt = 0; this.idle = 0; this.setButtons(R.helps, 'help'); }
       } else if (this.phase === 'help') {
         this.storyStep(dt);
         if (this.idle > 12) { this.idle = 0; voice.say(this.helpLine()); }
@@ -311,6 +394,14 @@
       if (R.open) R.open += dt;
       if (id === 'jack' && !R.open && this.phase === 'story') { const k = Math.floor(this.pt / .3); if (k !== R.crank) { R.crank = k; sfx.instrument('xylo', k % 5, .12); } }
       if (R.story === 'tower') this.blocksStep(dt);
+      if (id === 'bubbles') this.bubStep(dt, after && this.phase !== 'help');
+    }
+    // the bubbles float up from the wand, wobble and pop
+    bubStep(dt, spawn) {
+      const R = this.round, S = this.S; R.bubs = R.bubs || [];
+      if (spawn && Math.random() < dt * 5 && R.bubs.length < 14) R.bubs.push({ x: this.fx0 + S * .45, y: this.gy - S * .86, vx: (30 + Math.random() * 60) * this.ui, vy: -(20 + Math.random() * 50) * this.ui, r: S * (.035 + Math.random() * .045), life: 2.5 + Math.random() * 1.5, ph: Math.random() * 6 });
+      for (const b of R.bubs) { b.x += (b.vx + Math.sin(this.t * 2 + b.ph) * 20 * this.ui) * dt; b.y += b.vy * dt; b.life -= dt; if (b.life <= 0 && !b.popped) { b.popped = true; this.fx.burst(b.x, b.y, 5, { colors: ['rgba(190,230,255,.9)', '#fff'], speed: 70, g: 60, life: .35, size: 2.5 * this.ui }); } }
+      R.bubs = R.bubs.filter(b => b.life > 0 && b.y > -b.r && b.x < this.w + b.r);
     }
     blocksStep(dt) {
       for (const b of this.round.blocks) if (b.anim) {
@@ -336,6 +427,10 @@
         case 'splash': R.mud = 1; sfx.splash(); this.fx.burst(this.x + this.S * .3, y - this.S * .1, 22, { colors: ['#8a6448', '#a47b55', '#6e4f38'], speed: 260, g: 600, life: .8, size: 7 * this.ui, up: 220 }); break;
         case 'jack': R.open = .001; sfx.boing(); break;
         case 'yawn': sfx.note ? sfx.note(0) : sfx.chime(); break;
+        case 'bubbles': sfx.chime(); for (let i = 0; i < 6; i++) this.bubStep(.2, true); break;
+        case 'rainbow': sfx.chime(); setTimeout(() => this.running && sfx.plink && sfx.plink(4), 300); this.fx.burst(this.w / 2, this.gy - this.rainR(), 16, { colors: ['#ffd54a', '#fff', '#ff8fc0'], speed: 200, g: 120, life: 1.1, size: 6 * this.ui, shape: 'star', up: 40 }); break;
+        case 'spider': sfx.instrument('xylo', 0, .12); break;
+        case 'grab': sfx.whoosh(); break;
       }
       this.jump(R.mood === 'happy' || R.mood === 'wow' ? 1 : .3);
     }
@@ -353,6 +448,7 @@
         if (id === 'wash') R.mud = Math.max(0, 1 - u * 1.2);
       }
       if (R.story === 'tower') this.blocksStep(dt);
+      if (R.story === 'bubbles') this.bubStep(dt, this.phase === 'thanks');
       if (this.phase === 'thanks') { R.dark = Math.max(0, R.dark - dt * .4); R.cloud = Math.max(0, R.cloud - dt * .6); if (R.story === 'splash') R.mud = Math.max(0, R.mud - dt); }
       R.flash = Math.max(0, (R.flash || 0) - dt * 3); this.shiver = 0;
     }
@@ -377,7 +473,7 @@
         g.addColorStop(0, 'rgba(25,20,60,0)'); g.addColorStop(1, `rgba(25,20,60,${R.dark})`); c.fillStyle = g; c.fillRect(0, 0, w, h);
       }
       if (R.flash > 0) { c.fillStyle = `rgba(255,255,240,${R.flash * .35})`; c.fillRect(0, 0, w, h); }
-      if (this.phase === 'ask' || this.phase === 'yes') this.drawBubble(c);
+      if (this.phase === 'ask' || this.phase === 'yes' || this.phase === 'why') this.drawBubble(c);
       this.drawButtons(c);
       this.fx.draw(c);
     }
@@ -391,14 +487,15 @@
       if (R.mud > 0) { c.globalAlpha = R.mud; c.fillStyle = '#8a6448'; for (const [dx, dy, r] of [[-.12, -.2, .05], [.1, -.3, .04], [.16, -.12, .035], [-.05, -.42, .03], [.03, -.15, .045], [-.18, -.08, .03]]) { ell(c, dx * S, dy * S, r * S, r * S * .8); c.fill(); } c.globalAlpha = 1; }
       c.restore();
     }
+    rainR() { return Math.max(this.S, Math.min(this.w * .47, this.gy - this.skyY + this.S * .3)); }
     drawProp(c, layer) {
-      const R = this.round, S = this.S, gy = this.gy, x = this.px, t = this.t, inStory = this.phase === 'story', u = inStory ? this.pt : 99;
+      const R = this.round, S = this.S, gy = this.gy, x = this.px, t = this.t, inStory = this.phase === 'story', pre = this.phase === 'enter', u = inStory ? this.pt : pre ? 0 : 99;   // while the friend walks in, everything waits for the story to begin
       const hx = this.x + S * .3, hy = gy - S * .3;   // where the friend's right paw is
       c.save(); if (this.phase === 'leave') c.globalAlpha = Math.max(0, 1 - this.pt / 1.2);
       switch (R.story) {
-        case 'present': if (layer === 'back') { const drop = clamp(u / .7, 0, 1), y = gy - (1 - ease(drop)) * S * 1.5 - Math.abs(Math.sin(drop * Math.PI * 2)) * (1 - drop) * S * .1; const op = Math.min(1, (R.open || 0) * 2.4); c.translate(x, y); present(c, S * .45, op, '#ff8fc0'); if (op > .5) { c.globalAlpha = op; art.star(c, 0, -S * .55 - Math.sin(t * 3) * S * .03, S * .12, '#ffd54a'); } } break;
-        case 'cake': if (layer === 'back') { c.translate(x + (1 - ease(u / .8)) * this.w * .5, gy); cake(c, S * .5, t); } break;
-        case 'pal': if (layer === 'back') { const px = x + (1 - ease(u / 1)) * this.w * .45 + (this.phase === 'leave' ? ease(this.pt / 1.5) * this.w * .5 : 0); c.translate(px, gy); c.scale(-1, 1); P.draw(c, R.pal, S * .85, t + 1, { mood: u > EV ? 'cheer' : 'happy', hop: u < 1 ? (u * 3) % 1 : 0 }); } break;
+        case 'present': if (layer === 'back' && !pre) { const drop = clamp(u / .7, 0, 1), y = gy - (1 - ease(drop)) * S * 1.5 - Math.abs(Math.sin(drop * Math.PI * 2)) * (1 - drop) * S * .1; const op = Math.min(1, (R.open || 0) * 2.4); c.translate(x, y); present(c, S * .45, op, '#ff8fc0'); if (op > .5) { c.globalAlpha = op; art.star(c, 0, -S * .55 - Math.sin(t * 3) * S * .03, S * .12, '#ffd54a'); } } break;
+        case 'cake': if (layer === 'back' && !pre) { c.translate(x + (1 - ease(u / .8)) * this.w * .5, gy); cake(c, S * .5, t); } break;
+        case 'pal': if (layer === 'back' && !pre) { const px = x + (1 - ease(u / 1)) * this.w * .45 + (this.phase === 'leave' ? ease(this.pt / 1.5) * this.w * .5 : 0); c.translate(px, gy); c.scale(-1, 1); P.draw(c, R.pal, S * .85, t + 1, { mood: u > EV ? 'cheer' : 'happy', hop: u < 1 ? (u * 3) % 1 : 0 }); } break;
         case 'icecream': if (layer === 'front') {
           const fell = u > EV, fu = clamp((u - EV) / .4, 0, 1);
           c.save(); c.translate(hx, hy - S * .02); c.rotate(-.15); cone(c, S * .38, !fell); c.restore();
@@ -413,6 +510,33 @@
         case 'tower': if (layer === 'back') { for (const b of R.blocks) blockAt(c, b, R.bs); if (inStory && u < EV + .2) { const bu = clamp(u / EV, 0, 1), bx = this.w + S * .2 - (this.w + S * .2 - x - R.bs * .6) * bu; c.fillStyle = '#ff6b81'; ell(c, bx, gy - S * .09, S * .09, S * .09); c.fill(); c.strokeStyle = '#fff'; c.lineWidth = S * .015; c.beginPath(); c.arc(bx, gy - S * .09, S * .09, bu * 12, bu * 12 + 1.5); c.stroke(); } } break;
         case 'splash': if (layer === 'back') { c.fillStyle = '#8a6448'; ell(c, this.x + S * .55, gy + S * .02, S * .32, S * .06); c.fill(); c.fillStyle = 'rgba(255,255,255,.25)'; ell(c, this.x + S * .5, gy + S * .01, S * .12, S * .02); c.fill(); if (inStory && u < EV + .6) { const cu = clamp((u - .2) / (EV + .4 - .2), 0, 1); c.translate(this.w + S * .5 - (this.w + S * 1.5) * cu, gy); car(c, S * .45); } } break;
         case 'jack': if (layer === 'back') { c.translate(x, gy); jackBox(c, S * .5, !!R.open, R.open || 0, t); } break;
+        case 'bubbles': if (layer === 'front') {
+          c.save(); c.translate(hx, hy); c.rotate(-.2); wand(c, S * .5); c.restore();
+          for (const b of R.bubs || []) bubble(c, b.x, b.y, b.r);
+        } break;
+        case 'rainbow': if (layer === 'back' && u > EV) {
+          const k = inStory ? ease((u - EV) / .9) : 1, r = this.rainR(); c.globalAlpha *= .85; rainbow(c, this.w / 2, this.gy + S * .12, r, k);
+        } break;
+        case 'spider': if (layer === 'front') {
+          const d = inStory ? ease((u - .2) / (EV - .2)) : pre ? 0 : 1, up = this.phase === 'thanks' ? ease(this.pt / 1.3) : this.phase === 'leave' ? 1 : 0;
+          const sx = this.fx0 + S * .52, sy = -S * .3 + (this.gy - S * 1.02 + S * .3) * d * (1 - up) + Math.sin(t * 2.2) * S * .025 * d;
+          c.strokeStyle = 'rgba(150,140,170,.85)'; c.lineWidth = Math.max(1, S * .008); c.beginPath(); c.moveTo(sx, 0); c.lineTo(sx, sy); c.stroke();
+          c.translate(sx, sy + S * .05); spider(c, S * .2, t);
+        } break;
+        case 'grab': if (layer === 'front') {
+          const bx = this.fx0 + S * .5, by = gy - S * .1, br = S * .1, W = this.w;
+          let px = null, flip = false, carry = false, mood = 'happy', hop = 0;
+          if (inStory && u > .15 && u < EV) { const v = ease((u - .15) / (EV - .15)); px = W + S * .6 + (bx + S * .3 - W - S * .6) * v; flip = true; hop = (u * 3) % 1; }
+          else if (inStory && u >= EV && u < EV + 1.2) { const v = ease((u - EV) / 1.2); px = bx + S * .3 + (W + S * .9 - bx - S * .3) * v; carry = true; hop = (u * 3) % 1; }
+          else if (this.phase === 'thanks') { const v = ease(this.pt / 1.1); px = W + S * .6 + (bx + S * .32 - W - S * .6) * v; flip = true; carry = v < 1; mood = 'cheer'; hop = v < 1 ? (this.pt * 3) % 1 : 0; }
+          else if (this.phase === 'leave') { px = bx + S * .32; flip = true; mood = 'cheer'; }
+          const ballHome = (inStory && u < EV) || this.phase === 'leave' || (this.phase === 'thanks' && !carry);
+          if (ballHome) { c.save(); c.translate(bx, by); beachBall(c, br); c.restore(); }
+          if (px != null) {
+            c.save(); c.translate(px, gy); if (flip) c.scale(-1, 1); P.draw(c, R.pal, S * .8, t + 1, { mood, hop }); c.restore();
+            if (carry) { c.save(); c.translate(px + (flip ? -S * .24 : S * .24), gy - S * .38); beachBall(c, br, t * 4); c.restore(); }
+          }
+        } break;
         case 'party': if (layer === 'back' && u > EV) {
           const pu = clamp((u - EV) / .5, 0, 1);
           ['#ff6b81', '#ffd54a', '#5aa8f0', '#7ed957'].forEach((col, i) => { c.save(); c.translate(x - S * .3 + i * S * .22, gy + (1 - ease(pu)) * S * 1.2 - Math.sin(t * 2 + i) * S * .03); balloon(c, S * (.7 + (i % 2) * .12), col); c.restore(); });
@@ -439,7 +563,7 @@
       c.restore();
     }
     drawBubble(c) {
-      const b = this.bubble, k = this.phase === 'ask' ? ease(this.pt / .4) : Math.max(0, 1 - this.pt * 2); if (k <= 0) return;
+      const b = this.bubble, k = this.phase === 'ask' || this.phase === 'why' ? ease(this.pt / .4) : Math.max(0, 1 - this.pt * 2); if (k <= 0) return;
       const r = b.r * k, x = this.x + this.S * .42;
       c.save(); c.fillStyle = '#fff';
       ell(c, x - this.S * .17, b.y + this.S * .3, r * .18, r * .18); c.fill(); ell(c, x - this.S * .1, b.y + this.S * .18, r * .3, r * .3); c.fill();
@@ -450,26 +574,28 @@
       const R = this.round; if (!this.btns) return;
       const br = this.br, t = this.t;
       for (const b of this.btns) {
-        const k = ease(b.in) * (1 + b.pop * .25), x = b.x + Math.sin(b.shake * 20) * b.shake * br * .15, glow = this.phase === 'ask' && R.glow && b.id === R.mood;
+        const k = ease(b.in) * (1 + b.pop * .25), x = b.x + Math.sin(b.shake * 20) * b.shake * br * .15, glow = (this.phase === 'ask' && R.glow && b.id === R.mood) || (this.phase === 'why' && R.wglow && b.id === R.story);
         c.save(); c.translate(x, b.y); c.scale(k, k); c.globalAlpha = b.dim ? .45 : 1;
         if (glow) { c.fillStyle = `rgba(255,236,120,${.45 + Math.sin(t * 7) * .25})`; ell(c, 0, 0, br * 1.32, br * 1.32); c.fill(); }
         c.fillStyle = 'rgba(0,0,0,.12)'; ell(c, 0, br * .1, br, br); c.fill();
         c.fillStyle = '#fff'; ell(c, 0, 0, br, br); c.fill();
         if (b.kind === 'face') { c.fillStyle = RING[b.id] + '40'; ell(c, 0, 0, br, br); c.fill(); }
-        c.strokeStyle = b.kind === 'face' ? RING[b.id] : '#a6dc7e'; c.lineWidth = br * .14; ell(c, 0, 0, br * .93, br * .93); c.stroke();
+        if (b.kind === 'why') { c.fillStyle = '#eaf5ff'; ell(c, 0, 0, br, br); c.fill(); }
+        c.strokeStyle = b.kind === 'face' ? RING[b.id] : b.kind === 'why' ? '#9ad0f5' : '#a6dc7e'; c.lineWidth = br * .14; ell(c, 0, 0, br * .93, br * .93); c.stroke();
         if (b.kind === 'face') { c.save(); c.translate(0, br * .12); c.beginPath(); c.arc(0, -br * .12, br * .86, 0, TAU); c.clip(); art.avatar(c, P.SPECIES[R.friend].kind || R.friend, br * .74, { mood: FACE[b.id] }); c.restore(); }
+        else if (b.kind === 'why') { c.save(); c.beginPath(); c.arc(0, 0, br * .86, 0, TAU); c.clip(); storyIcon(c, b.id, br * .7, t); c.restore(); }
         else helpIcon(c, b.id, br * .62, t);
         c.restore();
       }
     }
     probe() {
       const R = this.round;
-      return { phase: this.phase, story: R && R.story, mood: R && R.mood, friend: R && R.friend, wrong: R && R.wrong, glow: R && R.glow, help: R && R.help, helped: this.bag.helped, w: this.w, h: this.h, x: this.x, gy: this.gy, S: this.S, br: this.br,
+      return { phase: this.phase, story: R && R.story, mood: R && R.mood, friend: R && R.friend, wrong: R && R.wrong, glow: R && R.glow, wglow: R && R.wglow, whys: R && R.whys, help: R && R.help, helped: this.bag.helped, w: this.w, h: this.h, x: this.x, gy: this.gy, S: this.S, br: this.br,
         btns: (this.btns || []).map(b => ({ id: b.id, kind: b.kind, x: b.x, y: b.y, dim: b.dim, ready: b.in > .6 })) };
     }
   }
 
-  Object.assign(api, { makeRound, STORIES, probe: () => { const r = SPG.app.running(); return r && r.inst instanceof FeelingsGame ? r.inst.probe() : null; } });
+  Object.assign(api, { makeRound, STORIES, storyIcon, probe: () => { const r = SPG.app.running(); return r && r.inst instanceof FeelingsGame ? r.inst.probe() : null; } });
   SPG.feelingsGame = api;
   SPG.games.push({
     id: 'feelings', name: 'Feeling Friends', order: 16,

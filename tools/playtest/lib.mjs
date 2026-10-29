@@ -5,10 +5,12 @@ export const SP = process.env.SHOTS || '/tmp';   // where screenshots go
 import { fileURLToPath } from 'node:url'; import { dirname, join } from 'node:path';
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 let srv;
-export async function start() { srv = spawn('python3', ['-m', 'http.server', String(process.env.PORT || 8123)], { cwd: ROOT, stdio: 'ignore' }); await new Promise(r => setTimeout(r, 700)); return await chromium.launch(); }
+export async function start(launch = {}) { srv = spawn('python3', ['-m', 'http.server', String(process.env.PORT || 8123)], { cwd: ROOT, stdio: 'ignore' }); await new Promise(r => setTimeout(r, 700)); return await chromium.launch(launch); }
 export function stop(b) { b.close(); srv.kill(); }
 export async function newPage(browser, w, h, opts = {}) {
   const ctx = await browser.newContext({ viewport: { width: w, height: h }, hasTouch: false, ...opts });
+  // a headless window that went fullscreen (safe mode asks for it on the first tap) cannot be resized any more, so the tests turn it off
+  if (!opts.fullscreen) await ctx.addInitScript(() => { Element.prototype.requestFullscreen = function () { return Promise.resolve(); }; });
   const page = await ctx.newPage(); const errs = [];
   page.on('pageerror', e => errs.push('pageerror: ' + e.message)); page.on('console', m => { if (m.type() === 'error') errs.push('console: ' + m.text()); });
   await page.goto('http://localhost:' + (process.env.PORT || 8123) + '/index.html'); await page.waitForTimeout(400);

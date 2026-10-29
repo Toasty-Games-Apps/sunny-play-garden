@@ -134,6 +134,6 @@
   ];
 
   // Add the dinosaurs to the book.
-  for (const pic of PICS) SPG.pictures.push(pic);
+  for (const pic of PICS) SPG.pictures.push(K.explode(pic));   // every separate shape (each leg, each spot) is its own section; old saves keep their colors through `alias`
   SPG.pictureGroups.push({ id: 'dinosaurs', name: 'Dinosaurs', theme: 'dino', tint: '#dff2d2', edge: '#8fcf7a', emblem: 'trex', demo: [['sky', 6], ['ground', 4], ['body', 4], ['belly', 7], ['head', 4], ['jaw', 4]] });
 })();
