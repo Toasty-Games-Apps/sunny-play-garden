@@ -656,7 +656,7 @@
       backupSection(),
       safeSection, players,
       h('section', {}, h('h3', {}, t('Locking the tablet properly')),
-        h('p', {}, t('A website cannot stop a child using the tablet’s own buttons. For a true lock, use Android screen pinning together with full screen:')),
+        h('p', {}, t('To help keep your child in Little Sprout Park, use Android app pinning. The steps and names may vary by device:')),
         h('ol', { class: 'steps' },
           h('li', {}, t('Settings → Security (or Security & privacy) → App pinning, and turn it on.')),
           h('li', {}, t('Open Little Sprout Park, then open Recent apps.')),

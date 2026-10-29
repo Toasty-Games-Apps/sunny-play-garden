@@ -125,7 +125,7 @@ SPG.i18n.add('zh', {
     "Soft background music": "柔和的背景音乐",
     "Coloring Book music": "涂色本音乐",
     "Locking the tablet properly": "正确锁定平板",
-    "A website cannot stop a child using the tablet’s own buttons. For a true lock, use Android screen pinning together with full screen:": "网站无法阻止孩子使用平板自身的按钮。要真正锁定，请把 Android 的屏幕固定功能和全屏一起使用：",
+    "To help keep your child in Little Sprout Park, use Android app pinning. The steps and names may vary by device:": "为了帮助孩子留在 Little Sprout Park 中，可以使用 Android 的应用固定功能。具体步骤和名称可能因设备而异：",
     "Settings → Security (or Security & privacy) → App pinning, and turn it on.": "设置 → 安全（或安全和隐私）→ 固定应用，并打开它。",
     "Open Little Sprout Park, then open Recent apps.": "打开 Little Sprout Park，然后打开“最近使用的应用”。",
     "Tap the app icon at the top of its card and choose Pin.": "点按卡片顶部的应用图标，然后选择“固定”。",

@@ -125,7 +125,7 @@ SPG.i18n.add('hi', {
     "Soft background music": "हल्का पृष्ठभूमि संगीत",
     "Coloring Book music": "रंग भरने की किताब का संगीत",
     "Locking the tablet properly": "टैबलेट को ठीक से लॉक करना",
-    "A website cannot stop a child using the tablet’s own buttons. For a true lock, use Android screen pinning together with full screen:": "कोई वेबसाइट बच्चे को टैबलेट के अपने बटन इस्तेमाल करने से नहीं रोक सकती। असली लॉक के लिए फ़ुल स्क्रीन के साथ Android की स्क्रीन पिनिंग इस्तेमाल करें:",
+    "To help keep your child in Little Sprout Park, use Android app pinning. The steps and names may vary by device:": "अपने बच्चे को Little Sprout Park में बनाए रखने में मदद के लिए Android का ऐप पिन करने का विकल्प इस्तेमाल करें। डिवाइस के अनुसार चरण और नाम अलग हो सकते हैं:",
     "Settings → Security (or Security & privacy) → App pinning, and turn it on.": "सेटिंग्स → सुरक्षा (या सुरक्षा और निजता) → ऐप पिन करना, और इसे चालू करें।",
     "Open Little Sprout Park, then open Recent apps.": "Little Sprout Park खोलें, फिर 'हाल के ऐप' खोलें।",
     "Tap the app icon at the top of its card and choose Pin.": "उसके कार्ड के ऊपर ऐप आइकन छुएँ और 'पिन करें' चुनें।",
