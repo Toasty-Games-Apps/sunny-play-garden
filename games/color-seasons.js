@@ -709,7 +709,7 @@
         { id: 'leaf-b1', d: leaf(480, 740, 380, 590, 40) }, { id: 'leaf-b2', d: leaf(520, 720, 620, 540, 46) },
         { id: 'leaf-c1', d: leaf(705, 740, 830, 560, 46) }, { id: 'leaf-c2', d: leaf(675, 720, 600, 610, 34) },
         { id: 'tulip-a', d: tulip(300, 370, 1) }, { id: 'tulip-b', d: tulip(500, 305, 1.06) }, { id: 'tulip-c', d: tulip(700, 392, .96) },
-        { id: 'bug', d: circ(222, 615, 38), det: [{ d: dome(222, 584, 22, 18, 200, 244).replace(/Z$/, 'Z'), f: INK }, { d: line(222, 590, 222, 652), w: 6 }, { d: circ(205, 612, 8), f: INK }, { d: circ(240, 618, 8), f: INK }, { d: circ(212, 640, 7), f: INK }, { d: circ(234, 642, 7), f: INK }] }
+        { id: 'bug', d: circ(222, 615, 38), det: [{ d: dome(222, 584, 22, 18, 200, 244), f: INK }, { d: line(222, 590, 222, 652), w: 6 }, { d: circ(205, 612, 8), f: INK }, { d: circ(240, 618, 8), f: INK }, { d: circ(212, 640, 7), f: INK }, { d: circ(234, 642, 7), f: INK }] }
       ]
     },
     {

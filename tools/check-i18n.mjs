@@ -46,12 +46,35 @@ for (const f of files) {
 }
 // index.html: the own text of elements marked data-i18n, data-i18n-attr attributes, data-i18n-html inner HTML (as js/i18n.js does it)
 {
-  const html = read('index.html').replace(/<!--[\s\S]*?-->/g, ''), VOID = /^(area|base|br|col|embed|hr|img|input|link|meta|source|track|wbr|use|path|circle|rect|polygon|ellipse|line|stop)$/i;
+  // Mask comments in place: removing them could join separate fragments into
+  // a new comment opener, changing the text the checker subsequently scans.
+  const source = read('index.html'); let html = '', pos = 0;
+  while (pos < source.length) {
+    const start = source.indexOf('<!--', pos);
+    if (start < 0) { html += source.slice(pos); break; }
+    const end = source.indexOf('-->', start + 4);
+    if (end < 0) { html += source.slice(pos); break; }
+    html += source.slice(pos, start) + ' '.repeat(end + 3 - start); pos = end + 3;
+  }
+  const VOID = /^(area|base|br|col|embed|hr|img|input|link|meta|source|track|wbr|use|path|circle|rect|polygon|ellipse|line|stop)$/i;
   for (const m of html.matchAll(/<(\w+)[^>]*\bdata-i18n-html\b[^>]*>([\s\S]*?)<\/\1>/g)) want(m[2].trim(), 'index.html');
   const stack = [];
-  for (const m of html.matchAll(/<(\/?)([a-zA-Z][\w-]*)((?:\s+[\w:-]+(?:\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+))?)*)\s*(\/?)>|([^<]+)/g)) {
-    if (m[5] != null) { const top = stack[stack.length - 1]; if (top && top.i18n && m[5].trim()) want(m[5].trim(), 'index.html'); continue; }
-    const [, close, tag, attrs, self] = m;
+  // Walk tags once, respecting quoted attribute values containing >. Avoid
+  // nested repetition in a regex, which can backtrack exponentially.
+  const tokens = /<\/?[a-zA-Z][\w-]*|[^<]+/g; let m;
+  while ((m = tokens.exec(html))) {
+    if (m[0][0] !== '<') { const top = stack[stack.length - 1]; if (top && top.i18n && m[0].trim()) want(m[0].trim(), 'index.html'); continue; }
+    const close = m[0][1] === '/', tag = m[0].slice(close ? 2 : 1);
+    let end = tokens.lastIndex, quote = '';
+    for (; end < html.length; end++) {
+      const c = html[end];
+      if (quote) { if (c === quote) quote = ''; }
+      else if (c === '"' || c === "'") quote = c;
+      else if (c === '>') break;
+    }
+    if (end === html.length) break;
+    const attrs = html.slice(tokens.lastIndex, end), self = /\/\s*$/.test(attrs);
+    tokens.lastIndex = end + 1;
     if (close) { while (stack.length && stack.pop().tag !== tag); continue; }
     const at = {}; for (const a of attrs.matchAll(/([\w:-]+)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+)))?/g)) at[a[1]] = a[2] ?? a[3] ?? a[4] ?? '';
     if ('data-i18n-attr' in at) for (const a of at['data-i18n-attr'].split(',')) want(at[a], 'index.html');
