@@ -6,7 +6,7 @@
   const $ = id => document.getElementById(id);
   const t = SPG.t;   // the text in the chosen language (js/i18n.js)
   const screens = { who: $('who'), setup: $('setup'), hub: $('hub'), stage: $('stage') };
-  const overlays = { brk: $('break'), gate: $('gate'), parent: $('parent'), studio: $('studio'), signvid: $('signvid'), fs: $('fs-resume'), vintro: $('vintro') };
+  const overlays = { brk: $('break'), gate: $('gate'), parent: $('parent'), studio: $('studio'), fs: $('fs-resume'), vintro: $('vintro') };
   let current = 'who';
   let running = null;
 
@@ -464,9 +464,6 @@
   function openStudio() { SPG.studio.render($('studio-body')); openOverlay(overlays.studio); }
   function closeStudio() { SPG.studio.abort(); voice.stop(); closeOverlay(overlays.studio); renderParent(); }
   $('studio-close').addEventListener('click', closeStudio);
-  function openSignVideos() { SPG.signVideo.render($('signvid-body')); openOverlay(overlays.signvid); }
-  function closeSignVideos() { SPG.signVideo.close(); closeOverlay(overlays.signvid); renderParent(); }
-  $('signvid-close').addEventListener('click', closeSignVideos);
 
   function toggle(label, key) {
     const sw = h('button', { class: 'switch', type: 'button', role: 'switch', 'aria-checked': String(!!store.settings[key]), 'aria-label': label });
@@ -772,8 +769,7 @@
       h('p', { class: 'fine' }, t('Recorded so far: {list} of {n} lines.', { list: voice.SETS.map(v => `${v.extra ? v.name : t(v.name)} ${n(v.id)}`).join(', '), n: keys.length })), b);
   }
 
-  // Accessibility. Hearing: everything the games say is also signed (ASL) by a pair of hands in a corner card (js/signs.js).
-  // Seeing: colour filters for colour vision deficiency, stronger contrast, bigger buttons (js/access.js). All off by default.
+  // Accessibility: colour filters, stronger contrast and bigger buttons (js/access.js).
   // colour symbols: on by themselves with a colour filter, and the switch can change that either way
   function marksRow() {
     const st = store.settings, sw = h('button', { class: 'switch', type: 'button', role: 'switch', 'aria-checked': String(SPG.vision.marks()), 'aria-label': t('Colour symbols') });
@@ -782,35 +778,8 @@
       h('p', { class: 'fine', style: 'margin:0' }, t('In Shape Builder and Caterpillars, where things are matched by colour, every colour also has its own symbol (red a heart, orange a lightning bolt, yellow a sun, green a leaf, blue a drop, purple a moon, pink a flower, brown a paw), so colour is never the only difference. On by itself with a colour filter.')));
   }
   function accessSection() {
-    const st = store.settings; if (st.signWords == null) st.signWords = true;
-    const sw = h('button', { class: 'switch', type: 'button', role: 'switch', 'aria-checked': String(!!st.signs), 'aria-label': t('Signing hands') });
-    sw.addEventListener('click', () => { st.signs = !st.signs; store.saveSettings(); sw.setAttribute('aria-checked', String(st.signs)); if (st.signs) SPG.signs.sample(); else SPG.signs.stop(); renderParent(); });
-    const seg = (label, key, opts) => {
-      const g = h('div', { class: 'seg', role: 'group', 'aria-label': label });
-      for (const [id, text, col] of opts) {
-        const b = h('button', { type: 'button', class: 'seg-btn', 'aria-pressed': String((st[key] || opts[0][0]) === id) }, col ? h('span', { class: 'sign-swatch', style: `background:${col}` }) : '', text);
-        b.addEventListener('click', () => { st[key] = id; store.saveSettings(); SPG.signs.sample(); renderParent(); });
-        g.append(b);
-      }
-      return h('div', {}, h('p', { class: 'fine', style: 'margin:10px 0 0' }, label), g);
-    };
-    const show = h('button', { class: 'btn small go', type: 'button', style: 'margin-top:10px' }, t('Show me'));
-    show.addEventListener('click', () => SPG.signs.sample());
-    const sec = h('section', {}, h('h3', {}, t('Accessibility')),
-      h('p', {}, t('Extra help for children who are deaf or hard of hearing, or who see colours differently or need things bigger. Everything here is off until you turn it on.')),
-      h('h4', {}, t('Hearing: sign language (ASL)')),
-      h('div', { class: 'setting' }, h('span', {}, t('Signing hands, for children who are deaf or hard of hearing')), sw),
-      h('p', { class: 'fine' }, SPG.pron.fill(t('Everything the games say is also signed in American Sign Language by a pair of hands in a small card in a corner (taps go through it). Instructions are signed as their key words, letters and names are fingerspelled, and numbers, colours, shapes and feelings have their own signs. For signs made at the face or chest, a little smiley face shows where (a pink dot), and its expression shows the feeling or the question. The voice still speaks unless you switch Voice prompts off. The Sign Along game teaches the signs to any child.'))));
-    if (st.signs) sec.append(
-      seg(t('Corner'), 'signSide', [['left', t('Bottom left')], ['right', t('Bottom right')]]),
-      seg(t('Size'), 'signSize', [['small', t('Small')], ['big', t('Big')]]),
-      seg(t('Hand colour'), 'signSkin', [['medium', t('Medium'), SPG.sign.SKINS.medium.base], ['light', t('Light'), SPG.sign.SKINS.light.base], ['tan', t('Tan'), SPG.sign.SKINS.tan.base], ['deep', t('Deep'), SPG.sign.SKINS.deep.base]]),
-      toggle(t('Show the words under the hands'), 'signWords'), show);
-    { const n = SPG.signVideo.count(), vb = h('button', { class: 'btn small quiet', type: 'button', style: 'margin-top:10px' }, t('Sign videos: record your own'));
-      vb.addEventListener('click', openSignVideos);
-      sec.append(h('h4', {}, t('Your own sign videos')),
-        h('p', { class: 'fine', style: 'margin:6px 0 0' }, t('Record yourself (or a Deaf friend or teacher) making any sign, and that video is shown instead of the drawn hands, in the corner card and in Sign Along.') + ' ' + (n ? (n === 1 ? t('1 sign has a video.') : t('{n} signs have a video.', { n })) : t('No videos yet.'))), vb); }
-    sec.append(h('p', { class: 'fine' }, t('The signs are drawn by the app from standard ASL. Signing differs from place to place: if your child learns with a Deaf signer or an ASL teacher, ask them to look through Sign Along, and tell us about any sign that should change.')));
+    const st = store.settings;
+    const sec = h('section', {}, h('h3', {}, t('Accessibility')));
     // seeing
     const vis = h('div', { class: 'seg', role: 'group', 'aria-label': t('Colour vision') });
     for (const [id, text] of [['', t('Usual colours')], ['deutan', t('Red–green (most common)')], ['protan', t('Red–green, reds look dark')], ['tritan', t('Blue–yellow')]]) {
@@ -995,7 +964,6 @@
     if (!overlays.gate.classList.contains('hidden')) { gateState = null; closeOverlay(overlays.gate); return; }
     if (!overlays.vintro.classList.contains('hidden')) return;
     if (!overlays.studio.classList.contains('hidden')) { closeStudio(); return; }
-    if (!overlays.signvid.classList.contains('hidden')) { closeSignVideos(); return; }
     if (!overlays.parent.classList.contains('hidden')) { closeParent(); return; }
     if (!overlays.fs.classList.contains('hidden') || !overlays.brk.classList.contains('hidden')) return;
     if (current === 'stage') { if (!running?.inst?.back?.()) closeGame(); }

@@ -55,16 +55,12 @@
 
     <!-- Permissions -->
 
-    <!-- INTERNET: optional encrypted cloud backup. RECORD_AUDIO: grown-up voice recordings.
-         CAMERA: grown-up sign videos kept only on this device. -->
+    <!-- INTERNET: optional encrypted cloud backup. RECORD_AUDIO: grown-up voice recordings. -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
-    <uses-permission android:name="android.permission.CAMERA" />
 
     <!-- The game works without a microphone, so phones and tablets without one can still install it. -->
     <uses-feature android:name="android.hardware.microphone" android:required="false" />
-    <uses-feature android:name="android.hardware.camera" android:required="false" />
-    <uses-feature android:name="android.hardware.camera.front" android:required="false" />
     <uses-feature android:name="android.hardware.touchscreen" android:required="false" />
 </manifest>

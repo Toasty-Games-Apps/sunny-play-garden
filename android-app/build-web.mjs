@@ -16,6 +16,8 @@ if (api && !/^https:\/\/[a-z0-9.-]+(:\d+)?$/i.test(api)) throw new Error('apiBas
 rmSync(out, { recursive: true, force: true }); mkdirSync(out, { recursive: true });
 for (const f of ['styles.css', 'privacy.html']) cpSync(join(root, f), join(out, f));
 for (const d of ['js', 'games', 'fonts', 'audio', 'icons']) cpSync(join(root, d), join(out, d), { recursive: true });
+// Keep the unfinished signing feature in source control, but omit it from this release.
+for (const f of ['js/sign.js', 'js/sign-words.js', 'js/signs.js', 'js/signvideo.js', 'games/signlang.js']) rmSync(join(out, f));
 
 // index.html already carries the Content-Security-Policy as a <meta> tag; the app only adds permission to reach the backup service
 let html = readFileSync(join(root, 'index.html'), 'utf8');
