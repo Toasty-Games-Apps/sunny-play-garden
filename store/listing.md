@@ -45,9 +45,9 @@ Choose an age from 2 to 7 and every game adjusts: bigger helps for toddlers, sma
 
 FOR GROWN-UPS
 - No ads, no in-app purchases, no tracking, no links out of the app.
-- Grown-up settings are behind a grown-up check or your own PIN.
+- Grown-up settings are sorted into simple topics, behind a grown-up check or your own PIN.
 - A daily play-time limit with a gentle "time for a rest" screen.
-- Record your family's voices (parents, grandparents, siblings) and the games mix them, or use the phone's built-in voice.
+- A clear, friendly built-in voice says every instruction, letter name and letter sound correctly, the same on every phone and with no internet. You can also record your family's voices (parents, grandparents, siblings) and the games mix them in.
 - Night mode for calm bedtime play, several players with their own progress, and an optional encrypted backup.
 - Plays in English, Spanish, Hindi and Chinese (Simplified); more languages are coming.
 - Works fully offline.

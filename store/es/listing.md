@@ -49,7 +49,7 @@ Elige una edad de 2 a 7 años y cada juego se ajusta: más ayuda para los más c
 
 PARA LOS ADULTOS
 - Sin anuncios, sin compras dentro de la app, sin rastreo, sin enlaces fuera de la app.
-- Los ajustes para adultos están protegidos por una pregunta o tu propio PIN.
+- Los ajustes para adultos están ordenados por temas y protegidos por una pregunta o tu propio PIN.
 - Un límite diario de tiempo de juego con una pantalla amable de "hora de descansar".
 - Graba las voces de tu familia (papás, abuelos, hermanos) y los juegos las mezclan, o usa la voz del teléfono.
 - Modo nocturno para jugar con calma antes de dormir, varios jugadores con su propio progreso y una copia de seguridad cifrada opcional.
