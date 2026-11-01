@@ -159,9 +159,9 @@ Say the sound the letter makes: "buh", "kuh", "sss". Not the name.
 | `sound-y.mp3` | yuh |
 | `sound-z.mp3` | zzz |
 
-# Part 2: optional lines (638, nobody has to record these)
+# Part 2: optional lines (634, nobody has to record these)
 
-## Prompts and instructions (197)
+## Prompts and instructions (193)
 
 Short lines that tell {her} what to do.
 
@@ -258,10 +258,6 @@ Short lines that tell {her} what to do.
 | `feel-s-spider.mp3` | Eek! A spider came down! |
 | `feel-s-grab.mp3` | Hey! That is my ball! |
 | `feel-why.mp3` | Why did I feel that way? Touch the picture. |
-| `sl-start.mp3` | Let's talk with our hands! |
-| `sl-find.mp3` | Watch the hands. Touch the picture! |
-| `sl-letter.mp3` | Watch the hand. Which letter is it? |
-| `sl-word.mp3` | Watch the hand spell a word. Touch the picture! |
 | `feel-happy.mp3` | Yes! I feel happy! |
 | `feel-sad.mp3` | Yes. I feel sad. |
 | `feel-scared.mp3` | Yes. I feel scared. |

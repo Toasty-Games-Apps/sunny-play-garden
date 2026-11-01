@@ -19,6 +19,9 @@ const lit = m => unq(m[1] != null ? m[1] : m[2]);
 
 /* ---------- screen text in the code ---------- */
 const files = [...readdirSync(join(ROOT, 'js')).filter(f => f.endsWith('.js') && f !== 'i18n.js').map(f => 'js/' + f), ...readdirSync(join(ROOT, 'games')).filter(f => f.endsWith('.js')).map(f => 'games/' + f)];
+// features held back in backup/ (sign language, sign videos) keep their translations, so their text counts as used
+for (const d of readdirSync(join(ROOT, 'backup'), { withFileTypes: true }).filter(x => x.isDirectory()))
+  for (const sub of ['js', 'games']) { try { for (const f of readdirSync(join(ROOT, 'backup', d.name, sub))) if (f.endsWith('.js')) files.push(`backup/${d.name}/${sub}/${f}`); } catch (_) { /* none */ } }
 const need = new Map();   // English text -> where
 // (a CSS class name caught by the button pattern is not text)
 const want = (s, where) => { if (s && /[A-Za-z]/.test(s) && !/^[a-z]+(-[a-z0-9]+)+$/.test(s) && !need.has(s)) need.set(s, where); };
@@ -85,6 +88,7 @@ for (const f of files) {
 /* ---------- spoken lines (from the running app) ---------- */
 let LINES = null;
 try {
+  process.env.HELD = process.env.HELD ?? '1';   // with the held-back features switched in, so their lines are checked too
   const { start, stop, newPage } = await import('./playtest/lib.mjs');
   const b = await start(); const p = await newPage(b, 800, 1000);
   LINES = await p.evaluate(() => SPG.voice.LINES);

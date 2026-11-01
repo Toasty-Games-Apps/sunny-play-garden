@@ -281,4 +281,29 @@
   }
 
   SPG.signVideo = { ready, clip, has: id => clips.has(id), count: () => clips.size, draw, save, remove, render, close, MAX_REC, MAX_PLAY };
+
+  /* ---------------------------------------------------------------- its own overlay, and its row in Grown-ups > Accessibility > Hearing
+     (so putting it back is only its script tag: see backup/README.md) */
+  let ov = null, prevBack = null;
+  function overlay() {
+    if (ov) return ov;
+    ov = document.createElement('div'); ov.id = 'signvid'; ov.className = 'overlay hidden'; ov.setAttribute('role', 'dialog'); ov.setAttribute('aria-modal', 'true');
+    ov.innerHTML = '<div class="sheet wide" data-scroll><div class="sheet-head"><h2></h2><button class="btn go small" id="signvid-close" type="button"><svg><use href="#i-check"/></svg> </button></div><div id="signvid-body"></div></div>';
+    ov.querySelector('h2').textContent = t('Sign videos'); ov.querySelector('.btn').append(t('Done'));
+    ov.querySelector('.btn').addEventListener('click', closeAll);
+    document.body.append(ov); return ov;
+  }
+  function openAll() {
+    const o = overlay(), G = SPG.grownups;
+    render(o.querySelector('#signvid-body')); G.ui.openOverlay(o);
+    // Android back closes this screen first
+    if (!prevBack) { prevBack = SPG.safe.onBack; SPG.safe.onBack = () => { if (ov && !ov.classList.contains('hidden')) closeAll(); else prevBack && prevBack(); }; }
+  }
+  function closeAll() { close(); SPG.grownups.ui.closeOverlay(ov); SPG.grownups.rerender(); }
+  SPG.signs.addRow(() => {
+    const { h } = SPG.grownups.ui, n = clips.size, vb = h('button', { class: 'btn small quiet', type: 'button', style: 'margin-top:10px' }, t('Sign videos: record your own'));
+    vb.addEventListener('click', openAll);
+    return h('div', {}, h('h4', {}, t('Your own sign videos')),
+      h('p', { class: 'fine', style: 'margin:6px 0 0' }, t('Record yourself (or a Deaf friend or teacher) making any sign, and that video is shown instead of the drawn hands, in the corner card and in Sign Along.') + ' ' + (n ? (n === 1 ? t('1 sign has a video.') : t('{n} signs have a video.', { n })) : t('No videos yet.'))), vb);
+  });
 })();

@@ -3,7 +3,7 @@
 These scripts drive the real game with real mouse input. They are not part of the site (tools/ is in `.assetsignore`).
 
 Setup: `npm i -D playwright` in the repo (it is not a dependency of the site), or rely on the global Playwright that the Claude sandbox has (`lib.mjs` falls back to /opt/node22/lib/node_modules/playwright; set `PLAYWRIGHT_ESM` to change that). Chromium is in /opt/pw-browsers.
-Each script starts its own `python3 -m http.server` on `$PORT` (default 8123): use a different PORT for each script you run at the same time. Screenshots go to `$SHOTS` (default /tmp).
+`HELD=1` serves the app with the features held back in `backup/` switched in (`backup/preview.mjs`). Each script starts its own `python3 -m http.server` on `$PORT` (default 8123): use a different PORT for each script you run at the same time. Screenshots go to `$SHOTS` (default /tmp).
 
 - `lib.mjs`: `start()`, `newPage()`, `login({gender, age})` (picks a name, boy/girl and age, skips the voices intro), `openGame(page, 'Sprout Kitchen')`.
 - `auto.mjs W H [recipe,recipe] [cut,serve,sauce]`: plays Sprout Kitchen recipes from the menu to the end with real input (all 18 by default; it reads `SPG.cookGame.probe()`). Prints OK / FAILED / STUCK per recipe. Takes about 5 minutes for all 18. The third argument saves screenshots.
@@ -12,12 +12,11 @@ Each script starts its own `python3 -m http.server` on `$PORT` (default 8123): u
 - `hide.mjs`: plays through all five Hide and Seek places at three ages and checks that hiding friends never repeat a kind that is already following.
 - `num.mjs`: opens Letter Garden's Numbers and Add activities at four sizes and answers questions.
 - `tiers.mjs`, `vox.mjs`: spot checks (flames and puzzle grids by age; which spoken lines are silent without Extra audio help, and the letter A override).
-- `ui.mjs`: screenshots of setup, the Age and difficulty panel and the kitchen menu at night.
+- `ui.mjs`: screenshots of setup, the Grown-ups topic tiles (every tile opens its page and comes back), the Age and difficulty panel and the kitchen menu at night.
 - `dbg.mjs`: example of jumping straight to a kitchen step (`g.startRecipe(R); g.stIdx = n; g.beginStep()`).
 - `sort.mjs W H`: Tidy Time: checks the round maker at every tier, plays every kind of sorting at ages 2, 4 and 7 by dragging (wrong basket twice, a drop on the floor, everything in), rotation, night, the idle hint, one star per two rounds.
 - `monkey.mjs [seconds] [W H]`: plays every game like a toddler (random taps, long presses and wild drags, a screen turn, a pause and resume) and reports any page error per game. `GAMES=name,name` and `AGE=` narrow it.
-- `signs.mjs W H`: Sign Along at ages 2, 4 and 7 (Learn, Watch & find with a wrong picture, Letters, My name, a screen turn), and the signing hands of sign-language mode (every gloss uses known signs, the card shows in a game, not inside Sign Along, not when off).
-- `signvideo.mjs W H`: Grown-ups > Accessibility > Sign videos with a fake camera: record, keep, the video replaces the drawn hands in a sequence, the corner card and Sign Along, the switch, delete.
-- `sign-strips.mjs`: film strips of signs to check them by eye (`IDS=HELLO,CAT N=5`), or every handshape (`HANDS=1`).
+- Held back with sign language (in `backup/*/tools/`, they serve the app with `HELD=1` themselves): `backup/sign-language/tools/signs.mjs W H` (Sign Along and the signing hands), `backup/sign-language/tools/sign-strips.mjs` (film strips of signs, `IDS=HELLO,CAT N=5`, `HANDS=1`), `backup/camera-sign-videos/tools/signvideo.mjs W H` (sign videos with a fake camera).
 - `color.mjs`: Coloring Book: every collection tab, every brush style, pattern fills, stickers, undo, start over, keeping pictures after a reload (`SIZES=390x844,1280x800`, `SHOTS=` also writes painted sheets of every collection).
-- `smoke2.mjs` with `SIGNS=1`: also turns on the signing hands, a colour filter and bigger buttons in every game.
+- `smoke2.mjs` with `SIGNS=1`: also turns on a colour filter and bigger buttons in every game (with `HELD=1` the signing hands too).
+- `calm.mjs`: the calm voice: a flood of quick touches is not spoken, counting is said in order, an instruction cuts in at once, a line touched again is not restarted.

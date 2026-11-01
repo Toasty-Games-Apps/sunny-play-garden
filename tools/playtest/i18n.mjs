@@ -49,6 +49,13 @@ for (const lang of langs) {
       if (await page.$('#vintro:not(.hidden)')) { await page.screenshot({ path: `${SP}/i18n_${lang}_vintro_${w}.png` }); await page.click('#vintro .btn.quiet'); await wait(200); }
       await page.screenshot({ path: `${SP}/i18n_${lang}_parent_${w}.png` });
       const lp = await leftovers(page); if (lp.length) { bad++; console.log(`${lang} grown-ups: English left: ${lp.join(' · ')}`); }
+      // every Grown-ups page, in this language
+      for (const id of await page.evaluate(() => SPG.grownups.pages())) {
+        await page.evaluate(i => SPG.grownups.open(i), id); await wait(150);
+        if (w === 1280) await page.screenshot({ path: `${SP}/i18n_${lang}_parent_${id}.png`, fullPage: true });
+        const lq = await leftovers(page); if (lq.length) { bad++; console.log(`${lang} grown-ups > ${id}: English left: ${lq.join(' · ')}`); }
+      }
+      await page.evaluate(() => SPG.grownups.open('lang')); await wait(150);
       const langBtns = await page.evaluate(() => [...document.querySelectorAll('#parent-body .seg-btn')].filter(x => /English|Español|हिन्दी|中文/.test(x.textContent)).length);
       if (langBtns < 4) { bad++; console.log(`${lang}: the language buttons are missing (${langBtns})`); }
     }

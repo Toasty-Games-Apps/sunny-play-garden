@@ -10,6 +10,9 @@
 //   children, like the key-word signing used with toddlers), and names are fingerspelled.
 // Units: one palm length. Signer space: x to the right of the screen, y up, z toward the viewer, origin at the chin.
 (() => {
+  // How fast the hands sign (Grown-ups > Accessibility > Signing speed): a young child needs time to see each handshape.
+  const PACES = { slow: .55, medium: .75, normal: 1 };
+  const PACE = () => PACES[(window.SPG.store && window.SPG.store.settings && window.SPG.store.settings.signPace) || 'slow'] || PACES.slow;
   const SPG = window.SPG;
   const D = Math.PI / 180, TAU = Math.PI * 2;
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
@@ -387,6 +390,8 @@
       this.noVideo = !!opts.noVideo;   // a sign a grown-up recorded (js/signvideo.js) plays as that video, unless this is set
     }
     setSkin(id) { this.skin = SKINS[id] || SKIN; }
+    // seconds of real time a played sequence takes at the current speed
+    realTime(at) { return at / (this.pace != null ? this.pace : PACE()); }
     // sequence: [sign ids]; each becomes key poses (from the pose the hands are in, or straight into the first sign)
     play(ids, o = {}) {
       const list = ids.map(id => (typeof id === 'string' ? SIGNS[id] : id)).filter(Boolean);
@@ -406,7 +411,7 @@
           keys.push({ at, R: f.R ? resolve(f.R, false) : prev.R, L: f.L ? resolve(f.L, true) : sg.mirror && f.R ? resolve(f.R, true) : null, two: twoHand, place: f.R ? placeName(f.R.at) : prev && prev.place,
             face: f.face ? (typeof f.face === 'string' ? { mood: f.face } : f.face) : { mood: sg.face || 'neutral' }, arcR: f.arc, arcL: f.arcL || (f.arc && sg.mirror ? [-f.arc[0], f.arc[1], f.arc[2]] : null), word: fi === 0 ? { id: sg.id, i: wi } : null, w: wi });
         });
-        at += o.gap != null ? o.gap : .22;   // a little hold at the end of each sign
+        at += o.gap != null ? o.gap : .3;   // a little hold at the end of each sign
         const last = keys[keys.length - 1]; keys.push(Object.assign({}, last, { at, word: null, arcR: null, arcL: null }));
         words.push({ from: keys[w0].at, to: at, box: this.boxOf(keys.slice(w0)), place: keys.slice(w0).map(k => k.place).find(p => typeof p === 'string' && BODY.has(p)) || null, id: sg.id });
       });
@@ -435,7 +440,7 @@
     }
     update(dt) {
       this.t += dt; if (!this.busy) return;
-      this.time += dt;
+      this.time += dt * (this.pace != null ? this.pace : PACE());   // signs are made at the grown-ups' chosen speed (slow by default)
       this.cur = this.poseAt(this.time);
       if (this.onWord) for (let j = 0; j < this.keys.length && this.keys[j].at <= this.time + .25; j++) if (this.keys[j].word && j > this.lastWord) { this.lastWord = j; this.onWord(this.keys[j].word); }
       if (this.time >= this.endsAt) this.busy = false;

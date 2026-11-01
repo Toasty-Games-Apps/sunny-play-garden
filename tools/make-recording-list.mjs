@@ -5,12 +5,12 @@ import vm from 'node:vm';
 
 const noop = () => {};
 const sandbox = {
-  document: { addEventListener: noop, documentElement: {} }, localStorage: { getItem: () => null, setItem: noop },
+  document: { addEventListener: noop, documentElement: {}, querySelectorAll: () => [], getElementById: () => null, querySelector: () => null, readyState: 'complete' }, localStorage: { getItem: () => null, setItem: noop },
   addEventListener: noop, matchMedia: () => ({ matches: false }), navigator: {}, history: {}, setTimeout, clearTimeout
 };
 sandbox.window = sandbox; sandbox.globalThis = sandbox;
 vm.createContext(sandbox);
-for (const f of ['js/core.js', 'js/voice.js']) vm.runInContext(readFileSync(f, 'utf8'), sandbox);
+for (const f of ['js/core.js', 'js/i18n.js', 'js/voice.js']) vm.runInContext(readFileSync(f, 'utf8'), sandbox);
 const v = sandbox.SPG.voice;
 const core = v.allKeys(), more = v.moreKeys(), keys = [...core, ...more];
 

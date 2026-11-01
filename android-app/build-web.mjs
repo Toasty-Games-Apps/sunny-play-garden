@@ -4,7 +4,7 @@
 //   2. the Content-Security-Policy <meta> tag gets permission to reach the backup service (if one is set),
 //   3. js/app-config.js says where the optional cloud backup lives (set SPG_API_BASE, or edit app-config.json) and which version this is
 //      (SPG_VERSION_NAME, the same name Play shows; Grown-ups > About shows it too).
-import { cpSync, rmSync, mkdirSync, readFileSync, writeFileSync, existsSync } from 'node:fs';
+import { cpSync, rmSync, mkdirSync, readFileSync, writeFileSync, existsSync, readdirSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -16,8 +16,12 @@ if (api && !/^https:\/\/[a-z0-9.-]+(:\d+)?$/i.test(api)) throw new Error('apiBas
 rmSync(out, { recursive: true, force: true }); mkdirSync(out, { recursive: true });
 for (const f of ['styles.css', 'privacy.html']) cpSync(join(root, f), join(out, f));
 for (const d of ['js', 'games', 'fonts', 'audio', 'icons']) cpSync(join(root, d), join(out, d), { recursive: true });
-// Keep the unfinished signing feature in source control, but omit it from this release.
-for (const f of ['js/sign.js', 'js/sign-words.js', 'js/signs.js', 'js/signvideo.js', 'games/signlang.js']) rmSync(join(out, f));
+// Features held back from releases live in backup/ (sign language, the camera for sign videos), which is never copied.
+// Stop the build if any of them, or a use of the camera, has found its way back into the game files.
+{ const held = ['sign.js', 'sign-words.js', 'signs.js', 'signvideo.js', 'signlang.js'];
+  for (const d of ['js', 'games']) for (const f of held) if (existsSync(join(out, d, f))) throw new Error(`${d}/${f} is held back in backup/ and must not ship`);
+  const cam = /getUserMedia\s*\(\s*\{[^}]*video|facingMode/;
+  for (const d of ['js', 'games']) for (const f of readdirSync(join(out, d))) if (f.endsWith('.js') && cam.test(readFileSync(join(out, d, f), 'utf8'))) throw new Error(`${d}/${f} uses the camera, which is held back from releases`); }
 
 // index.html already carries the Content-Security-Policy as a <meta> tag; the app only adds permission to reach the backup service
 let html = readFileSync(join(root, 'index.html'), 'utf8');

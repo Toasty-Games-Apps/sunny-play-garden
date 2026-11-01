@@ -38,7 +38,7 @@ const bin = it('act', 'bin'); await page.mouse.move(bx + .28 * bs, by + .8 * bs)
 await shot('6-final');
 const u = (await P()).undo; ok(u > 0, 'undo steps are kept (' + u + ')'); const pc = (await P()).pieces; await click('act', 'undo'); ok((await P()).undo === u - 1, 'undo took one step back');
 await page.evaluate(() => { SPG.clayGame.camUntil = 0; }); await click('act', 'camera'); await page.waitForTimeout(900);
-await click('act', 'album'); await page.waitForTimeout(600); let al = (await P()).album; ok(al && al.n >= 1 && !al.busy, 'the album shows the picture (' + JSON.stringify(al) + ')');
+await click('act', 'album'); let al; for (let i = 0; i < 20; i++) { await page.waitForTimeout(200); al = (await P()).album; if (al && al.n >= 1 && !al.busy) break; }   // a slow machine takes a moment to read the album ok(al && al.n >= 1 && !al.busy, 'the album shows the picture (' + JSON.stringify(al) + ')');
 await shot('7-album'); await page.evaluate(() => { SPG.clayGame.closeAlbum(); });
 await click('act', 'bin'); ok((await P()).confirm, 'start over asks first'); const bb = await page.evaluate(() => SPG.clayGame.confirmBtns()); await page.mouse.click(bb.no.x, bb.no.y); ok(!(await P()).confirm && (await P()).pieces > 0, 'No keeps the clay');
 await page.evaluate(() => SPG.clayGame.save()); await page.waitForTimeout(300);

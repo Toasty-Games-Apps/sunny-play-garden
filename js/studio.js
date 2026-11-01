@@ -64,6 +64,7 @@
         ...voice.SETS.map(s => h('div', { class: 'setting' }, h('span', {}, t('{name} ({n} lines)', { name: s.name, n: countFor(s.id) })), sw(!(store.settings.voiceOff || []).includes(s.id), t('Include {name}', { name: s.name }), on => {
           const off = new Set(store.settings.voiceOff || []); on ? off.delete(s.id) : off.add(s.id); store.settings.voiceOff = [...off]; store.save();
         })))) : null,
+      sproutPicker(redraw),
       ttsPicker(redraw),
       h('h3', {}, t('How often should the games cheer?')),
       seg([['lots', t('Every time')], ['some', t('Sometimes')], ['off', t('Never')]], store.settings.praise || 'some', v => { store.settings.praise = v; store.save(); redraw(); }, t('Cheering frequency')),
@@ -74,11 +75,22 @@
     if (scroller) scroller.scrollTop = top;
   }
 
+  // Lines nobody has recorded are said by the Sprout voice (made in advance, the same clear voice on every phone) or by the phone's own voice.
+  function sproutPicker(redraw) {
+    if (!voice.sproutReady()) return null;
+    const hear = h('button', { class: 'btn small', type: 'button' }, '▶ ' + t('Hear the Sprout voice'));
+    hear.addEventListener('click', () => voice.hearSprout());
+    return h('div', { class: 'vtools' }, h('h3', {}, t('Voice for lines nobody has recorded')),
+      seg([['sprout', t('Sprout voice')], ['device', t('The phone’s own voice')]], store.settings.builtinVoice || 'sprout', v => { store.settings.builtinVoice = v; store.save(); redraw(); }, t('Voice for lines nobody has recorded')),
+      h('p', { class: 'fine' }, t('The Sprout voice comes with the app: one clear, friendly voice that says every letter name and letter sound the right way and needs no internet. It speaks English. Typed names, reworded lines and other languages use the phone’s own voice.')),
+      h('div', { class: 'setting' }, hear));
+  }
+
   // Lines nobody has recorded are read out by the device's own speaking voice. Phones have several; this picks one by ear.
   function ttsPicker(redraw) {
     const ch = voice.ttsChoices(); if (!ch.female.length && !ch.male.length && !ch.other.length) return null;
-    const chosen = voice.ttsChosen(), box = h('div', { class: 'vtools vchoices' }, h('h3', {}, t('Built-in speaking voice')),
-      h('p', { class: 'fine' }, t('Used for any line that nobody has recorded. Touch a voice to choose it and hear it. The most natural ones are listed first; some need the internet.')));
+    const chosen = voice.ttsChosen(), box = h('div', { class: 'vtools vchoices' }, h('h3', {}, t('The phone’s own voice')),
+      h('p', { class: 'fine' }, (voice.sproutReady() && (store.settings.builtinVoice || 'sprout') === 'sprout' && SPG.i18n.lang() === 'en' ? t('Used for typed names and reworded lines (the Sprout voice says the rest).') + ' ' : '') + t('Touch a voice to choose it and hear it. The most natural ones are listed first; some need the internet.')));
     const pick = id => { voice.setTtsVoice(id); voice.hearTts(); redraw(); };
     const auto = h('button', { class: 'btn small' + (chosen ? ' quiet' : ' go'), type: 'button' }, t('Best one for me (automatic)') + (voice.ttsCurrentName() && !chosen ? ' · ' + t('now: {name}', { name: voice.ttsCurrentName() }) : ''));
     auto.addEventListener('click', () => pick(''));

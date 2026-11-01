@@ -33,6 +33,11 @@ if (!shell) fail('could not read SHELL list in sw.js');
 else for (const f of [...shell.matchAll(/'([^']+)'/g)].map(x => x[1]))
   (f === './' || existsSync(f)) ? null : fail(`sw.js caches a missing file: ${f}`);
 if (shell && !fails) pass('every file in the offline list exists');
+// the Sprout voice's letter clips are in the offline list too (sw.js builds their names): one missing file would stop the offline install
+if (/audio\/voice\/sprout\/letter\./.test(shell || '')) {
+  const miss = [...'abcdefghijklmnopqrstuvwxyz'].flatMap(l => [`audio/voice/sprout/letter.${l}.mp3`, `audio/voice/sprout/sound.${l}.mp3`]).filter(f => !existsSync(f));
+  miss.length ? fail(`sw.js caches Sprout voice clips that are missing: ${miss.join(', ')}`) : pass('the Sprout voice letter clips in the offline list exist');
+}
 const html = read('index.html');
 for (const s of [...html.matchAll(/<script src="([^"]+)"/g)].map(x => x[1])) {
   if (!existsSync(s)) fail(`index.html loads a missing script ${s}`);
@@ -54,6 +59,25 @@ pass(`version ${(core.match(/SPG\.version\s*=\s*'([^']+)'/) || [])[1]}`);
   : pass('recorder hidden for public release');
 existsSync('audio/voice/manifest.json') ? pass('voice manifest present') : warn('no audio/voice/manifest.json: the app will use built-in speech (fine, but recorded voices sound better)');
 /Little Sprout Park/.test(html) ? pass('app name in index.html') : fail('index.html does not use the app name');
+
+// Sign language and the camera sign videos are held back in backup/ until the owner approves them (backup/README.md)
+console.log('Held back from this release');
+{
+  const held = ['sign.js', 'sign-words.js', 'signs.js', 'signvideo.js', 'signlang.js'];
+  const found = ['js', 'games'].flatMap(d => held.filter(f => existsSync(`${d}/${f}`)).map(f => `${d}/${f}`));
+  found.length ? fail(`held-back files are in the app: ${found.join(', ')}`) : pass('no sign-language or camera files in js/ or games/');
+  /sign|backup\//i.test((html.match(/<script src="[^"]+"/g) || []).join(' ')) ? fail('index.html loads a held-back script') : pass('index.html loads no held-back script');
+  const cam = ['js', 'games'].flatMap(d => readdirSync(d).filter(f => f.endsWith('.js') && /getUserMedia\s*\(\s*\{[^}]*video|facingMode/.test(read(`${d}/${f}`))).map(f => `${d}/${f}`));
+  cam.length ? fail(`the camera is used in ${cam.join(', ')}`) : pass('no camera use in the app');
+  const man = 'android-app/android/app/src/main/AndroidManifest.xml';
+  if (existsSync(man)) /android\.permission\.CAMERA|android\.hardware\.camera/.test(read(man)) ? fail(`${man} asks for the camera`) : pass('the Android app asks for no camera');
+  /camera=\(\)/.test(read('_headers')) ? pass('_headers blocks the camera') : fail('_headers should have camera=() in Permissions-Policy');
+  /<h2>Camera<\/h2>/i.test(read('privacy.html')) || /<h2>Camera<\/h2>/i.test(read('worker/privacy-html.js')) ? fail('the privacy policy still describes a camera feature (and run node tools/sync-privacy.mjs)') : pass('privacy policy has no camera section');
+  const lists = ['store/listing.md', ...readdirSync('store', { withFileTypes: true }).filter(d => d.isDirectory() && existsSync(`store/${d.name}/listing.md`)).map(d => `store/${d.name}/listing.md`)];
+  const sl = lists.filter(f => /Sign Along|sign language|lengua de señas|手语|सांकेतिक/i.test(read(f)));
+  sl.length ? fail(`store listing mentions sign language: ${sl.join(', ')}`) : pass('store listings do not mention sign language');
+  /backup\//.test(read('.assetsignore')) ? pass('backup/ is kept out of the public site') : fail('.assetsignore must list backup/');
+}
 
 console.log('Privacy policy');
 const pv = read('privacy.html');

@@ -15,7 +15,7 @@
   ];
   const AGES = [2, 3, 4, 5, 6, 7];
   // the exact age at which each game steps up to tier 2 and to tier 3 (age 2 is always tier 1)
-  const RULE = { letters: [3, 6], numbers: [3, 5], math: [3, 5], fruit: [3, 6], rain: [3, 5], fire: [3, 5], band: [3, 5], shapes: [3, 5], puzzle: [3, 5], hide: [3, 6], garden: [3, 6], cook: [3, 5], clay: [3, 5], fishing: [3, 5], pattern: [4, 6], feelings: [3, 5], sort: [3, 5], signs: [3, 5] };
+  const RULE = { letters: [3, 6], numbers: [3, 5], math: [3, 5], fruit: [3, 6], rain: [3, 5], fire: [3, 5], band: [3, 5], shapes: [3, 5], puzzle: [3, 5], hide: [3, 6], garden: [3, 6], cook: [3, 5], clay: [3, 5], fishing: [3, 5], pattern: [4, 6], feelings: [3, 5], sort: [3, 5] };
   // what each game does at each tier (shown to grown-ups)
   const GAMES = [
     ['letters', t('Letter Garden'), [t('Always three choices in the find-it games'), t('Three choices, then four with practice'), t('Four choices every time, look-alike letters allowed')]],
@@ -34,7 +34,6 @@
     ['fishing', t('Fishing Pond'), [t('Three fishing spots, a fish bites quickly and one tap reels it in'), t('Five fishing spots (deeper water too), three taps to reel a fish in'), t('Five fishing spots, five taps to reel in, and the fish tugs while reeling')]],
     ['pattern', t('Caterpillars (what comes next)'), [t('Two-colour patterns (red, blue, red, blue...) and two balls to pick from'), t('Starts with two-colour patterns, adds red-red-blue and three-colour ones after two right first tries; three balls to pick from'), t('Longer patterns, patterns of dots, stripes or big and small, two missing balls and look-alike balls')]],
     ['feelings', t('Feeling Friends (naming feelings, helping)'), [t('Happy or sad, two faces to pick from'), t('Happy, sad, scared, mad and surprised, three faces to pick from'), t('Also sleepy, four faces to pick from, then "Why did I feel that way?": pick the picture of what happened')]],
-    ['signs', t('Sign Along (sign language)'), [t('Everyday signs, animals and food; two pictures to pick from'), t('Also colours, things and numbers to 5; three pictures'), t('Everything: also shapes, feelings and numbers to 10, and short fingerspelled words; four pictures')]],
     ['sort', t('Tidy Time (sorting)'), [t('Two baskets and 6 things: sort by colour, or big and little'), t('Three colours, fruit or vegetable, big or little; 8 things'), t('Four colours, big-middle-little, fruit or vegetable, and by shape with the colours mixed; 10 things')]],
   ];
 
@@ -55,6 +54,8 @@
     set(p, cfg) { p.level = cfg; p.t = Date.now(); store.save(); },
     label(p) { const c = cfgOf(p); if (c.mode === 'age') return t('Age {n}', { n: c.age }); const g = GROUPS.find(x => x.id === c.group) || GROUPS[1]; return `${g.name} (${g.ages})`; },
     // [game name, what it does for this player] for every game
-    describe(p) { const c = cfgOf(p); return GAMES.map(([id, name, d]) => [name, d[tierOf(c, id) - 1]]); }
+    describe(p) { const c = cfgOf(p); return GAMES.map(([id, name, d]) => [name, d[tierOf(c, id) - 1]]); },
+    // a game that is not always part of the app (games kept in backup/) adds its age rule and its line for Grown-ups when it loads
+    addGame(id, rule, name, tiers) { RULE[id] = rule; if (!GAMES.some(g => g[0] === id)) GAMES.push([id, name, tiers]); }
   };
 })();

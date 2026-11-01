@@ -1,7 +1,7 @@
-// Sign language mode (Grown-ups > Sign language, off by default): for children who are deaf or hard of hearing.
-// Everything a game says (every SPG.voice.say) is also signed by a pair of hands in a small card in a bottom corner, with the
-// words underneath if the grown-ups want them. The voice keeps working as before (switch it off in Sound if it is not wanted);
-// the hands sign even when the voice is off. A line becomes signs through `glossOf`: letters and letter sounds are fingerspelled,
+// Sign language mode (Grown-ups > Accessibility, off by default): for children who are deaf or hard of hearing.
+// Everything a game says (every SPG.voice.say, through SPG.voice.watch) is also signed by a pair of hands in a small card in a bottom
+// corner, with the words underneath if the grown-ups want them. Turning the hands on turns the spoken voice off (the hands are then the
+// way the games talk); a grown-up can turn the voice back on beside it to have both. The hands sign slowly by default (signPace). A line becomes signs through `glossOf`: letters and letter sounds are fingerspelled,
 // numbers, colours, shapes and feelings have their own signs, names are fingerspelled, and every instruction has a short key-word
 // gloss in GLOSS (the signs that carry the meaning, in a simple order for young children). Lines with no sign show only their words.
 (() => {
@@ -89,7 +89,7 @@
     raf = 0; if (!card) return;
     const dt = Math.min(.05, (now - (last || now)) / 1000); last = now;
     // a new line waits for the sign that is being made to finish (but never long; a grown-up's video a little longer), so no sign is cut off half way
-    if (pending) { const w = hands.wordNow(); if (!hands.busy || !w || hands.time >= w.to - .05 || hands.time - (pending.at || 0) > (w.video ? 3.5 : .9)) { start(pending.ids, pending.text); pending = null; } }
+    if (pending) { const w = hands.wordNow(); if (!hands.busy || !w || hands.time >= w.to - .05 || hands.time - (pending.at || 0) > (w.video ? 3.5 : 1.4)) { start(pending.ids, pending.text); pending = null; } }
     hands.update(dt);
     const r = cv.getBoundingClientRect(), dpr = Math.min(2, window.devicePixelRatio || 1);
     if (r.width) {
@@ -122,4 +122,49 @@
   function stop() { pending = null; if (!card) return; hands.stop(); card.classList.remove('show'); }
 
   SPG.signs = { on, say, stop, glossOf, GLOSS, THING, spell, sample: () => { const was = store.settings.signs; store.settings.signs = true; say(['hello', 'feel-how']); store.settings.signs = was; } };
+  // the hands sign every line the voice is asked to say (even with the voice off), and stop when it stops
+  SPG.voice.watch(list => (list ? say(list) : stop()));
+
+  /* ---------------------------------------------------------------- Grown-ups > Accessibility: the hearing part */
+  const t = SPG.t;
+  // Hands on: the voice goes off (what it was is remembered), so a deaf child's games are not talking over the hands. The grown-up can
+  // switch the voice back on right here to have both, and turning the hands off puts the voice back the way it was.
+  function setHands(v) {
+    const st = store.settings; if (!!st.signs === v) return;
+    if (v) { st.voiceBeforeSigns = !!st.voice; st.voice = false; } else { if (st.voiceBeforeSigns != null) st.voice = st.voiceBeforeSigns; delete st.voiceBeforeSigns; }
+    st.signs = v; store.saveSettings(); if (v) SPG.signs.sample(); else stop();
+  }
+  function section() {
+    const G = SPG.grownups, { h, toggle } = G.ui, st = store.settings; if (st.signWords == null) st.signWords = true;
+    const sw = h('button', { class: 'switch', type: 'button', role: 'switch', 'aria-checked': String(!!st.signs), 'aria-label': t('Signing hands') });
+    sw.addEventListener('click', () => { setHands(!st.signs); G.rerender(); });
+    const seg = (label, key, opts) => {
+      const g = h('div', { class: 'seg', role: 'group', 'aria-label': label });
+      for (const [id, text, col] of opts) {
+        const b = h('button', { type: 'button', class: 'seg-btn', 'aria-pressed': String((st[key] || opts[0][0]) === id) }, col ? h('span', { class: 'sign-swatch', style: `background:${col}` }) : '', text);
+        b.addEventListener('click', () => { st[key] = id; store.saveSettings(); SPG.signs.sample(); G.rerender(); });
+        g.append(b);
+      }
+      return h('div', {}, h('p', { class: 'fine', style: 'margin:10px 0 0' }, label), g);
+    };
+    const show = h('button', { class: 'btn small go', type: 'button', style: 'margin-top:10px' }, t('Show me'));
+    show.addEventListener('click', () => SPG.signs.sample());
+    const sec = h('section', {}, h('h3', {}, t('Hearing: sign language (ASL)')),
+      h('div', { class: 'setting' }, h('span', {}, t('Signing hands, for children who are deaf or hard of hearing')), sw),
+      h('p', { class: 'fine' }, t('Everything the games say is signed in American Sign Language by a pair of hands in a small card in a corner (taps go through it). Turning the hands on turns the spoken voice off; switch the voice on below to have both.')));
+    if (st.signs) sec.append(
+      toggle(t('Also speak out loud'), 'voice'),
+      seg(t('Signing speed'), 'signPace', [['slow', t('Slow')], ['medium', t('Medium')], ['normal', t('Normal')]]),
+      seg(t('Corner'), 'signSide', [['left', t('Bottom left')], ['right', t('Bottom right')]]),
+      seg(t('Size'), 'signSize', [['small', t('Small')], ['big', t('Big')]]),
+      seg(t('Hand colour'), 'signSkin', [['medium', t('Medium'), S.SKINS.medium.base], ['light', t('Light'), S.SKINS.light.base], ['tan', t('Tan'), S.SKINS.tan.base], ['deep', t('Deep'), S.SKINS.deep.base]]),
+      toggle(t('Show the words under the hands'), 'signWords'), show);
+    for (const f of extra) { try { const el = f(); if (el) sec.append(el); } catch (_) { /* never break the panel */ } }
+    sec.append(h('p', { class: 'fine' }, t('The signs are drawn by the app from standard ASL. Signing differs from place to place: if your child learns with a Deaf signer or an ASL teacher, ask them to look through Sign Along, and tell us about any sign that should change.')));
+    return sec;
+  }
+  const extra = [];   // more rows for this section (js/signvideo.js adds "record your own")
+  SPG.signs.addRow = fn => extra.push(fn);
+  // the grown-ups panel (js/app.js) loads after this file
+  const reg = () => (SPG.grownups ? SPG.grownups.add('access', section) : setTimeout(reg, 50)); reg();
 })();

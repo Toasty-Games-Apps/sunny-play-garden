@@ -155,7 +155,7 @@
   SPG.ui.press($('hub-who'), () => { voice.stop(); renderWho(); });
   SPG.ui.press($('hub-lock'), () => askGate(openParent));
 
-  const tints = { letters: ['#ffe3ec', '#f5b8cb'], fruit: ['#ffe9c7', '#f5c98a'], rain: ['#d8efff', '#a8d3f2'], fire: ['#ffe1d6', '#f5a58f'], band: ['#ffe3f0', '#f2a9c9'], shapes: ['#e3f0ff', '#9cc5f0'], puzzle: ['#e6f7ec', '#98d4ae'], care: ['#fff0d9', '#f2c88c'], hide: ['#e8f6d8', '#a7d78a'], garden: ['#dff5d0', '#a9d98f'], color: ['#efe4ff', '#cdbcf7'], pets: ['#ffe8ef', '#f6b9cc'], style: ['#ffe3f1', '#f7a8cf'], aquarium: ['#d8f2ff', '#7fc8ec'], cook: ['#fff0dc', '#f5c690'], clay: ['#ffe9d4', '#f2b98c'], fishing: ['#d8f2ff', '#8ccbe8'], pattern: ['#eafbe0', '#a6dc7e'], feelings: ['#fff1f6', '#f5b8cb'], sort: ['#fff6e0', '#f5cf8f'], signs: ['#e9f3ff', '#b9d4f5'] };
+  const tints = { letters: ['#ffe3ec', '#f5b8cb'], fruit: ['#ffe9c7', '#f5c98a'], rain: ['#d8efff', '#a8d3f2'], fire: ['#ffe1d6', '#f5a58f'], band: ['#ffe3f0', '#f2a9c9'], shapes: ['#e3f0ff', '#9cc5f0'], puzzle: ['#e6f7ec', '#98d4ae'], care: ['#fff0d9', '#f2c88c'], hide: ['#e8f6d8', '#a7d78a'], garden: ['#dff5d0', '#a9d98f'], color: ['#efe4ff', '#cdbcf7'], pets: ['#ffe8ef', '#f6b9cc'], style: ['#ffe3f1', '#f7a8cf'], aquarium: ['#d8f2ff', '#7fc8ec'], cook: ['#fff0dc', '#f5c690'], clay: ['#ffe9d4', '#f2b98c'], fishing: ['#d8f2ff', '#8ccbe8'], pattern: ['#eafbe0', '#a6dc7e'], feelings: ['#fff1f6', '#f5b8cb'], sort: ['#fff6e0', '#f5cf8f'] };
   function renderCards() {
     const all = SPG.games.slice().sort((a, b) => a.order - b.order);
     const games = orderedGames(all.filter(g => !g.shop)), shops = all.filter(g => g.shop);
@@ -172,7 +172,7 @@
     const PER_PAGE = hubPer = perPage(), pages = [];
     for (let i = 0; i < games.length; i += PER_PAGE) pages.push(games.slice(i, i + PER_PAGE));
     const strip = h('div', { class: 'pages' }, ...pages.map((list, pi) => h('div', { class: 'cards page', 'aria-label': t('Page {n} of {all}', { n: pi + 1, all: pages.length }) }, ...list.map((g, k) => {
-      const [tint, edge] = tints[g.id] || ['#fff', '#ddd'];
+      const [tint, edge] = g.tint || tints[g.id] || ['#fff', '#ddd'];
       const canvas = document.createElement('canvas');
       const card = h('button', { class: 'card' + (hubEdit && hubEdit.drag && hubEdit.drag.id === g.id ? ' drag-src' : ''), type: 'button', 'aria-label': t(g.name), 'data-id': g.id, style: `--tint:${tint};--edge:${edge};--d:${-(pi * PER_PAGE + k) * 1.1}s` },
         h('span', { class: 'lamp', 'aria-hidden': 'true' }), canvas, h('span', { class: 'card-name' }, t(g.name)),
@@ -269,7 +269,7 @@
     store.saveSettings(); renderCards(); SPG.sfx.chime();
   }
   function startHubDrag(e, g, card) {
-    const r = card.getBoundingClientRect(), src = card.querySelector('canvas'), ghost = h('div', { class: 'card-ghost', style: `width:${r.width}px;height:${r.height}px;--tint:${(tints[g.id] || ['#fff'])[0]};--edge:${(tints[g.id] || [0, '#ddd'])[1]}` });
+    const r = card.getBoundingClientRect(), src = card.querySelector('canvas'), ghost = h('div', { class: 'card-ghost', style: `width:${r.width}px;height:${r.height}px;--tint:${(g.tint || tints[g.id] || ['#fff'])[0]};--edge:${(tints[g.id] || [0, '#ddd'])[1]}` });
     const gc = document.createElement('canvas'); gc.width = src.width; gc.height = src.height; gc.getContext('2d').drawImage(src, 0, 0); gc.style.width = src.getBoundingClientRect().width + 'px'; ghost.append(gc, h('span', { class: 'card-name' }, t(g.name))); document.body.append(ghost);
     const D = hubEdit.drag = { id: g.id, ghost, ox: e.clientX - r.left, oy: e.clientY - r.top, dwell: 0, dir: 0, pid: e.pointerId };
     const place = ev => { ghost.style.transform = `translate(${ev.clientX - D.ox}px, ${ev.clientY - D.oy}px) scale(1.08) rotate(-3deg)`; };
@@ -452,7 +452,7 @@
   let installPrompt = null;
   addEventListener('beforeinstallprompt', e => { e.preventDefault(); installPrompt = e; });
 
-  function openParent() { renderParent(); openOverlay(overlays.parent); voiceIntro(); }
+  function openParent() { parentPage = ''; renderParent(); openOverlay(overlays.parent); voiceIntro(); }
   function closeParent() {
     closeOverlay(overlays.parent);
     if ((current === 'setup' || current === 'who') && store.profiles.length) { renderWho(); return; } // e.g. players were just restored from a backup
@@ -596,29 +596,80 @@
       done));
   }
 
+  /* ------------------------------------------------------------ the grown-ups panel
+     A home page of topics (big tiles, each with a one-line summary of how things are set now); a tile opens that topic's page.
+     Every change re-renders the page that is open (renderParent). Features kept in backup/ add their own settings to a page with
+     SPG.grownups.add(page, () => section) when they are put back. */
+  let parentPage = '';
+  const extraSections = {};
+  const goPage = id => { parentPage = id; renderParent(); const sh = overlays.parent.querySelector('.sheet'); if (sh) sh.scrollTop = 0; };
+  const hm = m => (m ? t('{m} min', { m }) : t('No limit'));
+  const PAGES = [
+    { id: 'kids', icon: '🧒', title: () => t('Players and progress'),
+      sub: () => (store.profiles.length ? store.profiles.map(p => `${p.name} ${p.stars}★`).join(' · ') : t('No players yet')),
+      body: () => [playersSection(), levelSection(), learnSection()] },
+    { id: 'sound', icon: '🔊', title: () => t('Sound and voices'),
+      sub: () => [store.settings.voice ? t('Voice on') : t('Voice off'), store.settings.sound ? t('Sounds on') : t('Sounds off'), store.settings.music ? t('Music on') : t('Music off')].join(' · '),
+      body: () => [soundSection(), voicesSection()] },
+    { id: 'time', icon: '⏰', title: () => t('Play time and bedtime'),
+      sub: () => [(store.settings.timer ? t('{m} a day', { m: hm(store.settings.timer) }) : t('No daily limit')), { off: t('Night mode off'), on: t('Night mode on'), auto: t('Night mode on a schedule') }[SPG.night.mode()]].join(' · '),
+      body: () => [timerSection(), nightSection()] },
+    { id: 'locks', icon: '🔒', title: () => t('Locks and safety'),
+      sub: () => [store.settings.pin ? t('PIN set') : t('No PIN yet'), store.settings.deviceAuth ? t('Fingerprint on') : ''].filter(Boolean).join(' · '),
+      body: () => [pinSection(), deviceAuthSection(), safeSection(), pinningSection()] },
+    { id: 'access', icon: '👓', title: () => t('Accessibility'),
+      sub: () => ([store.settings.vision ? t('Colour filter on') : '', store.settings.contrast ? t('Stronger contrast') : '', store.settings.bigUI ? t('Bigger buttons') : ''].filter(Boolean).join(' · ') || t('All off')),
+      body: () => [accessSection()] },
+    { id: 'photos', icon: '📷', title: () => t('Photos and pictures'),
+      sub: () => (store.settings.photoSave ? t('Also saved to the device') : t('Kept in the games’ albums')),
+      body: () => [photoSection()] },
+    { id: 'backup', icon: '☁️', title: () => t('Backup'),
+      sub: () => (store.saveFailed ? t('Could not save: please check') : SPG.sync.info().on ? t('Cloud backup on') : t('Cloud backup off')),
+      warn: () => !!store.saveFailed,   // cloud backup off is a normal choice, not a warning
+      body: () => [backupSection()] },
+    { id: 'lang', icon: '🌐', title: () => (SPG.i18n.lang() === 'en' ? 'Language' : t('Language') + ' · Language'),
+      sub: () => SPG.i18n.info().native,
+      body: () => [languageSection()] },
+    { id: 'about', icon: '🌱', title: () => t('About and privacy'),
+      sub: () => t('Version {v}', { v: SPG.version }),
+      body: () => [aboutSection()] }
+  ];
+  SPG.grownups = {
+    add(page, fn) { (extraSections[page] || (extraSections[page] = [])).push(fn); },
+    rerender: () => renderParent(), page: () => parentPage, open: goPage, pages: () => PAGES.map(p => p.id),
+    ui: { h, icon, toggle, confirmButton, openOverlay: el => openOverlay(el), closeOverlay: el => closeOverlay(el) }
+  };
+
   function renderParent() {
     const body = $('parent-body');
-    const fsNow = safe.isFullscreen();
-    const fsBtn = h('button', { class: 'btn small', type: 'button' }, fsNow ? t('Leave full screen') : t('Go full screen'));
-    fsBtn.addEventListener('click', async () => { fsNow ? await safe.exitFullscreen() : await safe.enterFullscreen(); setTimeout(renderParent, 250); });
-
-    const safeSection = h('section', {},
-      h('h3', {}, t('Safe mode')),
-      h('p', {}, t('The games never link to other websites. Full screen hides the address bar and tabs, and the back button stays inside the app. Only this grown-ups panel can change that.')),
-      safe.standalone() ? h('p', { class: 'fine' }, t('Running as an installed app, which is already full screen.')) : (safe.canFullscreen ? fsBtn : h('p', { class: 'fine' }, t('This browser cannot go full screen. Install the app from the browser menu instead.'))));
-    if (safe.isIOS && !safe.standalone()) {
-      safeSection.append(h('p', {}, h('b', {}, t('Full screen on iPhone and iPad: '))), h('ol', { class: 'steps' },
-        h('li', {}, t('In Safari, tap the Share button (the square with an arrow).')),
-        h('li', {}, t('Choose “Add to Home Screen”, then tap Add.')),
-        h('li', {}, t('Open Little Sprout Park from your home screen. It opens full screen with no browser bars.'))),
-        h('p', { class: 'fine' }, t('To keep a child inside the app on iPhone/iPad, also turn on Guided Access: Settings → Accessibility → Guided Access, then triple-click the side (or Home) button while the app is open.')));
+    const page = PAGES.find(p => p.id === parentPage);
+    if (!page) {
+      parentPage = '';
+      const tiles = PAGES.map(p => {
+        const b = h('button', { class: 'gu-tile' + (p.warn && p.warn() ? ' warn' : ''), type: 'button' },
+          h('span', { class: 'gu-ico', 'aria-hidden': 'true' }, p.icon), h('span', { class: 'gu-txt' }, h('b', {}, p.title()), h('span', { class: 'gu-sub' }, p.sub())));
+        b.addEventListener('click', () => goPage(p.id));
+        return b;
+      });
+      body.replaceChildren(h('p', { class: 'gu-intro' }, t('Choose a topic. Everything here is behind the grown-up lock.')), h('div', { class: 'gu-grid' }, ...tiles));
+      return;
     }
-    if (installPrompt) {
-      const b = h('button', { class: 'btn small go', type: 'button', style: 'margin-top:8px' }, t('Install on this tablet'));
-      b.addEventListener('click', async () => { installPrompt.prompt(); await installPrompt.userChoice; installPrompt = null; b.remove(); });
-      safeSection.append(b);
-    }
+    const back = h('button', { class: 'btn small quiet gu-back', type: 'button' }, icon('left'), ' ' + t('All settings'));
+    back.addEventListener('click', () => goPage(''));
+    const parts = [...page.body(), ...(extraSections[page.id] || []).map(fn => { try { return fn(); } catch (_) { return null; } })].filter(Boolean);
+    body.replaceChildren(h('div', { class: 'gu-pagehead' }, back, h('h3', { class: 'gu-title' }, h('span', { 'aria-hidden': 'true' }, page.icon + ' '), page.title())), ...parts);
+  }
 
+  function soundSection() {
+    return h('section', {}, h('h3', {}, t('Sound')),
+      toggle(t('Voice prompts'), 'voice'),
+      h('p', { class: 'fine' }, t('The games say what to do, because a young child cannot read the screen yet. If a child touches buttons over and over, the voice waits and says only the newest thing, so it never turns into a jumble.')),
+      toggle(t('Extra audio help'), 'audioHelp'),
+      h('p', { class: 'fine' }, t('For children who need more help hearing what things are: the games also say the name of each menu item, ingredient, piece of clothing or shop item as it is touched, give extra hints and say more cheers, and speak a little slower. Off by default, so the games stay quiet and calm (the short list of recorded lines is always said).')),
+      toggle(t('Sound effects'), 'sound'), toggle(t('Soft background music'), 'music'), toggle(t('Coloring Book music'), 'colorMusic'));
+  }
+
+  function playersSection() {
     const players = h('section', {}, h('h3', {}, t('Players')));
     for (const p of store.profiles) {
       players.append(h('div', { class: 'player-row' },
@@ -637,34 +688,47 @@
     const add = h('button', { class: 'btn small go', type: 'button', style: 'margin-top:8px' }, icon('plus'), ' ' + t('Add player'));
     add.addEventListener('click', () => { closeOverlay(overlays.parent); openSetup(true); });
     players.append(add);
+    return players;
+  }
 
-    body.replaceChildren(
-      languageSection(),
-      h('section', {}, h('h3', {}, t('Sound')), toggle(t('Voice prompts'), 'voice'), toggle(t('Extra audio help'), 'audioHelp'), h('p', { class: 'fine' }, t('For children who need more help hearing what things are: the games also say the name of each menu item, ingredient, piece of clothing or shop item as it is touched, give extra hints and say more cheers, and speak a little slower. Off by default, so the games stay quiet and calm (the short list of recorded lines is always said).')), toggle(t('Sound effects'), 'sound'), toggle(t('Soft background music'), 'music'), toggle(t('Coloring Book music'), 'colorMusic')),
-      accessSection(),
-      voicesSection(),
-      timerSection(),
-      pinSection(),
-      deviceAuthSection(),
-      nightSection(),
-      learnSection(),
-      levelSection(),
-      photoSection(),
-      backupSection(),
-      safeSection, players,
-      h('section', {}, h('h3', {}, t('Locking the tablet properly')),
-        h('p', {}, t('To help keep your child in Little Sprout Park, use Android app pinning. The steps and names may vary by device:')),
-        h('ol', { class: 'steps' },
-          h('li', {}, t('Settings → Security (or Security & privacy) → App pinning, and turn it on.')),
-          h('li', {}, t('Open Little Sprout Park, then open Recent apps.')),
-          h('li', {}, t('Tap the app icon at the top of its card and choose Pin.')),
-          h('li', {}, t('To unpin later, hold Back and Recent apps together (or swipe up and hold, depending on the tablet).')))),
-      h('section', {}, h('h3', {}, t('About')),
-        h('p', {}, t('Little Sprout Park version {v}. No ads or tracking. Children\'s play needs no account.', { v: SPG.version })),
-        h('p', { class: 'fine' }, t('Names, stars, gardens, coloring pictures and voice recordings stay on this device unless a grown-up turns on cloud backup. Grown-ups can optionally email their family code to a verified inbox.')),
-        h('a', { href: 'privacy.html', target: '_blank', rel: 'noopener noreferrer' }, t('Read the privacy policy'))),
-      h('section', {}, h('h3', {}, t('Voice recordings')),
-        h('p', {}, t('Prompts are spoken by the tablet’s built-in voice until you add recordings. See RECORDING.md in the project for the list of lines and where the files go.'))));
+  function safeSection() {
+    const fsNow = safe.isFullscreen();
+    const fsBtn = h('button', { class: 'btn small', type: 'button' }, fsNow ? t('Leave full screen') : t('Go full screen'));
+    fsBtn.addEventListener('click', async () => { fsNow ? await safe.exitFullscreen() : await safe.enterFullscreen(); setTimeout(renderParent, 250); });
+    const sec = h('section', {},
+      h('h3', {}, t('Safe mode')),
+      h('p', {}, t('The games never link to other websites. Full screen hides the address bar and tabs, and the back button stays inside the app. Only this grown-ups panel can change that.')),
+      safe.standalone() ? h('p', { class: 'fine' }, t('Running as an installed app, which is already full screen.')) : (safe.canFullscreen ? fsBtn : h('p', { class: 'fine' }, t('This browser cannot go full screen. Install the app from the browser menu instead.'))));
+    if (safe.isIOS && !safe.standalone()) {
+      sec.append(h('p', {}, h('b', {}, t('Full screen on iPhone and iPad: '))), h('ol', { class: 'steps' },
+        h('li', {}, t('In Safari, tap the Share button (the square with an arrow).')),
+        h('li', {}, t('Choose “Add to Home Screen”, then tap Add.')),
+        h('li', {}, t('Open Little Sprout Park from your home screen. It opens full screen with no browser bars.'))),
+        h('p', { class: 'fine' }, t('To keep a child inside the app on iPhone/iPad, also turn on Guided Access: Settings → Accessibility → Guided Access, then triple-click the side (or Home) button while the app is open.')));
+    }
+    if (installPrompt) {
+      const b = h('button', { class: 'btn small go', type: 'button', style: 'margin-top:8px' }, t('Install on this tablet'));
+      b.addEventListener('click', async () => { installPrompt.prompt(); await installPrompt.userChoice; installPrompt = null; b.remove(); });
+      sec.append(b);
+    }
+    return sec;
+  }
+
+  function pinningSection() {
+    return h('section', {}, h('h3', {}, t('Locking the tablet properly')),
+      h('p', {}, t('To help keep your child in Little Sprout Park, use Android app pinning. The steps and names may vary by device:')),
+      h('ol', { class: 'steps' },
+        h('li', {}, t('Settings → Security (or Security & privacy) → App pinning, and turn it on.')),
+        h('li', {}, t('Open Little Sprout Park, then open Recent apps.')),
+        h('li', {}, t('Tap the app icon at the top of its card and choose Pin.')),
+        h('li', {}, t('To unpin later, hold Back and Recent apps together (or swipe up and hold, depending on the tablet).'))));
+  }
+
+  function aboutSection() {
+    return h('section', {}, h('h3', {}, t('About')),
+      h('p', {}, t('Little Sprout Park version {v}. No ads or tracking. Children\'s play needs no account.', { v: SPG.version })),
+      h('p', { class: 'fine' }, t('Names, stars, gardens, coloring pictures and voice recordings stay on this device unless a grown-up turns on cloud backup. Grown-ups can optionally email their family code to a verified inbox.')),
+      h('a', { href: 'privacy.html', target: '_blank', rel: 'noopener noreferrer' }, t('Read the privacy policy')));
   }
 
   // Language (js/i18n.js): what the games say and what the screens show. Choosing another one restarts the app in it.
@@ -677,10 +741,10 @@
       seg.append(b);
     }
     // the word "Language" stays in English too, for a grown-up who cannot read the language the device picked
-    const sec = h('section', { style: 'border-top:0;padding-top:0' }, h('h3', {}, cur === 'en' ? 'Language' : t('Language') + ' · Language'),
+    const sec = h('section', {}, h('h3', {}, cur === 'en' ? 'Language' : t('Language') + ' · Language'),
       h('p', {}, t('The games speak, and the menus are written, in the language chosen here. The app restarts in the new language; nothing is lost.')), seg);
     if (cur === 'hi' || cur === 'zh') sec.append(h('p', { class: 'fine' }, t('Letter Garden teaches the English alphabet: the letter names, letter sounds and picture words are said in English.')));
-    if (cur !== 'en') sec.append(h('p', { class: 'fine' }, t('Sign language stays American Sign Language (ASL). Voice recordings and reworded lines are kept separately for each language.')));
+    if (cur !== 'en') sec.append(h('p', { class: 'fine' }, t('Voice recordings and reworded lines are kept separately for each language.')));
     if (cur !== 'en' && voice.voicesReady() && !voice.canSpeak()) sec.append(h('p', { class: 'warn' }, t('This device has no {lang} voice yet, so the games say the English lines for now. To add one: Settings → System (or General management) → Languages → Text-to-speech → Google speech engine → Install voice data → {lang}. Then open the app again.', { lang: info.native })));
     return sec;
   }
@@ -964,7 +1028,7 @@
     if (!overlays.gate.classList.contains('hidden')) { gateState = null; closeOverlay(overlays.gate); return; }
     if (!overlays.vintro.classList.contains('hidden')) return;
     if (!overlays.studio.classList.contains('hidden')) { closeStudio(); return; }
-    if (!overlays.parent.classList.contains('hidden')) { closeParent(); return; }
+    if (!overlays.parent.classList.contains('hidden')) { if (parentPage) goPage(''); else closeParent(); return; }
     if (!overlays.fs.classList.contains('hidden') || !overlays.brk.classList.contains('hidden')) return;
     if (current === 'stage') { if (!running?.inst?.back?.()) closeGame(); }
     else if (current === 'setup' && store.profiles.length) renderWho();

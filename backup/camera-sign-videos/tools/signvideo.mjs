@@ -1,8 +1,9 @@
+process.env.HELD = process.env.HELD || '1';   // these tests run against the app with the held-back features switched in (backup/preview.mjs)
 // Sign videos (Grown-ups > Accessibility > Sign videos): records a sign with a fake camera, keeps it, checks that the corner card and
 // Sign Along then show the video instead of the drawn hands (and the hands come back after the video), that a chosen sequence with a
 // video in the middle still signs the rest, that the "Use the sign videos" switch turns it off, and that Delete removes it.
 // usage: node signvideo.mjs [W H]
-import { start, stop, newPage, login, openGame, SP } from './lib.mjs';
+import { start, stop, newPage, login, openGame, SP } from '../../../tools/playtest/lib.mjs';
 process.env.PORT = process.env.PORT || '8371';
 const W = +process.argv[2] || 1280, Hh = +process.argv[3] || 800;
 const b = await start({ args: ['--use-fake-device-for-media-stream', '--use-fake-ui-for-media-stream'] });
@@ -17,6 +18,7 @@ for (const d of String(NW.indexOf(a) + NW.indexOf(c))) await page.evaluate(d => 
 await down('#numpad button.ok'); await wait(400);
 if (await page.$('#vintro:not(.hidden)')) { await page.click('#vintro .btn.quiet'); await wait(200); }
 const btn = text => page.evaluate(t => { const x = [...document.querySelectorAll('#parent-body button, #signvid-body button')].find(b => b.textContent.trim() === t && b.offsetParent); if (!x) return false; x.click(); return true; }, text);
+await page.evaluate(() => SPG.grownups.open('access')); await wait(200);   // Grown-ups > Accessibility
 ok(await btn('Sign videos: record your own'), 'the Accessibility section has the Sign videos button'); await wait(400);
 ok(await page.$('#signvid:not(.hidden)'), 'the Sign videos screen opens');
 ok(await page.evaluate(() => document.querySelectorAll('.sv-word').length) > 20, 'words are listed');
@@ -40,7 +42,7 @@ ok(lay.words.length === 3 && lay.words[1].video && !lay.words[0].video && !lay.w
 ok(lay.words[1].from >= lay.words[0].to && lay.words[2].from >= lay.words[1].to && lay.end >= lay.words[2].to, 'the words follow one another');
 const drawn = await page.evaluate(async () => {
   const s = new SPG.sign.Signer(); s.play(['HELLO', 'CAT', 'DOG']); const cv = document.createElement('canvas'); cv.width = cv.height = 200; const c = cv.getContext('2d');
-  const at = []; const frames = Math.ceil(s.endsAt / .05) + 4;
+  const at = []; const frames = Math.ceil(s.realTime(s.endsAt) / .05) + 4;
   for (let i = 0; i < frames; i++) { s.update(.05); c.clearRect(0, 0, 200, 200); s.draw(c, 0, 0, 200, 200, { dt: .05 }); const wn = s.wordNow(); at.push(wn && wn.video && s.time >= wn.from ? 'v' : 'h'); await new Promise(r => setTimeout(r, 50)); }
   return { at: at.join(''), busy: s.busy };
 });
@@ -55,8 +57,8 @@ await page.click('#signvid-close'); await wait(300);
 await page.evaluate(() => { SPG.store.settings.signs = true; });
 await page.click('#parent-close'); await wait(400);
 await page.evaluate(() => SPG.signs.say(['sort/big', 'bunny/cat']));
-await wait(1500);
-const card = await page.evaluate(() => { const cv = document.querySelector('#sign-card canvas'); const d = cv.getContext('2d').getImageData(0, 0, cv.width, cv.height).data; let n = 0; for (let i = 3; i < d.length; i += 4) if (d[i] > 0) n++; return { show: document.getElementById('sign-card').classList.contains('show'), filled: n / (d.length / 4) }; });
+// signing is slow by default: look at the card until CAT (the video) comes up, for up to 8 s
+let card; for (let i = 0; i < 32; i++) { await wait(250); card = await page.evaluate(() => { const cv = document.querySelector('#sign-card canvas'); const d = cv.getContext('2d').getImageData(0, 0, cv.width, cv.height).data; let n = 0; for (let i = 3; i < d.length; i += 4) if (d[i] > 0) n++; return { show: document.getElementById('sign-card').classList.contains('show'), filled: n / (d.length / 4) }; }); if (card.show && card.filled > .5) break; }
 ok(card.show && card.filled > .5, `the corner card shows the video (${card.filled.toFixed(2)} of the card filled)`);
 await page.screenshot({ path: `${SP}/signvideo-card-${W}x${Hh}.png` });
 // Sign Along uses it too

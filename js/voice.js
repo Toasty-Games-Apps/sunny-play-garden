@@ -1,7 +1,9 @@
 // Voice prompts. Every spoken line is a key in LINES. A line can be played from:
 //   1. a recording made on this tablet in the grown-ups "Voices" screen (kept in IndexedDB), or
 //   2. an audio file in audio/voice/<male|female>/<key>.mp3 listed in audio/voice/manifest.json, or
-//   3. the browser's built-in speech (fallback, so nothing is ever silent).
+//   3. the Sprout voice: every English line made in advance by a neural voice (tools/voice-pack), in audio/voice/sprout/, so
+//      letter names and letter sounds are said right on every phone (Grown-ups can choose the phone's own voice instead), or
+//   4. the browser's or phone's built-in speech (fallback, so nothing is ever silent).
 // Two voice sets (male, female) can be mixed. Lines can be muted one by one, and praise can be
 // made less frequent. "Sound-only" keys (critter noises) play only when recorded.
 (() => {
@@ -65,7 +67,6 @@
     'feel-s-spider': 'Eek! A spider came down!',
     'feel-s-grab': 'Hey! That is my ball!',
     'feel-why': 'Why did I feel that way? Touch the picture.',
-    'sl-start': 'Let\'s talk with our hands!', 'sl-find': 'Watch the hands. Touch the picture!', 'sl-letter': 'Watch the hand. Which letter is it?', 'sl-word': 'Watch the hand spell a word. Touch the picture!',
     'feel/happy': 'Yes! I feel happy!',
     'feel/sad': 'Yes. I feel sad.',
     'feel/scared': 'Yes. I feel scared.',
@@ -165,18 +166,26 @@
   const CORE_SET = new Set(CORE);
   const isCore = k => CORE_SET.has(k) || /^(pname|player)\//.test(k);
   // spoken whenever they come up (by a recording if there is one, otherwise the built-in voice) although they are not on the short list
-  const SPOKEN = /^(letter|sound|word|num|color|shape|name|pname|player|fish|sort|sign)\//;
+  const SPOKEN = /^(letter|sound|word|num|color|shape|name|pname|player|fish|sort)\//;
   // Instructions that tell her what to do next: always spoken (she cannot read), although they are not on the short list to record.
   // Each one is said once at its moment (a new step, the first coin...), never on every touch.
-  const INSTRUCT = new Set(['sort-color', 'sort-size', 'sort-size3', 'sort-food', 'sort-shape', 'sort-try', 'sort-done', 'pat-start', 'pat-next', 'feel-start', 'feel-how', 'feel-look', 'feel-s-present', 'feel-s-cake', 'feel-s-pal', 'feel-s-icecream', 'feel-s-balloon', 'feel-s-rain', 'feel-s-thunder', 'feel-s-dark', 'feel-s-tower', 'feel-s-splash', 'feel-s-jack', 'feel-s-party', 'feel-s-yawn', 'feel-s-bubbles', 'feel-s-rainbow', 'feel-s-spider', 'feel-s-grab', 'feel-why', 'sl-start', 'sl-find', 'sl-letter', 'sl-word', 'shapes-count/circle', 'shapes-count/oval', 'shapes-count/square', 'shapes-count/rect', 'shapes-count/triangle', 'shapes-count/trapezoid', 'shapes-count/diamond', 'shapes-count/semicircle', 'shapes-count/star', 'feel/happy', 'feel/sad', 'feel/scared', 'feel/mad', 'feel/wow', 'feel/sleep', 'feel-help', 'feel-help-sleep', 'feel-joy', 'feel-breathe', 'feel-better', 'feel-fun', 'feel-night', 'shop-stars', 'shop-first', 'shop-worn', 'follow-bee', 'catch-drops', 'fire-pet', 'fire-next', 'band-song', 'puzzle-next', 'hide-gate', 'hide-locked', 'count-find', 'math-sum', 'math-left',
+  const INSTRUCT = new Set(['sort-color', 'sort-size', 'sort-size3', 'sort-food', 'sort-shape', 'sort-try', 'sort-done', 'pat-start', 'pat-next', 'feel-start', 'feel-how', 'feel-look', 'feel-s-present', 'feel-s-cake', 'feel-s-pal', 'feel-s-icecream', 'feel-s-balloon', 'feel-s-rain', 'feel-s-thunder', 'feel-s-dark', 'feel-s-tower', 'feel-s-splash', 'feel-s-jack', 'feel-s-party', 'feel-s-yawn', 'feel-s-bubbles', 'feel-s-rainbow', 'feel-s-spider', 'feel-s-grab', 'feel-why', 'shapes-count/circle', 'shapes-count/oval', 'shapes-count/square', 'shapes-count/rect', 'shapes-count/triangle', 'shapes-count/trapezoid', 'shapes-count/diamond', 'shapes-count/semicircle', 'shapes-count/star', 'feel/happy', 'feel/sad', 'feel/scared', 'feel/mad', 'feel/wow', 'feel/sleep', 'feel-help', 'feel-help-sleep', 'feel-joy', 'feel-breathe', 'feel-better', 'feel-fun', 'feel-night', 'shop-stars', 'shop-first', 'shop-worn', 'follow-bee', 'catch-drops', 'fire-pet', 'fire-next', 'band-song', 'puzzle-next', 'hide-gate', 'hide-locked', 'count-find', 'math-sum', 'math-left',
     'aq-coin', 'aq-boss', 'meteor-start', 'seed-in', 'pat-it', 'water-me', 'confirm-bye',
     'cook-pick', 'cook-roll', 'cook-cutsand', 'cook-oven-on', 'cook-squirt', 'cook-drop', 'cook-pour', 'cook-ding', 'cook-grill', 'cook-flip', 'cook-stack', 'cook-frost', 'cook-slice',
     'cook-pickbun', 'cook-pickbread', 'cook-patties', 'cook-meat', 'cook-cheese', 'cook-veg', 'cook-saucetop', 'cook-scoop', 'cook-pizzasauce', 'cook-pizzacheese', 'cook-toppings']);
   // "Extra audio help" (Grown-ups > Sound, off by default) also speaks all the other lines: the names of things touched, extra hints and cheers.
   const isExtra = k => k in LINES && !isCore(k) && !SPOKEN.test(k) && !INSTRUCT.has(k);
+  // what a line is for, when a child is touching things quickly (see "calm voice" in say below):
+  //   2 = it tells her what to do (an instruction, a question, "try again"): said at once, cutting off anything else
+  //   1 = a number while she counts: said in order, never skipped
+  //   0 = a name, a letter, a cheer: said when the voice is free, and only the newest one if she touched several
+  const roleOf = k => (typeof k !== 'string' ? 0 : INSTRUCT.has(k) || /^(player|shapes-count)\//.test(k) || (CORE_SET.has(k) && !PRAISE.has(k) && !/^(letter|sound|num)\//.test(k)) ? 2 : /^num\//.test(k) ? 1 : 0);
   // How the built-in voice should say a line when the written text comes out wrong. (A recording, or text a grown-up has edited, is never changed.)
   // A lone "Ay" is read like the word "eye" by phone voices; a capital letter on its own is read as the letter.
-  const SAY_AS = { 'letter/a': 'A.', 'sound/x': 'kss' };
+  // Letter names are given to the built-in voice as a capital letter with a full stop ("V."), which every engine reads as the
+  // letter's name; spelled-out names ("Vee", "Ar") were read in odd ways. Only used when there is no recording or Sprout clip.
+  const SAY_AS = { 'sound/x': 'kss' };
+  for (const l of LETTERS) SAY_AS['letter/' + l] = l.toUpperCase() + '.';
   const custom = {}; // dynamic lines, e.g. player names: key -> fallback text
   // what the built-in voice says for a line: the SAY_AS fixes are for the English lines (never a reworded or translated one)
   const spokenFor = key => (SAY_AS[key] && I.lineLang(key) === 'en' && !reworded(key) ? SAY_AS[key] : textFor(key));
@@ -211,7 +220,10 @@
   ];
 
   const base = key => key.replace(/\//g, '-');
-  const fileFor = (set, key) => `audio/voice/${set}/${base(ck(key))}.mp3`;
+  // file names: "/" becomes "-" (the recordings a family adds, see RECORDING.md); the Sprout voice keeps it as ".", because two
+  // lines differ only there (cook-cheese, the instruction, and cook/cheese, the ingredient)
+  const fname = (set, key) => (set === 'sprout' ? key.replace(/\//g, '.') : base(key));
+  const fileFor = (set, key) => `audio/voice/${set}/${fname(set, ck(key))}.mp3`;
   // the short list to record (core + each player's greeting), and the optional rest
   const allKeys = () => [...CORE, ...Object.keys(custom).filter(k => /^(pname|player)\//.test(k))];
   const moreKeys = () => [...Object.keys(LINES).filter(k => !CORE_SET.has(k)), ...Object.keys(SOUNDS), ...Object.keys(custom).filter(k => !/^(pname|player)\//.test(k))];
@@ -258,7 +270,12 @@
     try { const res = await fetch('audio/voice/manifest.json'); if (res.ok) manifest = await res.json(); } catch (_) { /* no file recordings */ }
   })();
 
-  const fileAvail = (set, key) => !!(manifest && manifest[set] && manifest[set].includes(base(key)));
+  const listed = {};
+  const fileAvail = (set, key) => !!(manifest && manifest[set] && (listed[set] || (listed[set] = new Set(manifest[set]))).has(fname(set, key)));
+  // The Sprout voice (audio/voice/sprout): English lines only, as written (a reworded line is new text it has never said)
+  const SPROUT = 'sprout';
+  const sproutOn = () => (settings().builtinVoice || SPROUT) === SPROUT;
+  const sproutHas = (item, k) => sproutOn() && k === item && I.lineLang(item) === 'en' && !reworded(item) && fileAvail(SPROUT, item);
   const hasClip = (set, key) => !!(deviceKeys[set] && deviceKeys[set].has(key)) || fileAvail(set, key);
   const hasDeviceClip = (set, key) => !!(deviceKeys[set] && deviceKeys[set].has(key));
 
@@ -290,6 +307,32 @@
 
   /* ------------------------------------------------------------ playback */
   let token = 0, current = null;
+  // calm voice (see say): what is being said now, what waits for the voice to be free, and how fast she is touching things
+  const CALM = { window: 2200, flood: 4, quiet: 1400, stale: 1800 };
+  let talk = null, lastAsk = 0;
+  const waiting = [], asks = [], watchers = [];
+  const dropWaiting = (which = () => true) => { for (let i = waiting.length - 1; i >= 0; i--) if (which(waiting[i])) waiting.splice(i, 1)[0].resolve(); };
+  const wait = w => new Promise(resolve => { w.resolve = resolve; waiting.push(w); });
+  async function run(list, role, sig) {
+    const my = ++token;
+    current?.stop();
+    let fin; const done = new Promise(r => { fin = r; });
+    talk = { sig, role, t0: performance.now(), done };
+    watchers.forEach(f => { try { f(list); } catch (_) { /* a watcher never stops the voice */ } });
+    try { for (const it of list) { if (my !== token) break; await playOne(it, () => my === token, true); } }
+    finally {
+      fin();
+      if (my === token) {
+        talk = null;
+        // the next one that waited: numbers in order, else the newest name (a name that waited too long is no longer wanted)
+        const now = performance.now();
+        dropWaiting(w => w.role === 0 && now - w.t > CALM.stale);
+        const next = waiting.shift();
+        if (next) run(next.list, next.role, next.sig).then(next.resolve);
+      }
+    }
+    return done;
+  }
   // The built-in speaking voice (used for any line nobody has recorded). Phones and tablets list many voices; the plain
   // "compact" ones sound robotic, while network / enhanced / neural ones sound much more like a person. Online we prefer those;
   // offline only voices stored on the device can be used. A grown-up can also pick one by ear (Grown-ups > Voices).
@@ -404,6 +447,7 @@
     await ready; if (!live()) return;
     const k = ck(item), set = A.ctx ? chooseSet(k) : null;
     if (set) { const buf = await loadBuffer(set, k); if (!live()) return; if (buf) return playBuffer(buf); }
+    if (A.ctx && sproutHas(item, k)) { const buf = await loadBuffer(SPROUT, item); if (!live()) return; if (buf) return playBuffer(buf); }
     if (item in SOUNDS) return; // sound-only: silent unless recorded
     const L = I.lineLang(item);
     if (L !== 'en' && !canSpeak(L)) return speak(item.startsWith('player/') ? `Hi ${custom['pname/' + item.slice(7)] || ''}!` : LINES[item] ?? custom[item], 'en');
@@ -482,6 +526,15 @@
     // false when this device has voices, but none for the chosen language (the games then say the English lines)
     canSpeak: () => canSpeak(I.lang()),
     voicesReady: () => allVoices().length > 0,
+    // Grown-ups > Voices: hear the Sprout voice (a greeting, then the name, sound and picture word of V)
+    async hearSprout() {
+      A.unlock(); await ready; SPG.voice.stop(); const my = ++token;
+      for (const k of ['hello', 'letter/v', 'sound/v', 'word/v']) {
+        if (my !== token || !fileAvail(SPROUT, k)) continue;
+        const b = await loadBuffer(SPROUT, k); if (b && my === token) await playBuffer(b);
+      }
+    },
+    sproutReady: () => !!(manifest && manifest[SPROUT] && manifest[SPROUT].length),
     hearTts() { return speak(t('Hello! Let’s play and learn together.'), canSpeak(I.lang()) ? I.lang() : 'en'); },
     addVoice(name) {
       const list = store.settings.voices || (store.settings.voices = []);
@@ -557,15 +610,25 @@
     hasClip: (set, key) => hasClip(set, ck(key)), hasDeviceClip: (set, key) => hasDeviceClip(set, ck(key)),
     groupOf: key => GROUPS.find(g => g.test(key)),
     // Say a line, or a list of lines one after another. Items are keys, {say: 'free text'}, or null.
-    async say(...items) {
+    // Calm voice: a toddler who touches things over and over must not hear a jam of cut-off words. An instruction (role 2) is said at
+    // once; numbers wait their turn; anything else waits until the voice is free, and only the newest one is kept. The same thing again
+    // while it is still being said is not said twice, and while she is touching very fast (FLOOD asks with no QUIET pause) the
+    // names and cheers stay silent until she slows down.
+    say(...items) {
       const list = items.flat().filter(willSay);
-      const my = ++token;
-      current?.stop();
-      try { if (SPG.signs && list.length) SPG.signs.say(list); } catch (_) { /* the hands never stop the voice */ }
-      for (const it of list) {
-        if (my !== token) return;
-        await playOne(it, () => my === token, true);
-      }
+      if (!list.length) return Promise.resolve();
+      const role = Math.max(...list.map(roleOf)), sig = list.map(x => (typeof x === 'string' ? x : x.say)).join('|'), now = performance.now();
+      if (talk && talk.sig === sig && (talk.role > 0 || now - talk.t0 < 2500)) return talk.done;   // the same thing is being said right now
+      if (role < 2) {
+        if (now - lastAsk > CALM.quiet) asks.length = 0;
+        lastAsk = now; asks.push(now); while (asks.length && now - asks[0] > CALM.window) asks.shift();
+        if (role === 0 && asks.length >= CALM.flood) { dropWaiting(w => w.role === 0); return Promise.resolve(); }   // numbers that wait are kept
+        if (talk) {
+          if (role === 1) { if (waiting.length < 4 && !waiting.some(w => w.sig === sig)) return wait({ list, role, sig, t: now }); return Promise.resolve(); }
+          dropWaiting(w => w.role === 0); return wait({ list, role, sig, t: now });
+        }
+      } else dropWaiting();
+      return run(list, role, sig);
     },
     // Play a critter noise if one is recorded, otherwise the spoken announcement.
     async sound(soundKey, fallbackKey) {
@@ -585,8 +648,13 @@
       const [off, dur] = buf._trim || [0, undefined]; src.start(0, off, dur);
       return dur || buf.duration;
     },
-    stop() { token++; current?.stop(); try { SPG.signs && SPG.signs.stop(); } catch (_) { /* ignore */ } },
+    stop() { token++; dropWaiting(); talk = null; current?.stop(); watchers.forEach(f => { try { f(null); } catch (_) { /* ignore */ } }); },
     praise() { const k = [...PRAISE]; return SPG.voice.say(k[Math.floor(Math.random() * k.length)]); },
+    // Something that wants to know what is being said (a feature kept in backup/ uses it): fn(list of lines), or fn(null) on stop.
+    watch(fn) { watchers.push(fn); },
+    // Lines a game brings with it (games kept in backup/ add theirs when they are put back). instruct: always spoken, like INSTRUCT.
+    addLines(lines, { instruct = [] } = {}) { Object.assign(LINES, lines); for (const k of instruct) INSTRUCT.add(k); },
+    roleOf, CALM,
     startRecording, saveClip, deleteClip, previewClip
   };
 })();

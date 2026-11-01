@@ -14,6 +14,20 @@ for (const [w, h] of [[390, 844], [844, 390], [1280, 800]]) {
   for (const d of ans) await page.evaluate(d => [...document.querySelectorAll('#numpad button')].find(x => x.textContent === d).dispatchEvent(new PointerEvent('pointerdown', { bubbles: true })), d);
   await page.evaluate(() => document.querySelector('#numpad button.ok').dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }))); await wait(400);
   if (await page.$('#vintro:not(.hidden)')) { await page.click('#vintro .btn.quiet'); await wait(200); }   // the voices welcome on the first Grown-ups visit
+  // Grown-ups opens on a page of topic tiles; every tile opens its page and the back button comes home
+  const tiles = await page.$$eval('#parent-body .gu-tile', l => l.length);
+  if (tiles < 8) console.log(`FAIL only ${tiles} topic tiles`);
+  await page.screenshot({ path: `${SP}/grownups_${w}x${h}.png` });
+  const over = await page.evaluate(() => { const r = document.querySelector('#parent-body .gu-grid').getBoundingClientRect(); return r.right > innerWidth + 1 || r.left < -1; });
+  if (over) console.log('FAIL the topic tiles are wider than the screen');
+  for (let i = 0; i < tiles; i++) {
+    await page.evaluate(i => document.querySelectorAll('#parent-body .gu-tile')[i].click(), i); await wait(150);
+    const ok = await page.evaluate(() => !!document.querySelector('#parent-body .gu-back') && document.querySelectorAll('#parent-body section').length > 0);
+    if (!ok) console.log(`FAIL topic ${i} did not open a page`);
+    await page.click('#parent-body .gu-back'); await wait(120);
+    if (!(await page.$('#parent-body .gu-grid'))) console.log(`FAIL back from topic ${i} did not come home`);
+  }
+  await page.evaluate(() => SPG.grownups.open('kids')); await wait(200);
   await page.evaluate(() => { const s = [...document.querySelectorAll('#parent-body h3')].find(h => h.textContent === 'Age and difficulty'); s.scrollIntoView(); const d = s.parentElement.querySelector('details'); d.open = true; }); await wait(300);
   await page.screenshot({ path: `${SP}/level_${w}x${h}.png` });
   console.log(w, h, page.errs.join(' | ') || 'no errors');

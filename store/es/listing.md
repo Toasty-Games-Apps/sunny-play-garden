@@ -22,7 +22,6 @@ APRENDER
 - Orugas: ¿qué sigue? Cada oruga canta su patrón de colores; elige la bolita que sigue y se vuelve mariposa.
 - Amigos y sentimientos: a un amigo se le cae el helado o suena un trueno. Toca la carita de cómo se siente y ayuda con un abrazo, una canción o respirando con calma.
 - Hora de ordenar: clasifica juguetes, frutas y verduras en canastas por color, tamaño, tipo o forma.
-- Habla con señas: aprende lengua de señas americana (ASL) con unas manos amigas: palabras de todos los días, animales, comida, colores, números y el abecedario.
 - Estanque de rompecabezas: rompecabezas hechos con tus propios dibujos, de 4 a 12 piezas.
 
 CREAR

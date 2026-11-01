@@ -37,8 +37,13 @@
   // the word as shown to grown-ups, in the chosen language (the spoken sign/ line without its punctuation)
   SPG.signNameOf = id => { const l = SPG.i18n.line('sign/' + id); return l ? l.replace(/[!¡！。.]+/g, '').trim() : nameOf(id); };
   // every word becomes a spoken line (always said: they are what the game is about)
-  for (const g of GROUPS) for (const w of g.words) if (!/^L:/.test(w)) voice.LINES['sign/' + w] = nameOf(w) + '!';
-  for (const w of SPELLWORDS) voice.LINES['sign/' + w] = voice.LINES['sign/' + w] || nameOf(w) + '!';
+  // (the game brings its own lines, its instructions and its age rule, so putting it back is only its script tags: see backup/README.md)
+  { const L = {}, t = SPG.t;
+    for (const g of GROUPS) for (const w of g.words) if (!/^L:/.test(w)) L['sign/' + w] = nameOf(w) + '!';
+    for (const w of SPELLWORDS) L['sign/' + w] = L['sign/' + w] || nameOf(w) + '!';
+    Object.assign(L, { 'sl-start': 'Let\'s talk with our hands!', 'sl-find': 'Watch the hands. Touch the picture!', 'sl-letter': 'Watch the hand. Which letter is it?', 'sl-word': 'Watch the hand spell a word. Touch the picture!' });
+    voice.addLines(L, { instruct: Object.keys(L) });
+    SPG.level.addGame('signs', [3, 5], t('Sign Along (sign language)'), [t('Everyday signs, animals and food; two pictures to pick from'), t('Also colours, things and numbers to 5; three pictures'), t('Everything: also shapes, feelings and numbers to 10, and short fingerspelled words; four pictures')]); }
 
   const COLS = { RED: '#ff5b6b', ORANGE: '#ff9d3d', YELLOW: '#ffd54a', GREEN: '#5cc25c', BLUE: '#4f8fe8', PURPLE: '#9a6be8', PINK: '#ff8fc0', BROWN: '#a8714a', BLACK: '#3a3340', WHITE: '#ffffff', GRAY: '#9a9aa8' };
   // the picture of a word, drawn in a box of radius r around the origin
@@ -362,7 +367,7 @@
   }
 
   SPG.games.push({
-    id: 'signs', name: 'Sign Along', order: 18, fresh: true,
+    id: 'signs', name: 'Sign Along', order: 18, fresh: true, tint: ['#e9f3ff', '#b9d4f5'],
     icon(c, w, h) {
       const g = c.createLinearGradient(0, 0, 0, h); g.addColorStop(0, '#e9f3ff'); g.addColorStop(1, '#fde3f0'); c.fillStyle = g; c.fillRect(0, 0, w, h);
       const s = Math.min(w, h); art.heart(c, w * .78, h * .22, s * .1, '#ff7a9a'); art.heart(c, w * .2, h * .3, s * .06, '#ff9db8');

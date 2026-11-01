@@ -1,7 +1,8 @@
+process.env.HELD = process.env.HELD || '1';   // these tests run against the app with the held-back features switched in (backup/preview.mjs)
 // Renders signs as film strips (N frames across each sign) so they can be checked by eye; with HANDS=1, every handshape instead.
 // usage: IDS=HELLO,CAT,L:a N=5 CELL=150 node sign-strips.mjs   (writes $SHOTS/sign-strips.png)
 //        HANDS=1 node sign-strips.mjs                           (writes $SHOTS/sign-hands.png: every handshape, palm out)
-import { start, stop, newPage, SP } from './lib.mjs';
+import { start, stop, newPage, SP } from '../../../tools/playtest/lib.mjs';
 process.env.PORT = process.env.PORT || '8405';
 const b = await start(); const page = await newPage(b, 1400, 1000);
 if (process.env.HANDS) {

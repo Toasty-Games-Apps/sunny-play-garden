@@ -1,8 +1,9 @@
+process.env.HELD = process.env.HELD || '1';   // these tests run against the app with the held-back features switched in (backup/preview.mjs)
 // Sign Along and sign-language mode: opens Sign Along at ages 2, 4 and 7, plays every activity with real clicks (Learn: arrows, tabs and the
 // hands; Watch & find: a wrong picture then the right one; Letters; My name), checks the layout fits, one star per five right answers,
 // and the corner hands of sign-language mode (they show for every game's lines, and stay away inside Sign Along). Also checks that every
 // line a game can say becomes known signs. usage: node signs.mjs [W H]
-import { start, stop, newPage, login, openGame, SP } from './lib.mjs';
+import { start, stop, newPage, login, openGame, SP } from '../../../tools/playtest/lib.mjs';
 process.env.PORT = process.env.PORT || '8360';
 const W = +process.argv[2] || 1280, Hh = +process.argv[3] || 800;
 const b = await start(); let fails = 0; const ok = (c, m) => { if (!c) { fails++; console.log('FAIL', m); } };
