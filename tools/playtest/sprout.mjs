@@ -34,22 +34,22 @@ const check = async (what, key, set, wantFile) => {
 };
 await check('letter V', 'letter/v', {}, true);
 await check('sound of V', 'sound/v', {}, true);
-await check('an instruction', 'care-hungry', {}, true);
+await check('an instruction', 'sort-color', {}, true);
 await check('the phone’s own voice chosen', 'letter/r', { builtinVoice: 'device' }, false);
-await page.evaluate(() => SPG.voice.setText('care-hungry', 'Time for a snack!'));
-await check('a reworded line', 'care-hungry', {}, false);
-await page.evaluate(() => SPG.voice.setText('care-hungry', ''));
+await page.evaluate(() => SPG.voice.setText('sort-color', 'Put each toy in its own basket!'));
+await check('a reworded line', 'sort-color', {}, false);
+await page.evaluate(() => SPG.voice.setText('sort-color', ''));
 if (page.errs.length) fail(page.errs.join(' | '));
 await page.context().close();
 // Spanish: a translated line is the phone's; the English ABC is not used in Spanish (it has its own)
 const es = await newPage(b, 800, 1000, { locale: 'es-MX' });
 const fetchedEs = []; es.on('request', r => { const m = r.url().match(/audio\/voice\/sprout\/([^/]+)\.mp3$/); if (m) fetchedEs.push(m[1]); });
-await login(es); await es.mouse.click(400, 500);
+await login(es, { gender: null }); await es.mouse.click(400, 500);
 const spokeEs = await es.evaluate(async () => {
   const V = SPG.voice; Object.assign(SPG.store.settings, { voice: true, builtinVoice: 'sprout' });
   window.__spoke = []; speechSynthesis.speak = u => { __spoke.push(u.text); setTimeout(() => u.onend && u.onend(), 50); }; speechSynthesis.cancel = () => {};
-  await V.say('care-hungry'); return window.__spoke.slice();
+  await V.say('sort-color'); return window.__spoke.slice();
 });
-const okEs = !fetchedEs.length && spokeEs.length && !/hungry/i.test(spokeEs[0]);
+const okEs = !fetchedEs.length && spokeEs.length && !/same color/i.test(spokeEs[0]);
 console.log(`${okEs ? 'ok  ' : 'FAIL'} Spanish line: ${JSON.stringify(spokeEs)} ${fetchedEs.join(',')}`); if (!okEs) bad++;
 stop(b); console.log(bad ? 'PROBLEMS' : 'SPROUT VOICE OK'); process.exit(bad ? 1 : 0);
