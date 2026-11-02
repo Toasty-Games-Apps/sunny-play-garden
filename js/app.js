@@ -370,7 +370,7 @@
     if (store.settings.pin) { askPin(onPass); return; }
     gateState = { onPass, entry: '', max: 2, mode: 'math' };
     newQuestion();
-    openGateSheet('Grown-ups only', t('Answer to continue'), false);
+    openGateSheet(t('Grown-ups only'), t('Answer to continue'), false);
   }
   // PIN entry. With opts.capture the typed PIN is handed over (setting a new PIN) instead of being checked.
   function askPin(onPass, opts = {}) {
