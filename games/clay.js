@@ -29,6 +29,7 @@
   const SIZE_R = [.06, .085, .115];        // the radius of a ball, small / medium / large (in board widths); a rope is a bit thinner
   const CUT_R = [.075, .105, .15], STAMP_R = [.045, .065, .09], POKE_R = [.02, .028, .04], EYE_R = [.04, .056, .078], BEAD_R = [.022, .032, .045];
   const FLAT = .2, MAXOBJ = 80, UNDO_MAX = 12;
+  const ROPE_MAX = 2.4;   // a rope stops getting longer after about two and a half board widths of finger path (a long scribble never makes a giant, slow piece)
 
   /* ---------------------------------------------------------------- keeping the creation between visits (IndexedDB) */
   let dbp = null;
@@ -216,6 +217,7 @@
         try {
           const o = JSON.parse(rec.objs);
           if (Array.isArray(o.objs)) {
+            for (const q of o.objs) if (q && q.t === 'p' && Array.isArray(q.cont)) q.cont = q.cont.map(c => (c.length > K.MAX_PTS ? K.resample(c, 1e-9) : c));   // a creation saved before outlines had a size limit
             // if she started before the old creation had loaded (a slow tablet), it goes underneath what she has made so far; nothing is lost
             const mine = this.touched ? this.objs : []; let nid = o.nid || o.objs.length + 1;
             for (const q of mine) if (q.id != null) { q.id = nid++; q.v = (q.v || 0) + 1; }
@@ -327,9 +329,9 @@
       s.moved = true; s.dist += d;
       switch (s.tool) {
         case 'clay': {
-          const last = s.path[s.path.length - 1];
-          if (Math.hypot(g[0] - last[0], g[1] - last[1]) > this.radius() * .16) s.path.push(g);
-          if (s.dist > this.radius() * .5 && s.path.length >= 2) { const p = s.p, a = s.path[0], b = s.path[s.path.length - 1]; p.cont = [K.rope(s.path, this.radius() * .6, p.id)]; p.h = 1; p.ra = Math.atan2(b[1] - a[1], b[0] - a[0]); this.reshape(p); this.anim.delete(p.id); }
+          const last = s.path[s.path.length - 1], step = Math.hypot(g[0] - last[0], g[1] - last[1]);
+          if (step > this.radius() * .16 && (s.plen || 0) < ROPE_MAX) { s.path.push(g); s.plen = (s.plen || 0) + step; s.grew = true; }
+          if (s.grew && s.dist > this.radius() * .5 && s.path.length >= 2) { s.grew = false; const p = s.p, a = s.path[0], b = s.path[s.path.length - 1]; p.cont = [K.rope(s.path, this.radius() * .6, p.id)]; p.h = 1; p.ra = Math.atan2(b[1] - a[1], b[0] - a[0]); this.reshape(p); this.anim.delete(p.id); }
           if (this.t - this.sndT > .12) { sfx.squish(); this.sndT = this.t; }
           break;
         }
@@ -354,7 +356,8 @@
       else if (s.tool === 'extras') this.applyExtra(s.g);
       else if (s.tool === 'knife') this.applyKnife(s.start, s.g);
       else if (s.tool === 'poke' && s.p && !s.holed) this.applyPoke(s.g, s.p, false);
-      for (const o of this.objs) if (o.t === 'p' && o.cont[0].length > 220) { o.cont[0] = K.tidy(K.resample(o.cont[0], .01), .02, .006); this.touch(o); }
+      // dense outlines get evenly spaced points again (only when that really thins them, so a big piece is not redrawn after every touch)
+      for (const o of this.objs) if (o.t === 'p' && o.cont[0].length > 220) { const c = K.tidy(K.resample(o.cont[0], .01), .02, .006); if (c.length < o.cont[0].length * .9) { o.cont[0] = c; this.touch(o); } }
       this.saveAt = this.t + 1.5;
     }
 

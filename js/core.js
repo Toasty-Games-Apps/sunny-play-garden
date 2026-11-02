@@ -363,9 +363,8 @@
       const c = A.ctx;
       if (!c || !SPG.store.settings.sound) return { set() {}, off() {} };
       const P = { cat: { rate: 25, f: 230, q: .8, v: .16, hum: 55 }, dog: { rate: 9, f: 160, q: .7, v: .14, hum: 70 }, bunny: { rate: 38, f: 950, q: 1.4, v: .07, hum: 0 }, bear: { rate: 16, f: 140, q: .6, v: .17, hum: 50 }, fox: { rate: 21, f: 340, q: 1, v: .13, hum: 60 }, panda: { rate: 13, f: 190, q: .7, v: .15, hum: 52 }, frog: { rate: 11, f: 280, q: 2, v: .09, hum: 80 }, trex: { rate: 6, f: 95, q: .6, v: .2, hum: 38 }, trike: { rate: 8, f: 110, q: .6, v: .18, hum: 42 }, stego: { rate: 7, f: 105, q: .6, v: .18, hum: 40 }, bronto: { rate: 5, f: 85, q: .5, v: .18, hum: 34 }, babydino: { rate: 15, f: 240, q: .8, v: .14, hum: 70 } }[kind] || { rate: 25, f: 230, q: .8, v: .15, hum: 55 };
-      const buf = c.createBuffer(1, c.sampleRate, c.sampleRate), d = buf.getChannelData(0);
-      for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
-      const src = c.createBufferSource(); src.buffer = buf; src.loop = true;
+      if (!noiseBuf) { noiseBuf = c.createBuffer(1, c.sampleRate, c.sampleRate); const d = noiseBuf.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1; }   // the shared noise (a new second of noise for every stroke was slow)
+      const src = c.createBufferSource(); src.buffer = noiseBuf; src.loop = true;
       const bp = c.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = P.f; bp.Q.value = P.q;
       const am = c.createGain(); am.gain.value = .5;
       const lfo = c.createOscillator(); lfo.frequency.value = P.rate; const lg = c.createGain(); lg.gain.value = .5; lfo.connect(lg); lg.connect(am.gain);

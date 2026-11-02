@@ -5,6 +5,7 @@
   const SPG = window.SPG;
   const { art, sfx, store, voice, people: P } = SPG;
   const TAU = Math.PI * 2;
+  const STAR_GAP = 60000;   // the runway gives at most one star a minute
   const el = (tag, cls, ...kids) => { const e = document.createElement(tag); if (cls) e.className = cls; e.append(...kids.filter(k => k != null)); return e; };
   const NS = 'http://www.w3.org/2000/svg';
   const icon = id => { const s = document.createElementNS(NS, 'svg'); s.setAttribute('class', 'ico'); s.innerHTML = `<use href="#i-${id}"/>`; return s; };
@@ -434,7 +435,8 @@
     }
     endShow() {
       if (!this.show) return; const key = this.lookKey(); this.show = null; this.root.classList.remove('showing');
-      if (this.bag.last !== key) { this.bag.last = key; this.bag.shows = (this.bag.shows | 0) + 1; store.addStars(1); const st = document.getElementById('stage-stars'); if (st) st.textContent = store.active.stars; }
+      // a star for a new look, at most one a minute (dice, runway, tap, again was a star every second)
+      if (this.bag.last !== key && Math.abs(Date.now() - (this.bag.starT || 0)) > STAR_GAP) { this.bag.last = key; this.bag.starT = Date.now(); this.bag.shows = (this.bag.shows | 0) + 1; store.addStars(1); const st = document.getElementById('stage-stars'); if (st) st.textContent = store.active.stars; }
       store.save(); sfx.win();
     }
 

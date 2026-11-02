@@ -29,11 +29,15 @@
   K.inPiece = (pt, p) => { if (!K.inside(pt, p.cont[0])) return false; for (let i = 1; i < p.cont.length; i++) if (K.inside(pt, p.cont[i])) return false; return true; };
   // the distance from a point to the outline of a piece
   K.edgeDist = (pt, c) => { let best = 1e9; for (let i = 0, n = c.length; i < n; i++) { const a = c[i], b = c[(i + 1) % n], dx = b[0] - a[0], dy = b[1] - a[1], l2 = dx * dx + dy * dy, t = l2 > 1e-12 ? clamp(((pt[0] - a[0]) * dx + (pt[1] - a[1]) * dy) / l2, 0, 1) : 0, d = Math.hypot(pt[0] - a[0] - dx * t, pt[1] - a[1] - dy * t); if (d < best) best = d; } return best; };
+  // An outline never has more than MAX_PTS points. Pulling a piece wildly back and forth makes its edge longer and longer (a scribble
+  // of thin tails); without a limit it grew to thousands of points and every touch on it got slow. Past the limit the points just
+  // spread out further apart.
+  const MAX_PTS = K.MAX_PTS = 480;
   // evenly spaced points round a closed outline
   K.resample = (c, sp) => {
     const n = c.length; let tot = 0; const len = [0];
     for (let i = 0; i < n; i++) { const a = c[i], b = c[(i + 1) % n]; tot += Math.hypot(b[0] - a[0], b[1] - a[1]); len.push(tot); }
-    const m = Math.max(10, Math.round(tot / sp)), out = []; let k = 0;
+    const m = Math.min(MAX_PTS, Math.max(10, Math.round(tot / sp))), out = []; let k = 0;
     for (let i = 0; i < m; i++) { const d = tot * i / m; while (k < n - 1 && len[k + 1] < d) k++; const a = c[k], b = c[(k + 1) % n], seg = len[k + 1] - len[k], t = seg > 1e-12 ? (d - len[k]) / seg : 0; out.push([a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t]); }
     return out;
   };
@@ -45,6 +49,7 @@
       if (!out.length || Math.hypot(a[0] - out[out.length - 1][0], a[1] - out[out.length - 1][1]) >= minSeg) out.push(a);
       if (d > maxSeg) { const k = Math.ceil(d / maxSeg); for (let q = 1; q < k; q++) out.push([a[0] + (b[0] - a[0]) * q / k, a[1] + (b[1] - a[1]) * q / k]); }
     }
+    if (out.length > MAX_PTS) return K.resample(out, 1e-9);   // (as many points as allowed, evenly spread)
     return out.length >= 6 ? out : c;
   };
   K.smooth = (c, k, iters = 1) => {

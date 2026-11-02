@@ -4,7 +4,7 @@
 import { start, stop, newPage, SP } from './lib.mjs';
 import { readdirSync } from 'node:fs';
 const wait = ms => new Promise(r => setTimeout(r, ms));
-process.env.PORT = '8147';
+process.env.PORT = process.env.PORT || '8147';
 const LOCALE = { es: 'es-MX', hi: 'hi-IN', zh: 'zh-CN' };
 const langs = (process.env.LANGS ? process.env.LANGS.split(',') : readdirSync(new URL('../../js/lang/', import.meta.url)).map(f => f.replace(/\.js$/, '')));
 const b = await start(); let bad = 0;

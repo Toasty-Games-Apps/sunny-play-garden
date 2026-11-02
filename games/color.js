@@ -337,6 +337,9 @@
     return out;
   }
   const hasPaint = ops => ops.some(op => op[0] !== ALL);
+  // something is on the page now (after the last start over): Done on an empty page is not a finished picture and gives no star
+  const RUBS = new Set([ERASE, CLEAR, PEEL]);   // (taking away is not colouring)
+  const painted = ops => { for (let i = ops.length - 1; i >= 0 && ops[i][0] !== ALL; i--) if (!RUBS.has(ops[i][0])) return true; return false; };
 
   // Douglas-Peucker: fewer points for the same stroke.
   function simplify(pts, eps = 1.6) {
@@ -664,6 +667,7 @@
       if (!this.undoBtn) return;
       this.undoBtn.classList.toggle('off', !this.ops.length);
       this.againBtn.classList.toggle('off', !hasPaint(this.ops));
+      this.doneBtn && this.doneBtn.classList.toggle('off', !painted(this.ops));
     }
     // The little pictures on the tools: the current fill (plain or patterned) and brush in the current color, and the sticker.
     paintBadges() {
@@ -873,6 +877,7 @@
     finish() {
       if (this.celebrating) return;
       this.endStroke(true); this.closeConfirm();
+      if (!painted(this.ops)) { sfx.oops(); return; }   // nothing coloured yet: no party, no star (a toddler tapping Done on every page got 95 free stars)
       if (!this.done) { this.done = true; store.addStars(1); }
       this.dirty = true; this.saveNow(true);
       this.celebrating = true;

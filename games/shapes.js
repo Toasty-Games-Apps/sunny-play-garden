@@ -372,7 +372,7 @@
         const C = this.count;
         for (const b of C.btns) { b.shake = Math.max(0, b.shake - dt * 2.4); b.pop = Math.max(0, b.pop - dt * 2); }
         if (C.done && this.t - C.done > 1.1) this.cheer();
-        else if (!C.done && this.idle > 10) { this.idle = 0; C.glow = true; voice.say('shapes-count/' + C.kind); }
+        else if (!C.done && this.idle > 10) { this.idle = 0; C.glow = true; if (!C.nagged) { C.nagged = true; voice.say('shapes-count/' + C.kind); } }   // the question is said once more, never over and over
       }
       if (this.state === 'cheer') {
         const u = clamp(this.stateT / CHEER_T, 0, 1), fxk = this.pic.cheer.fx; this.cheerAcc = (this.cheerAcc || 0) + dt;

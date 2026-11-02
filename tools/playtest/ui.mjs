@@ -1,6 +1,6 @@
 import { start, stop, newPage, login, openGame, SP } from './lib.mjs';
 const wait = ms => new Promise(r => setTimeout(r, ms));
-process.env.PORT = '8143';
+process.env.PORT = process.env.PORT || '8143';
 const b = await start();
 for (const [w, h] of [[390, 844], [844, 390], [1280, 800]]) {
   const page = await newPage(b, w, h);
