@@ -31,6 +31,7 @@ async function playRecipe(page, id, log) {
   const t0 = Date.now(); let lastStep = '', stuck = 0, shot = {};
   while (Date.now() - t0 < 140000) {
     p = await P(page);
+    if (process.env.DBG) { const sig = `${p.screen} ${p.step} trans=${p.trans} fin=${p.st && p.st.fin} busy=${p.busy} auto=${JSON.stringify(p.auto)} check=${!!p.check}`; if (sig !== shot.sig) { shot.sig = sig; log.push(((Date.now() - t0) / 1000).toFixed(1) + ' ' + sig); } }
     if (p.screen === 'menu') break;
     if (p.screen === 'intro') { await page.mouse.click(W / 2, H / 2); await wait(300); continue; }
     if (p.trans) { await wait(150); continue; }
@@ -38,9 +39,10 @@ async function playRecipe(page, id, log) {
     if (p.finishedAll && !shot.undo && p.undo) { shot.undo = 1; if (shots.includes('undo')) await page.screenshot({ path: `${SP}/undo_${id}_${W}x${H}.png` }); await page.mouse.click(p.undo.x, p.undo.y); await wait(700); const q = await P(page); const back = q.eat.some(Boolean) && !q.st.fin; log.push(`${id}: undo after eating ${back ? 'OK' : 'FAILED'}`); if (!back) fails.push(`${id}: undo`); continue; }
     if (p.finishedAll && !shot.undo && !p.undo) { shot.undo = 1; log.push(`${id}: no undo button after eating`); fails.push(`${id}: no undo button`); }
     if (p.finishedAll) { if (shots.includes('serve') && !shot.done) { shot.done = 1; await page.screenshot({ path: `${SP}/done_${id}_${W}x${H}.png` }); } if (p.arrowPos) { await page.mouse.click(p.arrowPos.x, p.arrowPos.y); await wait(400); continue; } }
-    const k = p.step; if (k !== lastStep) { log.push(`${id}: ${k}`); lastStep = k; stuck = Date.now(); if (SPAM && p.screen === 'cook' && !(p.st && p.st.fin)) { await spam(page, p, log, id); continue; } }
+    // each step is timed on its own (a pizza has three decorate steps in a row, a cake two)
+    const k = p.step, key = k + '#' + p.idx; if (key !== lastStep) { log.push(`${id}: ${k}`); lastStep = key; stuck = Date.now(); if (SPAM && p.screen === 'cook' && !(p.st && p.st.fin)) { await spam(page, p, log, id); continue; } }
     const U = p.U, bx = p.bx, by = p.by, st = p.st || {};
-    if (st.fin && k !== 'serve') { await wait(200); continue; }
+    if (st.fin && k !== 'serve') { if (process.env.DBG && Date.now() - (shot.dbg || 0) > 4000) { shot.dbg = Date.now(); log.push('waiting ' + JSON.stringify(await page.evaluate(() => { const g = SPG.cookGame, s = g.st; return { k: s.k, finT: s.finT, flies: g.flies.length, motions: g.motions.map(m => m.kind || m.type || Object.keys(m).join('/')), trans: !!g.trans, running: g.running }; }))); } await wait(200); continue; }
     if (p.busy) { await wait(120); continue; }
     // a kind of step that says how to play itself (SPG.cookKit H[kind].auto)
     if (p.auto) { const a = p.auto; if (a.tap) await page.mouse.click(a.tap[0], a.tap[1]); else if (a.drag) await drag(page, a.drag, a.steps || 4); await wait(a.wait || 250); continue; }
@@ -65,6 +67,7 @@ async function playRecipe(page, id, log) {
     else if (k === 'stack') { const id2 = p.want[0]; const it = p.tray.find(t => t.id === id2); if (it) { await page.mouse.click(it.x, it.y); await wait(700); } }
     else if (k === 'decorate') {
       const spec = p.spec, sl = p.slots; const tools = p.tray.filter(t => t.kind === 'tool');
+      if (process.env.DBG) log.push('decorate ' + JSON.stringify({ tools: tools.map(t => [t.id, Math.round(t.x), Math.round(t.y)]), sl: sl.map(q => [Math.round(q.x), Math.round(q.y), Math.round(q.r)]), check: p.check, st: p.st, cam: p.cam, tool: p.tool }));
       for (const tl of tools) {
         const q = await P(page); if (q.st.fin || q.check) break; await page.mouse.click(tl.x, tl.y); await wait(150);
         for (const s of sl.slice(0, Math.min(sl.length, 3))) { await drag(page, [[s.x - s.r * .5, s.y], [s.x, s.y - s.r * .1], [s.x + s.r * .5, s.y]], 6); await wait(120); }
@@ -75,7 +78,7 @@ async function playRecipe(page, id, log) {
     else if (k === 'slice') { const q = p.sliceG; await drag(page, [[q.x, q.top - 10], [q.x, q.bot + 10]], 12); await wait(300); }
     else if (k === 'serve') { if (shots.includes('serve') && !shot.s) { shot.s = 1; await wait(900); await page.screenshot({ path: `${SP}/serve_${id}_${W}x${H}.png` }); } for (let n = 0; n < 12; n++) { const q = await P(page); const i = q.eat.findIndex(Boolean); if (i < 0) break; const s0 = q.slots[i], e = q.eat[i]; await page.mouse.click(s0.x + e[0] * s0.r, s0.y + e[1] * s0.r); await wait(70); } if (shots.includes('serve') && !shot.s2) { shot.s2 = 1; await page.screenshot({ path: `${SP}/bitten_${id}_${W}x${H}.png` }); } }
     else await wait(200);
-    if (Date.now() - stuck > 50000) { log.push(`${id}: STUCK in ${k}`); break; }
+    if (Date.now() - stuck > 50000) { log.push(`${id}: STUCK in ${k}`); fails.push(`${id}: stuck in ${k}`); await page.screenshot({ path: `${SP}/stuck_${id}_${k}_${W}x${H}.png` }); log.push(JSON.stringify(await page.evaluate(() => { const g = SPG.cookGame, s = g.st; return { k: s.k, spec: s.spec, fin: s.fin, canDone: s.canDone, cells: s.cells && s.cells.size, acts: s.acts, tool: g.tool, idle: g.idle, free: g.free, trans: !!g.trans, busy: g.busy() }; }))); break; }
   }
   const final = await P(page); return { id, ok: final.screen === 'menu' };
 }
