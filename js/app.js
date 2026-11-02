@@ -359,8 +359,16 @@
     try { const d = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text)); return [...new Uint8Array(d)].map(v => v.toString(16).padStart(2, '0')).join(''); }
     catch (_) { let x = 5381; for (const ch of text) x = ((x << 5) + x + ch.charCodeAt(0)) >>> 0; return 'h' + x; }
   }
+  // A child mashing the number pad hits the answer now and then (about once in two minutes): after three wrong answers in a row the
+  // pad rests, 8 s, then 16, then 30 (a right answer starts over), so mashing gets nowhere while a grown-up only ever waits a moment.
+  let gateWrong = 0, gateStrikes = 0, gateRest = 0, gateRestT = 0;
+  const gateResting = () => performance.now() < gateRest;
+  function paintGateRest() {
+    const on = gateResting(); $('numpad').classList.toggle('resting', on); clearTimeout(gateRestT);
+    if (on) { $('gate-hint').textContent = t('Too many tries. Please wait a little and try again.'); gateRestT = setTimeout(() => { $('numpad').classList.remove('resting'); if (gateState) $('gate-hint').textContent = gateState.hint || ''; }, gateRest - performance.now()); }
+  }
   function openGateSheet(title, hint, forgot) {
-    $('gate-title').textContent = title; $('gate-hint').textContent = hint;
+    $('gate-title').textContent = title; $('gate-hint').textContent = hint; if (gateState) gateState.hint = hint; paintGateRest();
     $('gate-forgot').classList.toggle('hidden', !forgot);
     // a grown-up can also use the device's fingerprint or screen lock (switched on in Grown-ups); not when a new PIN is being typed in or for the recovery sums
     $('gate-device').classList.toggle('hidden', !(store.settings.deviceAuth && gateState && !gateState.capture && gateState.mode !== 'recover'));
@@ -407,7 +415,7 @@
     pad.append(key('0', '', () => type('0')));
     pad.append(key(icon('check'), 'ok', () => submit()));
     function type(d) {
-      const g = gateState; if (g.entry.length >= g.max || g.busy) return;
+      const g = gateState; if (g.entry.length >= g.max || g.busy || gateResting()) return;
       g.entry += d; paintGate();
       if (g.mode === 'pin' && g.entry.length === g.max) submit();
     }
@@ -415,9 +423,10 @@
       const box = $('gate-answer');
       box.classList.remove('shake'); void box.offsetWidth; box.classList.add('shake');
       SPG.sfx.oops();
+      if (++gateWrong >= 3) { gateWrong = 0; gateRest = performance.now() + [8000, 16000, 30000][Math.min(2, gateStrikes++)]; paintGateRest(); }
     }
     async function submit() {
-      const g = gateState; if (!g || g.busy) return;
+      const g = gateState; if (!g || g.busy || gateResting()) return;
       let ok;
       if (g.mode === 'pin') {
         if (g.capture) { const cap = g.onPass; gateState = null; closeOverlay(overlays.gate); cap(g.entry); return; }
@@ -429,7 +438,7 @@
         store.settings.pin = ''; store.saveSettings(); ok = true;
       }
       if (ok) {
-        const cb = g.onPass; gateState = null;
+        const cb = g.onPass; gateState = null; gateWrong = 0; gateStrikes = 0;
         closeOverlay(overlays.gate);
         cb && cb();
       } else {

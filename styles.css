@@ -206,6 +206,7 @@ button.chip:active { transform: translateY(3px); box-shadow: 0 3px 0 rgba(90, 63
 .numpad button:active { transform: translateY(3px); box-shadow: 0 2px 0 #e0d3e6; }
 .numpad button.ok { background: var(--leaf); color: #fff; box-shadow: 0 5px 0 var(--leaf-edge); }
 .numpad svg { width: 1em; height: 1em; }
+.numpad.resting { opacity: .35; pointer-events: none; }   /* after three wrong answers in a row (js/app.js paintGateRest) */
 
 #fs-resume { background: rgba(169, 225, 243, .92); }
 
