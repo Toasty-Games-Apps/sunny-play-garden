@@ -858,7 +858,12 @@ SPG.i18n.add('zh', {
     "Hot dog": "热狗",
     "Pizza": "披萨",
     "Ingredients measured out, at most two scoops of each; the spreading knife holds plenty": "材料已经量好，每样最多两勺；抹酱的小刀一次能沾很多",
-    "Real recipe amounts, counted out loud; the knife needs dipping more often and more of the bread must be covered": "按真实食谱的分量，大声数出来；小刀要更常去沾酱，面包也要抹得更满"
+    "Real recipe amounts, counted out loud; the knife needs dipping more often and more of the bread must be covered": "按真实食谱的分量，大声数出来；小刀要更常去沾酱，面包也要抹得更满",
+    "Homemade ice cream": "自制冰淇淋",
+    "1 cup": "1杯",
+    "½ cup": "½杯",
+    "{n} drops": "{n}滴",
+    "{n} strawberries": "{n}颗草莓",
   },
   // spoken lines (keys of SPG.voice.LINES)
   lines: {
@@ -1560,6 +1565,26 @@ SPG.i18n.add('zh', {
     "cook-dip": "把小刀伸进罐子里！",
     "cook-spread": "把它抹满整片面包！",
     "cook-butter": "给整片面包抹上黄油！",
-    "cook-close": "现在把它们合起来！点一下面包！"
+    "cook-close": "现在把它们合起来！点一下面包！",
+    "cookr/icecream": "自制冰淇淋！",
+    "ic-add": "把小袋子装满！奶油、糖和香草！",
+    "ic-flavor": "现在选一个口味！",
+    "ic-zip": "把袋子封好！手指沿着封口滑过去！",
+    "ic-ice": "把大袋子装满冰块！",
+    "ic-salt": "现在放盐！盐会让冰块更冷！",
+    "ic-in": "把小袋子放进大袋子里！",
+    "ic-zip2": "大袋子也封好！",
+    "ic-shake": "摇一摇袋子！摇呀摇呀摇！",
+    "ic-more": "继续摇！越来越冷了！",
+    "ic-ready": "变成冰淇淋啦！",
+    "ic-pick": "要甜筒还是杯子？",
+    "ic-open": "打开小袋子！",
+    "ic-scoop": "把冰淇淋舀出来！",
+    "ic-brr": "哇！好冰呀！",
+    "cook/halfhalf": "奶油！",
+    "cook/vanilla": "香草！",
+    "cook/cocoa": "可可！",
+    "cook/ice": "冰块！",
+    "cook/cup": "一个杯子！"
   }
 });

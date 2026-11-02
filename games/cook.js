@@ -98,7 +98,7 @@
   VARS.bucket = VARS.icing;
   const kindKey = tool => tool === 'bucket' ? 'icing' : tool;
   // icing colour for a tool: the 12-colour icing button (and the bucket) use the chosen colour; the old icing tubes keep theirs
-  const icingOf = (g, tool) => tool === 'icing' || tool === 'bucket' ? ICING12[g.kinds.icing] || ICING12.pink : icingOf(g, tool);
+  const icingOf = (g, tool) => tool === 'icing' || tool === 'bucket' ? ICING12[g.kinds.icing] || ICING12.pink : ICING[tool];
   const TRANS = 1.7;   // seconds for the gentle change between two steps
   // One soft continuous sound while a finger works: a sauce bottle or ladle ('sauce'), a knife spreading ('spread'), an icing bag ('icing').
   // Filtered noise with no wobble in it; its loudness follows how fast the finger moves and it goes quiet when the finger stops.
@@ -123,6 +123,7 @@
     };
   }
   // where a step happens: two steps in a row in the same place need no move between them
+  const eatStep = st => !!st && (st.k === 'serve' || !!(H[st.k] && H[st.k].eats));   // the step where she eats it (serve, or a recipe's own eating step)
   const sceneOf = sp => { const k = sp.k, h = H[k]; if (h && h.scene) return typeof h.scene === 'function' ? h.scene(sp) : h.scene; if (k === 'add' || k === 'stir') return 'bowl'; if (k === 'roll' || (k === 'cut' && sp.target !== 'piece')) return 'dough'; if (['build', 'stack', 'decorate', 'slice', 'serve', 'cut'].includes(k)) return 'plate'; return k; };
   const bitesFor = (p, n = 1) => { const b = BITES[p.type] || 4; return n >= 5 ? 2 : n >= 3 ? Math.min(b, 3) : b; };
 
@@ -1257,9 +1258,9 @@
       const r = this.uiR * .6; return { x: r + 16, y: clamp((this.y0 + this.y1) / 2, this.y0 + r + 8, this.y1 - r * 2.4), r };
     },
     // after eating: a button under the camera brings the whole food back (bites and crumbs gone), in case she forgot to take its photo
-    undoBtn() { if (this.screen !== 'cook' || this.trans || !this.st || this.st.k !== 'serve' || !(this.st.n > 0)) return null; const cb = this.camBtn(); if (!cb) return null; return { x: cb.x, y: cb.y + cb.r * 2.45, r: cb.r * .85 }; },
+    undoBtn() { if (this.screen !== 'cook' || this.trans || !eatStep(this.st) || !(this.st.n > 0)) return null; const cb = this.camBtn(); if (!cb) return null; return { x: cb.x, y: cb.y + cb.r * 2.45, r: cb.r * .85 }; },
     uneat() {
-      const s = this.st; if (!s || s.k !== 'serve') return;
+      const s = this.st; if (!eatStep(s)) return;
       for (const p of this.pieces) { p.bites = []; p.gone = false; p.left = eatPoints(this, p); }
       this.crumbs = []; s.n = 0; s.fin = false; if (this.arrow) this.arrow.t = 0;   // (the star was given the first time; eating it again gives none)
       sfx.chime(); this.fx.burst(this.bx, this.by, 30, { colors: ['#fff', '#ffd54a', '#bfe8ff'], speed: 220, g: 60, life: .9, size: 6, shape: 'star' }); this.bounce = 1;

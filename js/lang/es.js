@@ -862,7 +862,12 @@ SPG.i18n.add('es', {
     "Hot dog": "Hot dog",
     "Pizza": "Pizza",
     "Ingredients measured out, at most two scoops of each; the spreading knife holds plenty": "Ingredientes ya medidos, como mucho dos cucharadas de cada uno; el cuchillo para untar lleva mucho",
-    "Real recipe amounts, counted out loud; the knife needs dipping more often and more of the bread must be covered": "Cantidades reales de la receta, contadas en voz alta; hay que mojar el cuchillo más seguido y cubrir más el pan"
+    "Real recipe amounts, counted out loud; the knife needs dipping more often and more of the bread must be covered": "Cantidades reales de la receta, contadas en voz alta; hay que mojar el cuchillo más seguido y cubrir más el pan",
+    "Homemade ice cream": "Helado casero",
+    "1 cup": "1 taza",
+    "½ cup": "½ taza",
+    "{n} drops": "{n} gotas",
+    "{n} strawberries": "{n} fresas",
   },
   // spoken lines (keys of SPG.voice.LINES)
   lines: {
@@ -1643,6 +1648,26 @@ SPG.i18n.add('es', {
     "cook-dip": "¡Mete el cuchillo en el frasco!",
     "cook-spread": "¡Úntalo por todo el pan!",
     "cook-butter": "¡Úntale mantequilla a todo el pan!",
-    "cook-close": "¡Ahora júntalos! ¡Toca el pan!"
+    "cook-close": "¡Ahora júntalos! ¡Toca el pan!",
+    "cookr/icecream": "¡Helado casero!",
+    "ic-add": "¡Llena la bolsita! ¡Crema, azúcar y vainilla!",
+    "ic-flavor": "¡Ahora elige un sabor!",
+    "ic-zip": "¡Cierra la bolsa! ¡Desliza el dedo por el cierre!",
+    "ic-ice": "¡Llena la bolsa grande con hielo!",
+    "ic-salt": "¡Ahora la sal! ¡La sal hace el hielo más frío!",
+    "ic-in": "¡Mete la bolsita en la bolsa grande!",
+    "ic-zip2": "¡Cierra también la bolsa grande!",
+    "ic-shake": "¡Agita la bolsa! ¡Agita, agita, agita!",
+    "ic-more": "¡Sigue agitando! ¡Se está poniendo frío!",
+    "ic-ready": "¡Se convirtió en helado!",
+    "ic-pick": "¿Un cono o un vasito?",
+    "ic-open": "¡Abre la bolsita!",
+    "ic-scoop": "¡Saca el helado con la cuchara!",
+    "ic-brr": "¡Brrr! ¡Qué frío!",
+    "cook/halfhalf": "¡Crema!",
+    "cook/vanilla": "¡Vainilla!",
+    "cook/cocoa": "¡Cacao!",
+    "cook/ice": "¡Hielo!",
+    "cook/cup": "¡Un vasito!"
   }
 });

@@ -79,8 +79,8 @@
   // the colour of a scoop of each flavour (homemade: soft and pale)
   const ICE = { vanilla: '#fff2cc', strawb: '#ffbdd6', choc: '#b98257', chips: '#fff2cc' };
   const label = (id, P) => { const n = P[id];
-    if (id === 'cream') return n > 1 ? T('1 cup') : T('½ cup'); if (id === 'salt') return T('½ cup'); if (id === 'vanilla') return T('{n} drops', { n });
-    if (id === 'strawb') return T('{n} strawberries', { n }); if (id === 'ice') return T('{n} cups', { n }); return T('{n} tbsp', { n }); };
+    if (id === 'cream') return n > 1 ? SPG.t('1 cup') : SPG.t('½ cup'); if (id === 'salt') return SPG.t('½ cup'); if (id === 'vanilla') return SPG.t('{n} drops', { n });
+    if (id === 'strawb') return SPG.t('{n} strawberries', { n }); if (id === 'ice') return SPG.t('{n} cups', { n }); return SPG.t('{n} tbsp', { n }); };
   const fresh = () => ({ flavor: 'vanilla', got: { cream: 0, sugar: 0, vanilla: 0, flav: 0 }, plan: plan(), cubes: 0, salt: 0 });
   const IC = g => g.ic || (g.ic = fresh());
   // the cream mixture: its colour and how full the little bag is
@@ -1041,7 +1041,7 @@
     c.drawImage(oc, x - S / 2 / dpr, y - S / 2 / dpr, S / dpr, S / dpr);
   }
   H.icserve = {
-    camera: true,
+    camera: true, eats: true,
     enter(g, s) { const p = g.pieces[0]; if (p) p.eatOnly = p.holder === 'cup'; fitK(g, p); H.serve.enter(g, s); },
     down: (g, s, p) => H.serve.down(g, s, p),
     update(g, s, dt) { fitK(g, g.pieces[0]); H.serve.update(g, s, dt); if (g.finishedAll) s.finT = 99; },

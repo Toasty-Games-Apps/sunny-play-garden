@@ -858,7 +858,12 @@ SPG.i18n.add('hi', {
     "Hot dog": "हॉट डॉग",
     "Pizza": "पिज़्ज़ा",
     "Ingredients measured out, at most two scoops of each; the spreading knife holds plenty": "सामग्री पहले से नपी हुई, हर चीज़ के ज़्यादा से ज़्यादा दो चम्मच; फैलाने वाली छुरी पर खूब सारा रहता है",
-    "Real recipe amounts, counted out loud; the knife needs dipping more often and more of the bread must be covered": "असली नुस्खे की मात्राएँ, ज़ोर से गिनी हुई; छुरी को बार-बार डुबाना पड़ता है और ब्रेड का ज़्यादा हिस्सा ढकना होता है"
+    "Real recipe amounts, counted out loud; the knife needs dipping more often and more of the bread must be covered": "असली नुस्खे की मात्राएँ, ज़ोर से गिनी हुई; छुरी को बार-बार डुबाना पड़ता है और ब्रेड का ज़्यादा हिस्सा ढकना होता है",
+    "Homemade ice cream": "घर की आइसक्रीम",
+    "1 cup": "1 कप",
+    "½ cup": "½ कप",
+    "{n} drops": "{n} बूँदें",
+    "{n} strawberries": "{n} स्ट्रॉबेरी",
   },
   // spoken lines (keys of SPG.voice.LINES)
   lines: {
@@ -1560,6 +1565,26 @@ SPG.i18n.add('hi', {
     "cook-dip": "छुरी को जार में डुबाओ!",
     "cook-spread": "इसे पूरी ब्रेड पर फैलाओ!",
     "cook-butter": "पूरी ब्रेड पर मक्खन लगाओ!",
-    "cook-close": "अब दोनों को जोड़ो! ब्रेड को छुओ!"
+    "cook-close": "अब दोनों को जोड़ो! ब्रेड को छुओ!",
+    "cookr/icecream": "घर की आइसक्रीम!",
+    "ic-add": "छोटी थैली भरो! क्रीम, शक्कर और वनीला!",
+    "ic-flavor": "अब एक स्वाद चुनो!",
+    "ic-zip": "थैली बंद करो! ज़िप पर उँगली फिसलाओ!",
+    "ic-ice": "बड़ी थैली में बर्फ़ भरो!",
+    "ic-salt": "अब नमक! नमक से बर्फ़ और ठंडी हो जाती है!",
+    "ic-in": "छोटी थैली को बड़ी थैली में रखो!",
+    "ic-zip2": "बड़ी थैली भी बंद करो!",
+    "ic-shake": "थैली हिलाओ! हिलाओ, हिलाओ, हिलाओ!",
+    "ic-more": "हिलाते रहो! ठंडा हो रहा है!",
+    "ic-ready": "यह आइसक्रीम बन गई!",
+    "ic-pick": "कोन या कप?",
+    "ic-open": "छोटी थैली खोलो!",
+    "ic-scoop": "आइसक्रीम निकालो!",
+    "ic-brr": "ब्र्र्र! बहुत ठंडा!",
+    "cook/halfhalf": "क्रीम!",
+    "cook/vanilla": "वनीला!",
+    "cook/cocoa": "कोको!",
+    "cook/ice": "बर्फ़!",
+    "cook/cup": "एक कप!"
   }
 });
