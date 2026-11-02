@@ -39,6 +39,8 @@ for (const f of files) {
   if (f === 'games/letters.js') scan(src, new RegExp(`^\\s*\\[(?:${STR}),\\s*(?:${STR}),\\s*\\(c, w, h\\)`, 'gm'), f, [1, 3]);
   // names: each game in the hub, and the things whose names are put on screen through SPG.t(x.name)
   scan(src, new RegExp(`\\bid: '[\\w-]+', name: (?:${STR}), (?:order|icon|shop)`, 'g'), f);
+  // the kitchen draws its recipe names on the canvas through SPG.t(R.name)
+  if (/^games\/cook(-(?!art)[\w]+)?\.js$/.test(f)) scan(src, new RegExp(`\\bcat: [\\w'-]+, name: (?:${STR})`, 'g'), f);
   if (['games/fishing.js', 'games/fruit.js', 'js/art.js', 'js/art-garden.js', 'js/art-pets.js'].includes(f)) {
     const part = f === 'games/fishing.js' ? src.slice(src.indexOf('const FISH'), src.indexOf('};', src.indexOf('const FISH')))
       : f === 'games/fruit.js' ? src.slice(src.indexOf('const THEMES'), src.indexOf('];', src.indexOf('const THEMES')))

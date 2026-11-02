@@ -159,9 +159,9 @@ Say the sound the letter makes: "buh", "kuh", "sss". Not the name.
 | `sound-y.mp3` | yuh |
 | `sound-z.mp3` | zzz |
 
-# Part 2: optional lines (634, nobody has to record these)
+# Part 2: optional lines (640, nobody has to record these)
 
-## Prompts and instructions (193)
+## Prompts and instructions (199)
 
 Short lines that tell {her} what to do.
 
@@ -201,7 +201,7 @@ Short lines that tell {her} what to do.
 | `cook-start.mp3` | Let's cook! Follow the chef! |
 | `cook-roll.mp3` | Roll the dough flat! |
 | `cook-cutsand.mp3` | Pick a cutter, then touch the sandwich! |
-| `cook-oven-on.mp3` | First, turn the oven on! Touch it! |
+| `cook-oven-on.mp3` | Turn the oven on! Press the red button! |
 | `cook-squirt.mp3` | Squeeze the sauce anywhere you like! |
 | `cook-drop.mp3` | Put some dough on the tray! |
 | `cook-pour.mp3` | Pour the batter in! |
@@ -285,6 +285,12 @@ Short lines that tell {her} what to do.
 | `cook-pizzasauce.mp3` | Spread the sauce all over! |
 | `cook-pizzacheese.mp3` | Sprinkle on the cheese! |
 | `cook-toppings.mp3` | Put your toppings anywhere you like! |
+| `cook-light.mp3` | Touch the green check to light the grill! |
+| `cook-open.mp3` | Open the jar! Touch it! |
+| `cook-dip.mp3` | Dip the knife in the jar! |
+| `cook-spread.mp3` | Spread it all over the bread! |
+| `cook-butter.mp3` | Butter the bread all over! |
+| `cook-close.mp3` | Now put them together! Touch the bread! |
 | `cook-yum.mp3` | Yum yum! |
 | `cook-wrong.mp3` | Try the glowing one! |
 | `cook-done.mp3` | You cooked it! Delicious! |

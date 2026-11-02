@@ -16,6 +16,9 @@ async function playRecipe(page, id, log) {
     if (p.screen === 'menu') break;
     if (p.screen === 'intro') { await page.mouse.click(W / 2, H / 2); await wait(300); continue; }
     if (p.trans) { await wait(150); continue; }
+    // eaten up: the undo button under the camera must bring the whole food back (once per recipe), then it is eaten again
+    if (p.finishedAll && !shot.undo && p.undo) { shot.undo = 1; if (shots.includes('undo')) await page.screenshot({ path: `${SP}/undo_${id}_${W}x${H}.png` }); await page.mouse.click(p.undo.x, p.undo.y); await wait(700); const q = await P(page); const back = q.eat.some(Boolean) && !q.st.fin; log.push(`${id}: undo after eating ${back ? 'OK' : 'FAILED'}`); if (!back) fails.push(`${id}: undo`); continue; }
+    if (p.finishedAll && !shot.undo && !p.undo) { shot.undo = 1; log.push(`${id}: no undo button after eating`); fails.push(`${id}: no undo button`); }
     if (p.finishedAll) { if (shots.includes('serve') && !shot.done) { shot.done = 1; await page.screenshot({ path: `${SP}/done_${id}_${W}x${H}.png` }); } if (p.arrowPos) { await page.mouse.click(p.arrowPos.x, p.arrowPos.y); await wait(400); continue; } }
     const k = p.step; if (k !== lastStep) { log.push(`${id}: ${k}`); lastStep = k; stuck = Date.now(); }
     const U = p.U, bx = p.bx, by = p.by, st = p.st || {};
@@ -61,7 +64,7 @@ async function playRecipe(page, id, log) {
 const b = await start();
 const page = await newPage(b, W, H); await login(page); await openGame(page, 'Sprout Kitchen');
 const all = await page.evaluate(() => SPG.cookKit.RECIPES.map(r => r.id));
-const log = [];
+const log = [], fails = [];
 for (const id of (only || all)) { const t0 = Date.now(); const r = await playRecipe(page, id, log); console.log(r.id, r.ok ? 'OK' : 'FAILED', ((Date.now() - t0) / 1000).toFixed(0) + 's'); }
-console.log(log.join('\n')); console.log(page.errs.join('\n') || 'no page errors');
+console.log(log.join('\n')); console.log(page.errs.join('\n') || 'no page errors'); if (fails.length) { console.log('FAILS:', fails.join(', ')); process.exitCode = 1; }
 stop(b);
