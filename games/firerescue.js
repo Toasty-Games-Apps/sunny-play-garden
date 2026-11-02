@@ -316,12 +316,12 @@
           if (f.heat <= 0) {
             f.out = true; f.heat = 0; f.steam = 1.2;
             this.fx.burst(p.x, p.y - p.s * .5, 10, { colors: ['#ffffff', '#e7f4ff', '#cfe9ff'], speed: 75, g: -80, life: .95, size: p.s * .2 });
-            sfx.puff();
+            if (this.t - (this.puffT ?? -9) > .2) { this.puffT = this.t; sfx.puff(); }   // flames fading out together by themselves make one puff, not a loud pile of them
           }
         }
         // pets
         const pt = b.pet;
-        if (pt.state === 'wait' && b.flames.every(f => f.lit && f.out)) { pt.state = 'ready'; pt.readyT = 0; sfx.chime(); if (!this.saidPet) { this.saidPet = true; voice.say('fire-pet'); } }
+        if (pt.state === 'wait' && b.flames.every(f => f.lit && f.out)) { pt.state = 'ready'; pt.readyT = 0; if (this.t - (this.chimeT ?? -9) > .3) { this.chimeT = this.t; sfx.chime(); } if (!this.saidPet) { this.saidPet = true; voice.say('fire-pet'); } }
         if (pt.state === 'ready') pt.readyT += dt;   // the pet waits, bouncing, until she taps it: the firefighters never rescue on their own
       }
       this.burn = clamp(burning / 8, 0, 1);
