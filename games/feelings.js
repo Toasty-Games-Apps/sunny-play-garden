@@ -249,7 +249,7 @@
       this.introOn = true; this.introUntil = this.t + 7; voice.say('feel-start').then(() => { this.introOn = false; });
     }
     resume() { if (this.running) return; this.running = true; this.last = performance.now(); this.raf = requestAnimationFrame(this.tick); }
-    pause() { this.running = false; cancelAnimationFrame(this.raf); }
+    pause() { this.running = false; cancelAnimationFrame(this.raf); this.hugOff(); }
     destroy() { this.pause(); this.canvas.remove(); this.counter.el.remove(); }
     tier() { return SPG.level.tier('feelings'); }
     jump(k, d = .55) { if (this.hopT > 0 && this.hopK > k) return; this.hopK = k; this.hopD = d; this.hopT = d; }
@@ -315,16 +315,19 @@
       R.wwrong = (R.wwrong || 0) + 1; b.shake = 1; b.dim = true; this.shake = .6; sfx.instrument('bell', 1, .12);
       if (R.wwrong >= 2) R.wglow = true;
     }
+    // nothing touched for a while: the question is said once more (only once a round: a child who walked away is not called back over and over)
+    remind(line) { const R = this.round; R.nag = R.nag || {}; if (!R.nag[line]) { R.nag[line] = 1; voice.say(line); } }
     helpLine() { const m = this.round.mood; return m === 'happy' || m === 'wow' ? 'feel-joy' : m === 'sleep' ? 'feel-help-sleep' : 'feel-help'; }
     doHelp(b) {
       const R = this.round; R.help = b.id; b.pop = 1; sfx.pop(); this.btns.forEach(o => { if (o !== b) o.dim = true; });
       this.phase = 'fix'; this.pt = 0; this.notes = 0;
       if (b.id === 'breath') voice.say('feel-breathe');
       if (b.id === 'gift' || b.id === 'dance' || b.id === 'high5') sfx.win();
-      if (b.id === 'hug') { sfx.purr ? sfx.purr() : sfx.chime(); }
+      if (b.id === 'hug') { this.hugOff(); this.hug = sfx.purr(R.friend); this.hug.set(.8); }   // a happy purr for as long as the hug lasts
     }
+    hugOff() { if (this.hug) { this.hug.off(); this.hug = null; } }
     finishFix() {
-      const R = this.round;
+      const R = this.round; this.hugOff();
       this.face = R.mood === 'sleep' ? 'sleep' : 'cheer'; this.jump(1); this.phase = 'thanks'; this.pt = 0; this.btns = null;
       voice.say(R.mood === 'sleep' ? 'feel-night' : R.mood === 'happy' || R.mood === 'wow' ? 'feel-fun' : 'feel-better');
       this.fx.burst(this.x, this.gy - this.S * .7, 16, { colors: ['#ff9db8', '#ff7a8a', '#ffd54a'], speed: 200, g: 120, life: 1.3, size: 10 * this.ui, shape: 'heart', up: 140 });
@@ -356,20 +359,20 @@
         }
       } else if (this.phase === 'ask') {
         this.storyStep(dt);
-        if (this.idle > 10) { this.idle = 0; R.glow = R.glow || R.wrong > 0; voice.say('feel-how'); }
+        if (this.idle > 10) { this.idle = 0; R.glow = R.glow || R.wrong > 0; this.remind('feel-how'); }
       } else if (this.phase === 'yes') {
         this.storyStep(dt);
         if (this.pt > 1.6 && R.whys) { this.phase = 'why'; this.pt = 0; this.idle = 0; this.setButtons(R.whys, 'why'); }
         else if (this.pt > 1.6) { this.phase = 'help'; this.pt = 0; this.idle = 0; this.setButtons(R.helps, 'help'); }
       } else if (this.phase === 'why') {
         this.storyStep(dt);
-        if (this.idle > 10) { this.idle = 0; R.wglow = true; voice.say('feel-why'); }
+        if (this.idle > 10) { this.idle = 0; R.wglow = true; this.remind('feel-why'); }
       } else if (this.phase === 'yes2') {
         this.storyStep(dt);
         if (this.pt > 1.3) { this.phase = 'help'; this.pt = 0; this.idle = 0; this.setButtons(R.helps, 'help'); }
       } else if (this.phase === 'help') {
         this.storyStep(dt);
-        if (this.idle > 12) { this.idle = 0; voice.say(this.helpLine()); }
+        if (this.idle > 12) { this.idle = 0; this.remind(this.helpLine()); }
       } else if (this.phase === 'fix') {
         this.fixStep(dt);
         if (this.pt >= (FIX_T[R.help] || FIX_DEF)) this.finishFix();
