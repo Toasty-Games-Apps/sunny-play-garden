@@ -1,31 +1,35 @@
-# Release notes ("What's new"), version 1.0.0-alpha16 (version code 16)
+# Release notes ("What's new"), version 1.0.0-alpha17 (version code 17)
 
 Paste the block below into Play Console > the release > Release notes. Play reads the language tags and fills each
-language (at most 500 characters each). The Spanish note says nothing about the new voice, because the new voice speaks
-the English lines (in Hindi and Chinese the English ABC uses it; Spanish has its own ABC and keeps the phone's voice).
+language (at most 500 characters each).
 
 ```
 <en-US>
-• A clear new voice: letter names, letter sounds and instructions are said correctly on every phone, even with no internet.
-• When little fingers tap fast, the voice no longer piles up. Instructions still come right away.
-• Grown-up settings are sorted into simple topic pages.
-• Small fixes and improvements.
+• Sprout Kitchen, rebuilt: spread peanut butter and jelly with a real knife, turn on the oven with its knob, cook raw burgers on the grill and watch the cheese melt.
+• New recipes: homemade ice cream in a bag, fruit salad and lemonade.
+• Steps flow smoothly with no extra screens. Tap the helper's bubble to try its idea.
+• Ate it before the photo? A new button brings the food back.
+• Many fixes from testing like a busy toddler, and calmer sounds.
 </en-US>
 <es-419>
-• Si se toca muy rápido, la voz ya no se amontona. Las instrucciones siguen llegando al momento.
-• Los ajustes para adultos están ordenados en páginas por tema.
-• Pequeñas mejoras y correcciones.
+• La cocinita, renovada: unta mantequilla de maní y mermelada con un cuchillo de verdad, enciende el horno con su perilla, cocina hamburguesas crudas en la parrilla y mira cómo se derrite el queso.
+• Recetas nuevas: helado casero en bolsa, ensalada de frutas y limonada.
+• Los pasos fluyen sin pantallas de más. Toca la burbuja del ayudante para probar su idea.
+• ¿Se lo comió antes de la foto? Un botón nuevo devuelve la comida.
+• Muchas correcciones y sonidos más tranquilos.
 </es-419>
 <hi-IN>
-• एक नई साफ़ आवाज़: अंग्रेज़ी अक्षरों के नाम और उनकी आवाज़ें अब हर फ़ोन पर सही बोली जाती हैं, बिना इंटरनेट के भी।
-• छोटी उँगलियाँ जल्दी-जल्दी छुएँ तो भी आवाज़ें एक-दूसरे पर नहीं चढ़तीं। निर्देश तुरंत सुनाई देते हैं।
-• बड़ों की सेटिंग्स आसान विषयों के पन्नों में बँटी हैं।
-• छोटे सुधार।
+• नन्ही रसोई नई बनी: असली चाकू से पीनट बटर और जैम फैलाओ, घुंडी घुमाकर ओवन चालू करो, ग्रिल पर कच्चे बर्गर पकाओ और चीज़ पिघलते देखो।
+• नई रेसिपी: थैली में घर की आइसक्रीम, फलों का सलाद और नींबू पानी।
+• कदम बिना अलग स्क्रीन के आराम से आगे बढ़ते हैं। मददगार का बुलबुला छूकर उसका सुझाव आज़माओ।
+• फ़ोटो से पहले खा लिया? नया बटन खाना वापस ले आता है।
+• कई सुधार और शांत आवाज़ें।
 </hi-IN>
 <zh-CN>
-• 全新清晰的声音：英文字母的名称和发音在每部手机上都读得准确，没有网络也可以。
-• 小手点得很快时，声音不再挤成一团，提示仍会马上说出。
-• 大人设置按主题分成了简单的页面。
-• 一些小修正和改进。
+• 小芽厨房全新升级：用真正的小刀抹花生酱和果酱，转动旋钮打开烤箱，在烤架上把生汉堡肉饼烤熟，看奶酪慢慢融化。
+• 新食谱：袋子里的自制冰淇淋、水果沙拉和柠檬水。
+• 步骤之间顺畅过渡，不再有多余的画面。点一下小帮手的气泡就能试试它的点子。
+• 拍照前就吃掉了？新按钮能把食物变回来。
+• 许多修正，声音也更柔和。
 </zh-CN>
 ```
