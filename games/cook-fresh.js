@@ -536,7 +536,7 @@
     c.strokeStyle = 'rgba(80,40,20,.15)'; c.lineWidth = w + 3; path(); c.stroke();
     c.strokeStyle = '#ffffff'; c.lineWidth = w; path(); c.stroke();
     c.strokeStyle = col; c.lineWidth = w * .92; c.setLineDash([w * .9, w * .9]); path(); c.stroke(); c.setLineDash([]);
-    if (sip > 0) { const L = D(pts[0][0], pts[0][1], pts[1][0], pts[1][1]), k = Math.min(1, sip * 1.25); c.globalAlpha = .9; c.strokeStyle = shade(scol, -.05); c.lineWidth = w * .5; c.beginPath(); c.moveTo(pts[0][0], pts[0][1]); c.lineTo(lerp(pts[0][0], pts[1][0], k), lerp(pts[0][1], pts[1][1], k)); c.stroke(); c.globalAlpha = 1; void L; }
+    if (sip > 0) { const k = Math.min(1, sip * 1.25); c.globalAlpha = .9; c.strokeStyle = shade(scol, -.05); c.lineWidth = w * .5; c.beginPath(); c.moveTo(pts[0][0], pts[0][1]); c.lineTo(lerp(pts[0][0], pts[1][0], k), lerp(pts[0][1], pts[1][1], k)); c.stroke(); c.globalAlpha = 1; }
     c.strokeStyle = 'rgba(255,255,255,.65)'; c.lineWidth = w * .2; c.beginPath(); c.moveTo(pts[0][0] - w * .2, pts[0][1]); c.lineTo(pts[1][0] - w * .2, pts[1][1]); c.stroke();
     c.restore();
   }
@@ -1151,8 +1151,8 @@
       if (s.place) { s.place.t += dt / .45; if (s.place.t >= 1) { s.place = null; s.on = { prog: 0, twist: 0 }; sfx.pat(); } }
       if (s.pop) { s.pop.t += dt / .6; if (s.pop.t >= 1) { s.pop = null; sfx.pat(); } }
       if (s.tw && s.on) SQ.squeeze(g, s, dt * s.hold * (tier() === 1 ? 1.2 : 1), 1.5);
-      const cupTop = G.y - G.cs * .32, lv = (FR(g).juice > .003 ? levelOf(CUP, 0, FR(g).juice) : .3) * G.cs + G.y;
-      for (const d of s.drops) { d.v += dt * 900; d.y += d.v * dt; } const n0 = s.drops.length; s.drops = s.drops.filter(d => G.dish.y + G.dish.s * .17 + d.y < lv); if (s.drops.length < n0 && Math.random() < .5) SND.drip(Math.random() * 4 | 0); void cupTop;
+      const lv = (FR(g).juice > .003 ? levelOf(CUP, 0, FR(g).juice) : .3) * G.cs + G.y;
+      for (const d of s.drops) { d.v += dt * 900; d.y += d.v * dt; } const n0 = s.drops.length; s.drops = s.drops.filter(d => G.dish.y + G.dish.s * .17 + d.y < lv); if (s.drops.length < n0 && Math.random() < .5) SND.drip(Math.random() * 4 | 0);
     },
     draw(g, s, c) {
       const G = SQ.geo(g), Fr = FR(g), dp = SQ.domePos(G);
@@ -1160,7 +1160,7 @@
       drawCup(c, G.x, G.y, G.cs, Fr.juice, JUICE, 0, { mark: s.target, t: g.t });
       c.save(); c.fillStyle = 'rgba(255,214,60,.9)'; for (const d of s.drops) { const x = G.dish.x + d.x * G.dish.s * .5, y = G.dish.y + G.dish.s * .17 + d.y; c.beginPath(); c.ellipse(x, y, Math.max(1.5, G.cs * .012), Math.max(2.5, G.cs * .02), 0, 0, TAU); c.fill(); } c.restore();
       drawJuicer(c, G.dish.x, G.dish.y, G.dish.s, { seeds: s.seeds, pool: Math.min(1, Fr.juice * 2.2), dome: s.on ? { squash: s.on.prog, twist: s.on.twist } : null });
-      if (s.place) { const u = ease(s.place.t), x = lerp(s.place.x0, dp.x, u), y = lerp(s.place.y0, dp.y - G.cs * .08, u) - Math.sin(u * Math.PI) * G.cs * .3; c.save(); c.translate(x, y); c.scale(1, Math.cos(u * Math.PI) * .6 + .4 * (u < .5 ? 1 : -1) * 0 + (u < .5 ? 0 : 0) || .1); c.restore(); if (u < .5) drawLemonFace(c, x, y, lerp(g.th * .5, G.dish.s * .7, u), { k: lerp(.92, .2, u * 2) }); else drawLemonDome(c, x, y + G.cs * .08, G.dish.s * .7, 0, 0); }
+      if (s.place) { const u = ease(s.place.t), x = lerp(s.place.x0, dp.x, u), y = lerp(s.place.y0, dp.y - G.cs * .08, u) - Math.sin(u * Math.PI) * G.cs * .3; if (u < .5) drawLemonFace(c, x, y, lerp(g.th * .5, G.dish.s * .7, u), { k: lerp(.92, .2, u * 2) }); else drawLemonDome(c, x, y + G.cs * .08, G.dish.s * .7, 0, 0); }
       if (s.pop) { const u = ease(s.pop.t), x = lerp(dp.x, G.peel.x, u), y = lerp(dp.y, G.peel.y - G.peel.r * .3, u) - Math.sin(u * Math.PI) * G.cs * .4, k = lerp(1, .5, u); c.save(); c.translate(x, y); c.scale(k, k); c.rotate(u * 2); drawLemonDome(c, 0, 0, G.dish.s * .7, s.pop.squash, s.pop.twist); c.restore(); }
       if (s.on && s.tw) { c.save(); c.globalAlpha = .95; drawFlatHand(c, dp.x + Math.cos(s.on.twist) * G.cs * .02, dp.y - G.cs * .14, G.cs * .42, Math.sin(s.on.twist * .5) * .35, 1); c.restore(); }
       if (!s.fin && !s.place && !s.pop && (!s.touched || g.idle > 4)) {
