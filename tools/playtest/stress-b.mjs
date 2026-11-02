@@ -9,12 +9,12 @@
 //   - requestAnimationFrame callbacks and intervals are counted after a game is destroyed
 //   - the game object and the player's save are walked for NaN, and for arrays that only ever grow
 //   - stars earned by mashing are counted (stars are earned, never farmed)
-// usage: node stress-b.mjs [W H]   GAMES=name,name to pick games (none = only the regression checks at the end), SECS=n seconds of mashing
+// usage: node stress-b.mjs [W H]   GAMES=name,name to pick games (_ for a space; none = only the regression checks at the end), SECS=n seconds of mashing
 // per game (default 6), CPU=4 to throttle, REG=0 to skip the regression checks
 import { start, stop, login, openGame, SP } from './lib.mjs';
 process.env.PORT = process.env.PORT || '8222';
 const W = +process.argv[2] || 390, H = +process.argv[3] || 844, SECS = +process.env.SECS || 6;
-const GAMES = process.env.GAMES === 'none' ? [] : process.env.GAMES ? process.env.GAMES.split(',') : ['Coloring Book', 'Pet Shop', 'Pet Care', 'Pet Care close-up', 'Fish Tank', 'Style Studio', 'Hair Salon', 'Clay Corner', 'Fishing Pond', 'Caterpillars', 'Feeling Friends', 'Tidy Time', 'Shape Builder'];
+const GAMES = process.env.GAMES === 'none' ? [] : process.env.GAMES ? process.env.GAMES.split(',').map(g => g.replace(/_/g, ' ')) : ['Coloring Book', 'Pet Shop', 'Pet Care', 'Pet Care close-up', 'Fish Tank', 'Fish Tank visitor', 'Style Studio', 'Hair Salon', 'Clay Corner', 'Fishing Pond', 'Caterpillars', 'Feeling Friends', 'Tidy Time', 'Shape Builder'];
 const b = await start({ args: ['--autoplay-policy=no-user-gesture-required'] });
 let fails = 0; const fail = (game, m) => { fails++; console.log('FAIL', game + ':', m); };
 
@@ -89,10 +89,11 @@ let seed = 11; const rnd = () => { seed = (seed * 16807) % 2147483647; return (s
 const spot = () => { const v = page.viewportSize(); return [30 + rnd() * (v.width - 60), 70 + rnd() * (v.height - 90)]; };
 const inGame = () => Q(() => !!SPG.app.running());
 // screens inside a game get mashed on their own: the Hair Salon (in the Style Studio: the salon, then the first messy style) and the
-// Pet Care close-up (the six grooming tools); whenever the mashing leaves them they are opened again
-const SALON = 'Hair Salon', ZOOM = 'Pet Care close-up';
+// Pet Care close-up (the six grooming tools) and a Fish Tank visitor; whenever the mashing leaves them they are opened again
+const SALON = 'Hair Salon', ZOOM = 'Pet Care close-up', VISIT = 'Fish Tank visitor';
 const INSIDE = {
   [SALON]: ['Style Studio', () => { const g = SPG.app.running() && SPG.app.running().inst; if (!g || !g.openSalon) return; if (!g.salon) g.openSalon(); const s = g.salon; if (s && s.mode === 'pick' && s.cards.length) s.choose(s.cards[0]); }],
+  [VISIT]: ['Fish Tank', () => { const g = SPG.app.running() && SPG.app.running().inst; if (g && g.startBoss && !g.boss && !g.shop) g.startBoss(); }],
   [ZOOM]: ['Pet Care', () => { const g = SPG.app.running() && SPG.app.running().inst; if (!g || !g.enterZoom || g.zoomOn) return; if (g.sleeping) g.wakeUp(); g.picking = false; g.tool = null; g.pet.moving = false; g.enterZoom(); }]
 };
 const inside = name => INSIDE[name] && Q(INSIDE[name][1]);
