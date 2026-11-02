@@ -7,7 +7,7 @@ async function playRecipe(page, id, log) {
   let p = await P(page);
   // choose it from the menu
   const recipes = await page.evaluate(() => [...new Set(SPG.cookGame.menuHit.map(m => m.id).filter(Boolean))]);
-  const cat = await page.evaluate(i => SPG.games.length && ({ sugar: 0, chip: 0, cupcake: 0, cake: 0, pancake: 0, sundae: 0, sandwich: 1, pbj: 1, toastie: 1 }[i] ?? 2), id);
+  const cat = await page.evaluate(i => SPG.cookKit.RECIPES.find(r => r.id === i).cat, id);
   let m = (await P(page)).menu.find(x => x.tab === cat); await page.mouse.click(m.x, m.y); await wait(300);
   m = (await P(page)).menu.find(x => x.id === id); await page.mouse.click(m.x, m.y); await wait(500);
   const t0 = Date.now(); let lastStep = '', stuck = 0, shot = {};
@@ -21,6 +21,8 @@ async function playRecipe(page, id, log) {
     const U = p.U, bx = p.bx, by = p.by, st = p.st || {};
     if (st.fin && k !== 'serve') { await wait(200); continue; }
     if (p.busy) { await wait(120); continue; }
+    // a kind of step that says how to play itself (SPG.cookKit H[kind].auto)
+    if (p.auto) { const a = p.auto; if (a.tap) await page.mouse.click(a.tap[0], a.tap[1]); else if (a.drag) await drag(page, a.drag, a.steps || 4); await wait(a.wait || 250); continue; }
     if (k === 'pick') { const cd = p.cards[Math.floor(Math.random() * p.cards.length)]; await page.mouse.click(cd.x, cd.y); await wait(400); continue; }
     if (k === 'build') { const items = p.tray.filter(t => !t.used && t.id !== st.end); if ((st.n || 0) < 2 && items.length) { const it = items[Math.floor(Math.random() * items.length)]; await page.mouse.click(it.x, it.y); await wait(450); continue; } if (st.end) { const e = p.tray.find(t => t.id === st.end); await page.mouse.click(e.x, e.y); await wait(600); continue; } if (p.check) { await page.mouse.click(p.check.x, p.check.y); await wait(400); } else await wait(200); continue; }
     if (k === 'grill' && p.spec.free) { if (!st.closed && (st.placed || 0) < 2) { const it = p.tray[(st.placed || 0) % p.tray.length]; await page.mouse.click(it.x, it.y); await wait(500); continue; } if (!st.closed && p.check) { await page.mouse.click(p.check.x, p.check.y); await wait(200); } for (const u of st.units) if (u.state === 'flip') { await page.mouse.click(u.x, u.y); await wait(250); } await wait(300); continue; }
@@ -58,7 +60,7 @@ async function playRecipe(page, id, log) {
 }
 const b = await start();
 const page = await newPage(b, W, H); await login(page); await openGame(page, 'Sprout Kitchen');
-const all = ['sugar', 'chip', 'cupcake', 'cake', 'pancake', 'sundae', 'sandwich', 'pbj', 'toastie', 'burger', 'hotdog', 'pizza'];
+const all = await page.evaluate(() => SPG.cookKit.RECIPES.map(r => r.id));
 const log = [];
 for (const id of (only || all)) { const t0 = Date.now(); const r = await playRecipe(page, id, log); console.log(r.id, r.ok ? 'OK' : 'FAILED', ((Date.now() - t0) / 1000).toFixed(0) + 's'); }
 console.log(log.join('\n')); console.log(page.errs.join('\n') || 'no page errors');

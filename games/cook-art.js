@@ -1100,7 +1100,8 @@
   }
   function drawPiece(c, p, R, t = 0) {
     c.save(); c.lineJoin = c.lineCap = 'round';
-    if (p.type === 'multi') { for (const [x, y, sub, k] of p.parts) { c.save(); c.translate(x * R, y * R); drawPiece(c, sub, R * k); c.restore(); } }
+    if (EXTRA[p.type]) EXTRA[p.type].draw(c, p, R, t);
+    else if (p.type === 'multi') { for (const [x, y, sub, k] of p.parts) { c.save(); c.translate(x * R, y * R); drawPiece(c, sub, R * k); c.restore(); } }
     else if (p.shape && p.type === 'stack') drawCharSandwich(c, p, R);
     else if (p.sliced && p.type === 'stack') drawSliced(c, p, R * 2);
     else if (p.type === 'cookie') drawCookie(c, p, R, t);
@@ -1141,9 +1142,12 @@
   }
   // height of a piece (so it can sit on the plate)
   const sundaeTop = p => { const n = Math.min(3, (p.scoops || []).length); return (n >= 3 ? 1.06 : n ? .82 : .62) + (p.cream && n ? .16 : 0); };
-  const pieceHeight = (p, R) => p.shape && p.type === 'stack' ? R * 1.8 : p.type === 'cookie' ? R * .8 : p.type === 'cupcake' ? R * 1.0 : p.type === 'cake' ? R * 1.1 : p.type === 'pizza' ? R * .9 : p.type === 'sundae' ? R * 2 * sundaeTop(p) : p.type === 'hotdog' ? R * .7 : (p.layers || []).reduce((a, l) => a + (LAYER[l.id] ? LAYER[l.id][0] * (TOPL.has(l.id) ? .9 : .86) : 0), 0) * R * 2 + R * .12;
+  // foods and step pictures added by other files (games/cook-*.js): EXTRA[type] = { draw(c, p, R, t), height(p, R), box(p) -> { hw, a, b }, touch(p) -> where it can be touched }, STEP_ICON[kind] = (c, s, id) => ...
+  const EXTRA = {}, STEP_ICON = {};
+  const pieceHeight = (p, R) => EXTRA[p.type] ? EXTRA[p.type].height(p, R) : p.shape && p.type === 'stack' ? R * 1.8 : p.type === 'cookie' ? R * .8 : p.type === 'cupcake' ? R * 1.0 : p.type === 'cake' ? R * 1.1 : p.type === 'pizza' ? R * .9 : p.type === 'sundae' ? R * 2 * sundaeTop(p) : p.type === 'hotdog' ? R * .7 : (p.layers || []).reduce((a, l) => a + (LAYER[l.id] ? LAYER[l.id][0] * (TOPL.has(l.id) ? .9 : .86) : 0), 0) * R * 2 + R * .12;
 
   function sampleBox(p) {
+    if (EXTRA[p.type]) return EXTRA[p.type].box(p);
     if (p.type === 'multi') { let hw = 0, a = 0, b = 0; for (const [x, y, sub, k] of p.parts) { const q = sampleBox(sub); hw = Math.max(hw, Math.abs(x) + q.hw * k); a = Math.max(a, -y + q.a * k); b = Math.max(b, y + q.b * k); } return { hw, a, b }; }
     if (p.type === 'cookie') return { hw: 1.1, a: 1.05, b: 1.15 };
     if (p.type === 'cupcake') return { hw: .62, a: .95, b: .6 };
@@ -1164,7 +1168,8 @@
   // small round pictures for the step strip and the chef's thought bubble
   function stepIcon(c, k, s, id) {
     c.save();
-    if (k === 'add') (ING[id || 'flour'] || ING.flour)(c, s);
+    if (STEP_ICON[k]) STEP_ICON[k](c, s, id);
+    else if (k === 'add') (ING[id || 'flour'] || ING.flour)(c, s);
     else if (k === 'stir') { drawSpoon(c, 0, -s * .2, s * .8, -.2); c.strokeStyle = '#5cc8f2'; c.lineWidth = s * .06; c.lineCap = 'round'; c.beginPath(); c.arc(0, s * .28, s * .24, .4, 4.9); c.stroke(); tri(c, [[s * .2, s * .1], [s * .32, s * .34], [s * .08, s * .34]], '#5cc8f2'); }
     else if (k === 'roll') drawPin(c, 0, 0, s * .6, 0);
     else if (k === 'cut') { c.scale(.9, .9); cutterArt(c, id || 'star', s * .38); }
@@ -1236,5 +1241,5 @@
     c.drawImage(oc, x - S / 2 / dpr, y - S / 2 / dpr, S / dpr, S / dpr);
   }
 
-  SPG.cookArt = { PEN_R, shapePath, F, BUNS, BREADS, CHEESES, TOPL, SAUCE_L, drawPizza, drawTops, drawScoop, TOP_SZ, pizzaClip, FLAT, sundaeTop, clamp, lerp, ease, rr, rnd, shade, circ, ell, box, tri, shine, blob, FF, fancyText, fitLabel, gingham, ribbon, PIECES, SHAPES, starPath, heartPath, shapeFill, cookieShape, cutterArt, BUN, BREAD, CRUST, ING, TUBE, SCOOP, ICING, SCOOPS, NAME, LAYER, SAUCE, SEASON, drawTable, drawBoard, drawPlate, drawBowl, drawSpoon, drawPin, drawOven, drawGrill, drawToaster, LAYER_ICON, DOUGH, BAKED, CHOCDOUGH, CHOCBAKED, drawDeco, drawCookie, mixHex, drawCupcake, drawCake, drawFlatDots, drawStack, drawHotdog, drawSundae, drawPiece, drawCharSandwich, drawSliced, pieceHeight, sampleBox, drawSample, ICOL, BATTER, SPRINKLE, stepIcon, pan, drawSheet, drawCupcakeAt, drawTapHint, drawPieceC, drawUnit, lerpHex, SPRINKLE_KINDS, drawSprinkle, CANDY_KINDS, drawCandy, CANDLE_KINDS, drawCandle, FRUIT_KINDS, ICING12, drawIcingPen, drawPaintBucket, drawMeasure, drawPile, drawEgg, saucePts, grainPts, drawPaintList, drawShadowDisc, drawPieceAt, pieceBase, drawKnife, drawBittenAt, TAU };
+  SPG.cookArt = { PEN_R, shapePath, F, BUNS, BREADS, CHEESES, TOPL, SAUCE_L, drawPizza, drawTops, drawScoop, TOP_SZ, pizzaClip, FLAT, sundaeTop, clamp, lerp, ease, rr, rnd, shade, circ, ell, box, tri, shine, blob, FF, fancyText, fitLabel, gingham, ribbon, PIECES, SHAPES, starPath, heartPath, shapeFill, cookieShape, cutterArt, BUN, BREAD, CRUST, ING, TUBE, SCOOP, ICING, SCOOPS, NAME, LAYER, SAUCE, SEASON, drawTable, drawBoard, drawPlate, drawBowl, drawSpoon, drawPin, drawOven, drawGrill, drawToaster, LAYER_ICON, DOUGH, BAKED, CHOCDOUGH, CHOCBAKED, drawDeco, drawCookie, mixHex, drawCupcake, drawCake, drawFlatDots, drawStack, drawHotdog, drawSundae, drawPiece, drawCharSandwich, drawSliced, pieceHeight, sampleBox, drawSample, ICOL, BATTER, SPRINKLE, stepIcon, pan, drawSheet, drawCupcakeAt, drawTapHint, drawPieceC, drawUnit, lerpHex, SPRINKLE_KINDS, drawSprinkle, CANDY_KINDS, drawCandy, CANDLE_KINDS, drawCandle, FRUIT_KINDS, ICING12, drawIcingPen, drawPaintBucket, drawMeasure, drawPile, drawEgg, saucePts, grainPts, drawPaintList, drawShadowDisc, drawPieceAt, pieceBase, drawKnife, drawBittenAt, EXTRA, STEP_ICON, TAU };
 })();
