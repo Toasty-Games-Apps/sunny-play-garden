@@ -27,7 +27,7 @@ APRENDER
 CREAR
 - Libro para colorear: 95 dibujos en doce colecciones. 24 colores, patrones, pinceles de arcoíris y brillantina que no se salen de las líneas, y calcomanías.
 - Rincón de plastilina: aplasta, enrolla, pellizca y corta plastilina suave, ponle ojitos locos y toma fotos.
-- La cocinita: 12 recetas, de galletas y panqueques a hamburguesas y pizza a tu gusto. Mide, mezcla, hornea, decora y luego cómetelo bocado a bocado.
+- La cocinita: 15 recetas, de galletas y pizza a helado casero y limonada. Mide, unta, exprime, hornea y decora, y luego cómetelo bocado a bocado.
 - Estudio de moda: viste a niñas y niños, maquillaje y uñas, peluquería y pasarela.
 - La banda del conejito: seis músicos animales, melodías para copiar y tu propia canción.
 

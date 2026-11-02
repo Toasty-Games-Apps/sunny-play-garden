@@ -23,7 +23,7 @@ LEARN
 CREATE
 - Coloring Book: 95 pictures in twelve collections, from animal friends and dinosaurs to the holidays. Fill with 24 colours or patterns, use rainbow and glitter brushes that stay inside the lines, add stickers.
 - Clay Corner: squish, roll, pinch and cut soft play-dough, add googly eyes and take photos.
-- Sprout Kitchen: 12 recipes, from cookies and pancakes to build-your-own burgers and pizza. Measure, stir, bake, decorate, then eat it bite by bite.
+- Sprout Kitchen: 15 recipes, from cookies and pizza to homemade ice cream and lemonade. Measure, spread, squeeze, bake and decorate, then eat it bite by bite.
 - Style Studio: dress up girls and boys in gowns, crowns and wings, do make-up and nails, cut hair in the Hair Salon, then walk the runway.
 - Bunny Band: six animal musicians to play, little tunes to copy, and your own song to record.
 
