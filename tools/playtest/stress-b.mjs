@@ -1,5 +1,5 @@
-// Toddler stress test for the calm games and the sound system: Coloring Book, Pet Shop, Pet Care, Fish Tank, Style Studio (and the
-// Hair Salon), Clay Corner, Fishing Pond, Caterpillars, Feeling Friends, Tidy Time and Shape Builder.
+// Toddler stress test for the calm games and the sound system: Coloring Book, Pet Shop, Pet Care (and its grooming close-up), Fish Tank,
+// Style Studio (and the Hair Salon), Clay Corner, Fishing Pond, Caterpillars, Feeling Friends, Tidy Time and Shape Builder.
 // Each game is mashed the way a small child does it: 15 to 20 taps a second, five fingers at once, drags that leave the screen or end
 // in a pointercancel, long presses, the screen turning mid-drag, the tab going hidden mid-sound, the grown-up gate opening while a
 // finger is down, leaving with the home button mid-animation and coming back ten times fast. The page is instrumented:
@@ -14,7 +14,7 @@
 import { start, stop, login, openGame, SP } from './lib.mjs';
 process.env.PORT = process.env.PORT || '8222';
 const W = +process.argv[2] || 390, H = +process.argv[3] || 844, SECS = +process.env.SECS || 6;
-const GAMES = process.env.GAMES === 'none' ? [] : process.env.GAMES ? process.env.GAMES.split(',') : ['Coloring Book', 'Pet Shop', 'Pet Care', 'Fish Tank', 'Style Studio', 'Clay Corner', 'Fishing Pond', 'Caterpillars', 'Feeling Friends', 'Tidy Time', 'Shape Builder'];
+const GAMES = process.env.GAMES === 'none' ? [] : process.env.GAMES ? process.env.GAMES.split(',') : ['Coloring Book', 'Pet Shop', 'Pet Care', 'Pet Care close-up', 'Fish Tank', 'Style Studio', 'Hair Salon', 'Clay Corner', 'Fishing Pond', 'Caterpillars', 'Feeling Friends', 'Tidy Time', 'Shape Builder'];
 const b = await start({ args: ['--autoplay-policy=no-user-gesture-required'] });
 let fails = 0; const fail = (game, m) => { fails++; console.log('FAIL', game + ':', m); };
 
@@ -88,7 +88,16 @@ const ptr = (type, id, x, y) => Q(([t, i, x, y]) => __qa.ptr(t, i, x, y), [type,
 let seed = 11; const rnd = () => { seed = (seed * 16807) % 2147483647; return (seed - 1) / 2147483646; };
 const spot = () => { const v = page.viewportSize(); return [30 + rnd() * (v.width - 60), 70 + rnd() * (v.height - 90)]; };
 const inGame = () => Q(() => !!SPG.app.running());
-const back = async name => { if (!(await inGame())) { await Q(() => document.querySelectorAll('.overlay:not(.hidden) .btn.quiet, .sheet .btn.quiet').forEach(b => b.click())); await openGame(page, name); } };
+// screens inside a game get mashed on their own: the Hair Salon (in the Style Studio: the salon, then the first messy style) and the
+// Pet Care close-up (the six grooming tools); whenever the mashing leaves them they are opened again
+const SALON = 'Hair Salon', ZOOM = 'Pet Care close-up';
+const INSIDE = {
+  [SALON]: ['Style Studio', () => { const g = SPG.app.running() && SPG.app.running().inst; if (!g || !g.openSalon) return; if (!g.salon) g.openSalon(); const s = g.salon; if (s && s.mode === 'pick' && s.cards.length) s.choose(s.cards[0]); }],
+  [ZOOM]: ['Pet Care', () => { const g = SPG.app.running() && SPG.app.running().inst; if (!g || !g.enterZoom || g.zoomOn) return; if (g.sleeping) g.wakeUp(); g.picking = false; g.tool = null; g.pet.moving = false; g.enterZoom(); }]
+};
+const inside = name => INSIDE[name] && Q(INSIDE[name][1]);
+const open = async name => { await openGame(page, INSIDE[name] ? INSIDE[name][0] : name); if (INSIDE[name]) { await wait(300); await inside(name); } };
+const back = async name => { if (!(await inGame())) { await Q(() => document.querySelectorAll('.overlay:not(.hidden) .btn.quiet, .sheet .btn.quiet').forEach(b => b.click())); await open(name); } else await inside(name); };
 // one burst of toddler: fast taps all over (never the home button), sometimes with several fingers, drags that end in a cancel
 async function mash(name, secs) {
   const t0 = Date.now(); let n = 0;
@@ -113,16 +122,22 @@ const liveAfter = async (ms = 1600) => { await wait(ms); return snap(); };
 for (const name of GAMES) {
   const g0 = page.errs.length, stars0 = await Q(() => SPG.store.active.stars);
   await Q(() => { __qa.lines.length = 0; __qa.said.length = 0; __qa.maxLive = 0; });
-  await openGame(page, name); await wait(900);
+  await open(name); await wait(900);
   // 1. mashing
   await mash(name, SECS);
   const peak = await Q(() => __qa.maxLive);
+  if (name === SALON && !(await Q(() => { const g = SPG.app.running(); return !!(g && g.inst.salon); }))) fail(name, 'the salon was not open while mashing');
+  if (name === ZOOM && !(await Q(() => { const g = SPG.app.running(); return !!(g && g.inst.zoomOn); }))) fail(name, 'the close-up was not open while mashing');
   if (peak > 90) fail(name, `${peak} sounds at once while mashing (a pile-up)`);
   // 2. every finger lifted: no loop may keep going
   for (const i of [1, 2, 3, 4, 5]) await ptr('pointercancel', i, 5, 5);
   let s = await liveAfter(5000); if (s.loops) fail(name, `a sound loop keeps going after every finger lifted: ${s.who.join(', ')}`);   // (a purr may fade out for a few seconds)
-  // 3. a finger down and moving, then the screen turns, then it lifts
-  await back(name); { const [x, y] = spot(); await ptr('pointerdown', 1, x, y); for (let k = 0; k < 5; k++) await ptr('pointermove', 1, x + k * 10, y + k * 8); await page.setViewportSize({ width: H, height: W }); await wait(250); for (let k = 0; k < 5; k++) await ptr('pointermove', 1, H / 2 + k * 10, W / 2); await ptr('pointerup', 1, H / 2 + 50, W / 2); await page.setViewportSize({ width: W, height: H }); await wait(300); }
+  // 3. a finger down and moving, then the screen turns (and turns into every phone and tablet size) while it is still down, then it lifts
+  await back(name); { const [x, y] = spot(); await ptr('pointerdown', 1, x, y); for (let k = 0; k < 5; k++) await ptr('pointermove', 1, x + k * 10, y + k * 8);
+    for (const [w, h] of [[H, W], [390, 844], [844, 390], [800, 1280], [1280, 800], [360, 640]]) { await page.setViewportSize({ width: w, height: h }); await wait(200); for (let k = 0; k < 3; k++) await ptr('pointermove', 1, w / 2 + k * 10, h / 2); }
+    await ptr('pointerup', 1, 230, 330); await page.setViewportSize({ width: W, height: H }); await wait(300);
+    const off = await Q(() => { const r = SPG.app.running(), cv = r && document.querySelector('#game-host > canvas'); return cv ? [cv.width, cv.height, innerWidth, innerHeight] : null; });
+    if (off && (off[0] < off[2] * .5 || off[1] < off[3] * .5)) fail(name, 'the game did not resize back after the screen turned: ' + off.join(' ')); }
   // 4. the tab goes hidden in the middle of a held finger (and a sound), then comes back
   await back(name); { const [x, y] = spot(); await ptr('pointerdown', 1, x, y); for (let k = 0; k < 6; k++) await ptr('pointermove', 1, x + k * 14, y + k * 6); await Q(() => __qa.hide(true)); await wait(300); s = await snap();
     const said0 = await Q(() => __qa.lines.length); await wait(1500);
@@ -142,7 +157,7 @@ for (const name of GAMES) {
   // 7. leave mid-action with the home button, then come back and leave ten times fast
   await back(name); { const [x, y] = spot(); await ptr('pointerdown', 1, x, y); await ptr('pointermove', 1, x + 30, y + 30); await Q(() => document.getElementById('btn-home').dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, pointerId: 9 }))); await ptr('pointerup', 1, x + 30, y + 30); }
   const left = await Q(() => __qa.lines.length);
-  for (let k = 0; k < 10; k++) { await openGame(page, name); await wait(60 + k * 15); await Q(() => SPG.app.closeGame()); }
+  for (let k = 0; k < 10; k++) { await open(name); await wait(60 + k * 15); await Q(() => SPG.app.closeGame()); }
   await wait(2500);
   s = await snap(); if (s.loops) fail(name, `a sound loop keeps going after leaving the game: ${s.who.join(', ')}`);
   const after = await Q(n => __qa.lines.slice(n).filter(l => !l.game && !/^(player|pname)\//.test(l.line)), left); if (after.length) fail(name, 'lines said after leaving: ' + [...new Set(after.map(l => l.line))].join(', '));
