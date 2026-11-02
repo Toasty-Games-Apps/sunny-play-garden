@@ -387,11 +387,16 @@
     p.scoops.forEach((s, i) => { const q = sp[i]; if (!q) return; const lift = (s.drop || 0) * R * 1.4; c.save(); c.globalAlpha = 1 - (s.drop || 0) * .5; drawScoopAt(c, q[0] * R, q[1] * R - lift, q[2] * R, s.f, i * 13 + 3); c.restore(); });
     if (cup && !p.eatOnly) cupFront(c, R);
   }
+  // The kitchen sizes a food on its plate from its height, but never smaller than U * .1 per unit, so on a short wide screen three scoops
+  // on a cone would poke out of the top of the board. The ice cream then shrinks itself (p.k) to fit; everything below measures with ku(p).
+  const HEAD = .7;   // room above the top scoop (in scoop units) so a cherry on top stays inside the board
+  const ku = p => (p && p.k) || 1;
+  function fitK(g, p) { if (!p || !g.foodBase) return; const room = g.foodBase().y - g.y0 - 10, need = (topOf(p) + HEAD + .06) * g.U * .1; p.k = need > room ? Math.max(.5, room / need) : 1; }
   EXTRA.icecream = {
-    draw: (c, p, R) => drawIceCream(c, p, R),
-    height: (p, R) => (topOf(p) + .08) * R,
-    box: p => ({ hw: p.holder === 'cup' ? 1.02 : .8, a: topOf(p) + .1, b: .18 }),
-    touch: p => ({ hw: p.holder === 'cup' ? 1.0 : .82, y0: -(topOf(p) + .1), y1: .1 })
+    draw: (c, p, R) => drawIceCream(c, p, R * ku(p)),
+    height: (p, R) => (topOf(p) + HEAD) * R * ku(p),
+    box: p => { const k = ku(p); return { hw: (p.holder === 'cup' ? 1.02 : .8) * k, a: (topOf(p) + .1) * k, b: .18 * k }; },
+    touch: p => { const k = ku(p); return { hw: (p.holder === 'cup' ? 1.0 : .82) * k, y0: -(topOf(p) + .1) * k, y1: .1 * k }; }
   };
   if (!FLAT.includes('icecream')) FLAT.push('icecream');
   if (KIT.CRUMB) KIT.CRUMB.icecream = ['#fff2cc', '#e9b06a'];
@@ -988,7 +993,7 @@
   // Every touch near the ice cream lands on a scoop (so nothing floats in the air beside the cone); touches further away still reach the plate.
   function onIce(g, p) {
     const pc = g.pieces[0], q = g.slots()[0]; if (!pc || !q) return p;
-    const ox = q.x, oy = q.y + pieceBase(pc, q.r), R = q.r, lx = (p.x - ox) / R, ly = (p.y - oy) / R, top = topOf(pc);
+    const ox = q.x, oy = q.y + pieceBase(pc, q.r), R = q.r * ku(pc), lx = (p.x - ox) / R, ly = (p.y - oy) / R, top = topOf(pc);
     if (Math.abs(lx) > 1.5 || ly > .25 || ly < -(top + .9)) return p;
     let best = null; for (const [cx, cy, r] of spots(pc)) { const d = Math.hypot(lx - cx, ly - cy) - r; if (!best || d < best.d) best = { cx, cy, r, d }; }
     if (!best || best.d <= -best.r * .08) return p;
@@ -996,16 +1001,16 @@
   }
   H.ictop = {
     camera: true,
-    enter(g, s) { H.decorate.enter(g, s); g.kinds.fruit = 'cherry'; },
+    enter(g, s) { H.decorate.enter(g, s); g.kinds.fruit = 'cherry'; fitK(g, g.pieces[0]); },
     down: (g, s, p) => H.decorate.down(g, s, onIce(g, p)),
     move: (g, s, p) => H.decorate.move(g, s, onIce(g, p)),
     up: (g, s, p) => H.decorate.up(g, s, onIce(g, p)),
-    update: (g, s, dt) => H.decorate.update(g, s, dt),
+    update(g, s, dt) { fitK(g, g.pieces[0]); H.decorate.update(g, s, dt); },
     want: () => [],
     draw(g, s, c) {
       g.sceneBoard(c); g.drawPlates(c); const q = g.slots()[0], pc = g.pieces[0]; if (!pc) return;
       CA.drawPieceAt(c, pc, q.x, q.y, q.r);
-      if (g.tool && !s.canDone && s.acts === 0 && g.idle > 2.5) { const sp = spots(pc), top = sp[sp.length - 1] || [0, -2, .6]; drawTapHint(c, q.x + top[0] * q.r, q.y + pieceBase(pc, q.r) + (top[1] - top[2] * .3) * q.r, g.U * .1, g.t); }
+      if (g.tool && !s.canDone && s.acts === 0 && g.idle > 2.5) { const sp = spots(pc), top = sp[sp.length - 1] || [0, -2, .6]; const r = q.r * ku(pc); drawTapHint(c, q.x + top[0] * r, q.y + pieceBase(pc, q.r) + (top[1] - top[2] * .3) * r, g.U * .1, g.t); }
     },
     hint: () => 'cook-toppings',
     tip(g, s) {
@@ -1018,7 +1023,7 @@
       if (g.menu) { const it = g.menu.it; return { tap: [it.x, it.y], wait: 200 }; }
       const used = s.usedTools || new Set(), want = s.spec.tools.find(t => !used.has(t)) || s.spec.tools[0];
       if (g.tool !== want) { const it = g.tray.find(t => t.id === want); return it ? { tap: [it.x, it.y], wait: 200 } : { wait: 200 }; }
-      const q = g.slots()[0], pc = g.pieces[0], sp = spots(pc), top = sp[sp.length - 1] || [0, -2, .6], ox = q.x, oy = q.y + pieceBase(pc, q.r), R = q.r;
+      const q = g.slots()[0], pc = g.pieces[0], sp = spots(pc), top = sp[sp.length - 1] || [0, -2, .6], ox = q.x, oy = q.y + pieceBase(pc, q.r), R = q.r * ku(pc);
       return { drag: [[ox + (top[0] - .4) * R, oy + top[1] * R], [ox + top[0] * R, oy + (top[1] - .3) * R], [ox + (top[0] + .4) * R, oy + top[1] * R]], steps: 5, wait: 200 };
     }
   };
@@ -1037,16 +1042,16 @@
   }
   H.icserve = {
     camera: true,
-    enter(g, s) { const p = g.pieces[0]; if (p) p.eatOnly = p.holder === 'cup'; H.serve.enter(g, s); },
+    enter(g, s) { const p = g.pieces[0]; if (p) p.eatOnly = p.holder === 'cup'; fitK(g, p); H.serve.enter(g, s); },
     down: (g, s, p) => H.serve.down(g, s, p),
-    update(g, s, dt) { H.serve.update(g, s, dt); if (g.finishedAll) s.finT = 99; },
+    update(g, s, dt) { fitK(g, g.pieces[0]); H.serve.update(g, s, dt); if (g.finishedAll) s.finT = 99; },
     draw(g, s, c) {
       g.drawPlates(c); const pl = g.plate(), q = g.slots()[0], pc = g.pieces[0];
       for (const k of g.crumbs || []) { c.fillStyle = k.col; c.beginPath(); c.ellipse(pl.x + k.x * g.U, pl.y + k.y * g.U, k.r * g.U, k.r * g.U * .7, k.x * 9, 0, TAU); c.fill(); }
       if (!pc || !q) return; const bob = (g.finishedAll ? 0 : Math.sin(g.t * 3) * 2) + (g.bounce || 0) * -4, cup = pc.holder === 'cup', ox = q.x, oy = q.y + bob + pieceBase(pc, q.r);
-      if (cup) { c.save(); c.translate(ox, oy); cupBack(c, q.r); cupSpoon(c, q.r); c.restore(); }
+      if (cup) { c.save(); c.translate(ox, oy); cupBack(c, q.r * ku(pc)); cupSpoon(c, q.r * ku(pc)); c.restore(); }
       if (!pc.gone) drawEaten(g, c, pc, q.x, q.y + bob, q.r);
-      if (cup) { c.save(); c.translate(ox, oy); cupFront(c, q.r); c.restore(); }
+      if (cup) { c.save(); c.translate(ox, oy); cupFront(c, q.r * ku(pc)); c.restore(); }
       if (!s.n && !g.finishedAll) drawTapHint(c, q.x, q.y - q.r * .4, g.U * .1, g.t);
     },
     hint: () => 'cook-serve',
