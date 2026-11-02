@@ -292,9 +292,11 @@
       this.goal = null; this.want = null; this.steer = null; this.keys = {}; this.cam = { x: 0, y: 0 }; this.bumpT = 0; this.fade = 1; this.fadeTo = null; this.lockSay = 0; this.snake = []; this.team = []; this.flyers = [];
       this.tick = this.tick.bind(this);
       const cv = this.canvas, at = e => { const r = cv.getBoundingClientRect(); return { x: (e.clientX - r.left) * this.w / r.width, y: (e.clientY - r.top) * this.h / r.height }; };
-      cv.addEventListener('pointerdown', e => { e.preventDefault(); try { cv.setPointerCapture(e.pointerId); } catch (_) { /* optional */ } SPG.audio.unlock(); const p = at(e); this.steer = { id: e.pointerId, sx: p.x, sy: p.y, x: p.x, y: p.y, moved: false }; });
-      cv.addEventListener('pointermove', e => { const s = this.steer; if (!s || s.id !== e.pointerId) return; e.preventDefault(); const p = at(e); s.x = p.x; s.y = p.y; if (Math.hypot(p.x - s.sx, p.y - s.sy) > 14) s.moved = true; });
-      for (const n of ['pointerup', 'pointercancel']) cv.addEventListener(n, e => { const s = this.steer; if (!s || s.id !== e.pointerId) return; this.steer = null; if (!s.moved) this.tapAt(s.x, s.y); });
+      // the newest finger steers; when it lifts, a finger that is still down steers again (another finger lifting never stops her)
+      this.fingers = new Map();
+      cv.addEventListener('pointerdown', e => { e.preventDefault(); try { cv.setPointerCapture(e.pointerId); } catch (_) { /* optional */ } SPG.audio.unlock(); const p = at(e); this.fingers.set(e.pointerId, this.steer = { id: e.pointerId, sx: p.x, sy: p.y, x: p.x, y: p.y, moved: false }); });
+      cv.addEventListener('pointermove', e => { const s = this.fingers.get(e.pointerId); if (!s) return; e.preventDefault(); const p = at(e); s.x = p.x; s.y = p.y; if (Math.hypot(p.x - s.sx, p.y - s.sy) > 14) s.moved = true; });
+      for (const n of ['pointerup', 'pointercancel']) cv.addEventListener(n, e => { const s = this.fingers.get(e.pointerId); if (!s) return; this.fingers.delete(e.pointerId); if (this.steer !== s) return; this.steer = [...this.fingers.values()].pop() || null; if (!s.moved) this.tapAt(s.x, s.y); });
       this.onKey = e => { this.keys[e.key] = e.type === 'keydown'; };
       addEventListener('keydown', this.onKey); addEventListener('keyup', this.onKey);
       this.mi = b.map; this.pendingFrom = 'start';
@@ -372,7 +374,7 @@
     complete() { return this.spots.every(q => !q.friend || q.friend.found); }
     start() { this.resize(); this.resume(); }
     resume() { if (this.running) return; this.running = true; this.last = performance.now(); this.raf = requestAnimationFrame(this.tick); }
-    pause() { this.running = false; cancelAnimationFrame(this.raf); this.steer = null; store.save(); }
+    pause() { this.running = false; cancelAnimationFrame(this.raf); this.steer = null; this.fingers.clear(); store.save(); }
     destroy() { this.pause(); removeEventListener('keydown', this.onKey); removeEventListener('keyup', this.onKey); this.canvas.remove(); this.counter.el.remove(); }
 
     /* ---------------------------------------------------------------- walking, looking, tapping */
