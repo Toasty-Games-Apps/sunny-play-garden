@@ -1,5 +1,5 @@
 import { start, stop, newPage, login, openGame } from './lib.mjs';
-process.env.PORT = '8145';
+process.env.PORT = process.env.PORT || '8145';
 const b = await start();
 for (const age of [2, 4, 7]) {
   const page = await newPage(b, 1280, 800); await login(page, { age });

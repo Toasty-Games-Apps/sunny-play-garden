@@ -1,6 +1,6 @@
 import { start, stop, newPage, login, openGame } from './lib.mjs';
 const wait = ms => new Promise(r => setTimeout(r, ms));
-process.env.PORT = '8142';
+process.env.PORT = process.env.PORT || '8142';
 const b = await start();
 for (const age of [2, 4, 7]) {
   const page = await newPage(b, 1280, 800); await login(page, { age }); await openGame(page, 'Hide and Seek'); await wait(500);
