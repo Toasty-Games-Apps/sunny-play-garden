@@ -25,6 +25,8 @@
   const segDist = (p, L) => { const dx = L.x2 - L.x1, dy = L.y2 - L.y1, l2 = dx * dx + dy * dy || 1, t = clamp(((p.x - L.x1) * dx + (p.y - L.y1) * dy) / l2, 0, 1); return D(p.x, p.y, L.x1 + dx * t, L.y1 + dy * t); };
   const quiet = s => { if (s && s.snd) { s.snd.off(); s.snd = null; } };
   const wide = g => g.w > g.SH * 1.15;
+  // the top of the helper's thought bubble (bottom left, drawn by the kitchen): tall layouts keep their things above it
+  const bubTop = g => { const r = Math.max(26, g.th * .36); return g.h - g.th / 2 - 2 - r * 2.95; };
   // what this recipe has made so far, kept on the game between steps (the first step of a recipe starts a fresh one)
   const fresh = g => (g.fresh = { R: g.R });
   const FR = g => (g.fresh && g.fresh.R === g.R ? g.fresh : fresh(g));
@@ -235,20 +237,20 @@
   }
   // one grape quarter on its own (in bowls and on the fork), r = the grape's width
   function drawGrapeQuarter(c, r) { c.save(); c.translate(-r * .35, r * .32); drawGrapeParts(c, r, r * 1.15, 4, 0, 0); c.restore(); }
-  // A quarter of a grape, lying in a bowl: a long half-moon with a round purple back. Some land skin up (all purple and shiny), the others
-  // show the pale green inside with the purple skin along the edge. v picks which.
+  // A quarter of a grape, lying in a bowl: a long half-moon with a round purple back. Most land cut side up (pale green inside, purple skin along the edge),
+  // the others skin up (all purple and shiny). v picks which.
   function drawGrapeBit(c, r, v) {
-    const moon = k => { c.beginPath(); c.ellipse(0, 0, r * k, r * 1.3 * k, 0, -Math.PI / 2, Math.PI / 2); c.closePath(); };
+    const moon = k => { c.beginPath(); c.ellipse(0, 0, r * 1.05 * k, r * 1.15 * k, 0, -Math.PI / 2, Math.PI / 2); c.closePath(); };
     c.save(); c.translate(-r * .4, 0);
     ell(c, r * .5, r * .9, r * .55, r * .25, 'rgba(70,30,60,.16)');
-    if (v % 3 === 0) { moon(1); c.fillStyle = GRAPE.skin; c.fill(); moon(.88); c.fillStyle = rad(c, r * .1, 0, r * .05, r * 1.2, [[0, '#f8fdea'], [.6, GRAPE.flesh], [1, GRAPE.lo2]]); c.fill(); c.strokeStyle = 'rgba(160,190,110,.6)'; c.lineWidth = Math.max(.8, r * .08); c.beginPath(); c.moveTo(r * .08, -r * .6); c.quadraticCurveTo(r * .3, 0, r * .08, r * .6); c.stroke(); }
+    if (v % 3 !== 0) { moon(1); c.fillStyle = GRAPE.skin; c.fill(); moon(.88); c.fillStyle = rad(c, r * .1, 0, r * .05, r * 1.2, [[0, '#f8fdea'], [.6, GRAPE.flesh], [1, GRAPE.lo2]]); c.fill(); c.strokeStyle = 'rgba(160,190,110,.6)'; c.lineWidth = Math.max(.8, r * .08); c.beginPath(); c.moveTo(r * .08, -r * .6); c.quadraticCurveTo(r * .3, 0, r * .08, r * .6); c.stroke(); }
     else { moon(1); c.fillStyle = rad(c, r * .25, -r * .45, r * .05, r * 1.4, [[0, GRAPE.hi], [.5, '#7d4ab8'], [1, GRAPE.skin]]); c.fill(); shine(c, r * .35, -r * .4, r * .16, r * .32, .2, .6); }
     c.restore();
   }
   function drawPiece1(c, k, R, v = 0) {
     if (k === 'banana') { c.scale(1, .86); ING.banana(c, R * .3); }
     else if (k === 'berry') drawBerryHalf(c, R * .27);
-    else drawGrapeBit(c, R * .075, v);
+    else drawGrapeBit(c, R * .068, v);
   }
   const PEEL = '#ffd84a', PEEL_D = '#e2a91c', PEEL_IN = '#fbf1c8';
   // A banana standing up, being peeled: three strips of peel (left, front, right) that fold down from the top. ps[id] = how far each strip
@@ -263,6 +265,8 @@
     const band = (a, b, y0, y1, k = 1) => { c.beginPath(); for (let i = 0; i <= N; i++) { const y = ys(y0, y1, i); c.lineTo(cx(y) + a * hw(y) * k, y); } for (let i = N; i >= 0; i--) { const y = ys(y0, y1, i); c.lineTo(cx(y) + b * hw(y) * k, y); } c.closePath(); };
     const peelFill = () => lin(c, -pw, 0, pw + L * .05, 0, [[0, PEEL_D], [.25, PEEL], [.6, '#ffe878'], [1, PEEL_D]]);
     const edge = () => { c.strokeStyle = 'rgba(185,135,25,.7)'; c.lineWidth = Math.max(1, L * .007); c.stroke(); };
+    // the outline is stroked as the two open sides of a band, so the bands meet with no line across the banana
+    const sides = (a, b, y0, y1) => { for (const q of [a, b]) { c.beginPath(); for (let i = 0; i <= N; i++) { const y = ys(y0, y1, i); c.lineTo(cx(y) + q * hw(y), y); } edge(); } };
     const spots = (a0, a1, y0, y1) => { for (const [a, u, k] of SPOTS) { const y = top + u * (bot - top); if (a < a0 || a > a1 || y < y0 || y > y1) continue; ell(c, cx(y) + a * hw(y), y, L * .0065 * k, L * .005 * k, 'rgba(140,95,30,.36)'); } };
     const strip = (len, w, inside, stem) => {
       c.beginPath(); c.moveTo(-w / 2, 0); c.bezierCurveTo(-w * .62, -len * .5, -w * .45, -len * .86, 0, -len); c.bezierCurveTo(w * .45, -len * .86, w * .62, -len * .5, w / 2, 0); c.closePath();
@@ -282,10 +286,10 @@
       ell(c, cx(top), top + L * .01, pw * .2, L * .012, '#c9a868'); shine(c, cx(top + L * .3) - pw * .32, top + L * .3, pw * .1, L * .11, 0, .5);
     }
     if (part === 'front') {
-      band(-1, 1, yB, bot); c.fillStyle = peelFill(); c.fill(); c.save(); c.beginPath(); c.rect(-L, yB + 1.5, L * 2, L); c.clip(); band(-1, 1, yB, bot); edge(); c.restore();
+      band(-1, 1, yB, bot); c.fillStyle = peelFill(); c.fill(); sides(-1, 1, yB, bot);
       c.save(); band(-1, 1, yB, bot); c.clip(); spots(-1, 1, yB, bot); c.restore();
       const B = { left: [-1, -1 / 3], front: [-1 / 3, 1 / 3], right: [1 / 3, 1] };
-      for (const id of ['left', 'front', 'right']) if (ps[id] <= 0) { const [a, b] = B[id]; band(a, b, top, yB + 1); c.fillStyle = peelFill(); c.fill(); c.save(); c.clip(); spots(a, b, top, yB); c.restore(); c.save(); c.beginPath(); c.rect(-L, -L, L * 2, L + yB - .5); c.clip(); band(a, b, top, yB + 1); edge(); c.restore(); }
+      for (const id of ['left', 'front', 'right']) if (ps[id] <= 0) { const [a, b] = B[id]; band(a, b, top, yB + 1); c.fillStyle = peelFill(); c.fill(); c.save(); c.clip(); spots(a, b, top, yB); c.restore(); sides(a, b, top, yB); }
       c.strokeStyle = 'rgba(175,125,25,.5)'; c.lineWidth = Math.max(1, L * .006);
       for (const k of [-1 / 3, 1 / 3]) { const closed = k < 0 ? ps.left <= 0 && ps.front <= 0 : ps.front <= 0 && ps.right <= 0; c.beginPath(); for (let i = 2; i <= N - 2; i++) { const y = ys(top, bot, i); if (y < yB && !closed) continue; c.lineTo(cx(y) + k * hw(y), y); } c.stroke(); }
       ell(c, cx(bot), bot, L * .022, L * .014, '#5a3a1a');
@@ -672,7 +676,9 @@
       const SH = g.SH;
       if (g.w > SH * 1.3) { const d = Math.min(g.w * .31, SH * 1.0), rB = Math.min(d * .5, SH * .42), f = Math.min(d * .19, SH * .15); return { A: { x: g.bx - d, y: g.by + SH * .1 }, B: { x: g.bx, y: g.by - SH * .04 }, C: { x: g.bx + d, y: g.by + SH * .1 }, rB, f }; }
       const d = Math.min(SH * .33, g.w * .6), rB = Math.min(d * .7, g.w * .4), f = Math.min(d * .2, g.w * .1);
-      return { A: { x: g.bx, y: g.by - d }, B: { x: g.bx, y: g.by + SH * .02 }, C: { x: g.bx, y: g.by + d }, rB, f };
+      // basket, water, towel from top to bottom; the column moves up when the towel would sit under the helper's bubble
+      const up = Math.max(0, g.by + d + f * 1.9 - (bubTop(g) - 6));
+      return { A: { x: g.bx, y: g.by - d - up * .3 }, B: { x: g.bx, y: g.by + SH * .02 - up * .6 }, C: { x: g.bx, y: g.by + d - up }, rB, f };
     },
     enter(g, s) {
       fresh(g); const C = FS(); s.items = []; let k = 0;
@@ -830,12 +836,12 @@
     },
     pos(L, o) {
       const S = L.S, n = o.n;
-      if (o.kind === 'banana') return { x: L.bx, y: L.by, len: Math.min(S * .8, L.bw * .8), th: S * .15 };
+      if (o.kind === 'banana') { const len = Math.min(S * .78, L.bw * .64); return { x: L.bx, y: L.by, len, th: Math.min(S * .15, len * .19) }; }
       if (o.kind === 'berry') { const sp = Math.min(S * .36, L.bw * .88 / n), sb = Math.min(S * .42, sp * (n > 1 ? .82 : 1)); return { x: L.bx + (o.i - (n - 1) / 2) * sp, y: L.by, sb }; }
       const grid = n === 4 && L.bw < L.bh * 1.1, sp = grid ? Math.min(S * .36, L.bw * .42) : Math.min(S * .28, L.bw * .88 / n), rx = Math.min(S * .085, sp * .3), ry = rx * 1.18, gap = rx * .3;
       return grid ? { x: L.bx + ((o.i % 2) - .5) * sp, y: L.by + (Math.floor(o.i / 2) - .5) * sp, rx, ry, gap } : { x: L.bx + (o.i - (n - 1) / 2) * sp, y: L.by, rx, ry, gap };
     },
-    bOff(o, u, len) { let off = 0; for (let k = 0; k < o.done; k++) { const uk = 1 - (k + 1) / (o.want + 1); off += (u > uk ? .5 : -.5) * ease(o.sep[k] || 0) * len * .075; } return off; },
+    bOff(o, u, len) { let off = 0; for (let k = 0; k < o.done; k++) { const uk = 1 - (k + 1) / (o.want + 1); off += (u > uk ? .5 : -.5) * ease(o.sep[k] || 0) * len * .055; } return off; },
     line(L, o) {
       if (o.done >= o.want) return null; const q = CUTH.pos(L, o);
       if (o.kind === 'banana') { const u = 1 - (o.done + 1) / (o.want + 1), x = q.x - q.len / 2 + u * q.len + CUTH.bOff(o, u, q.len), yc = q.y - q.th * .35 * (1 - (2 * u - 1) ** 2); return { x1: x, y1: yc - q.th * 1.3, x2: x, y2: yc + q.th * 1.3 }; }
@@ -997,23 +1003,37 @@
   const EATH = H['fs-eat'] = {
     camera: true,
     geo(g) { const R = Math.min(g.w * .4, g.SH * .52, g.U * .46); return { x: g.bx, y: g.by - R * .02, R }; },
-    enter(g, s) { const Fr = FR(g); if (!Fr.salad || !Fr.salad.pieces.length) Fr.salad = copySalad(SAMPLE_SALAD); for (const p of Fr.salad.pieces) { p.drop = 0; p.taken = p.gone = false; } s.fork = null; s.n = 0; g.fx.burst(g.bx, g.by, 24, { colors: ['#ffd54a', '#ffffff', '#ff9ec8'], speed: 280, g: 200, life: 1, size: 7, shape: 'star' }); },
+    enter(g, s) { const Fr = FR(g); if (!Fr.salad || !Fr.salad.pieces.length) Fr.salad = copySalad(SAMPLE_SALAD); for (const p of Fr.salad.pieces) { p.drop = 0; p.wait = 0; p.taken = p.gone = false; } s.fork = null; s.n = 0; s.empty = false; s.moreT = null; g.fx.burst(g.bx, g.by, 24, { colors: ['#ffd54a', '#ffffff', '#ff9ec8'], speed: 280, g: 200, life: 1, size: 7, shape: 'star' }); },
     rest(B) { return { x: B.x + B.R * 1.08, y: B.y + B.R * .25 }; },
     down(g, s, p) {
-      if (g.finishedAll || s.fin) return; if (s.fork && s.fork.t < .56) return; if (s.fork) { EATH.eat(g, s); if (s.fin) return; } const B = EATH.geo(g), Fr = FR(g); if (D(p.x, p.y, B.x, B.y) > B.R * 1.7) return;
+      const B = EATH.geo(g), Fr = FR(g);
+      // an empty bowl: a touch on it spoons in a second helping (for another taste, or a photo of a full bowl)
+      if (s.empty) { if (D(p.x, p.y, B.x, B.y) < B.R * 1.3) EATH.more(g, s); return; }
+      if (s.fork && s.fork.t < .56) return; if (s.fork) { EATH.eat(g, s); if (s.empty) return; } if (D(p.x, p.y, B.x, B.y) > B.R * 1.7) return;
       const live = Fr.salad.pieces.filter(pc => !pc.gone && !pc.taken); if (!live.length) return; let best = null;
       for (const pc of live) { const q = piecePos(pc, B.R), x = B.x + q.x, y = B.y + q.y, sc = D(p.x, p.y, x, y) - pc.h * B.R * .3; if (!best || sc < best.sc) best = { pc, sc, x, y }; }
       const take = [best.pc]; for (const pc of live) { if (take.length >= 3) break; if (pc === best.pc) continue; const q = piecePos(pc, B.R); if (D(B.x + q.x, B.y + q.y, best.x, best.y) < B.R * (pc.k === 'grape' ? .3 : .2)) take.push(pc); }
       for (const pc of take) pc.taken = true; s.fork = { t: 0, x: best.x, y: best.y, take };
     },
+    more(g, s) {
+      s.empty = false; s.moreT = null; sfx.whoosh(); const ps = FR(g).salad.pieces;
+      // one after another the pieces tumble in from a big spoon above the bowl (each waits its turn hidden)
+      ps.forEach((pc, i) => { pc.gone = true; pc.taken = false; pc.wait = .05 + i / ps.length * .9; pc.drop = 1; pc.fx = (rnd(i * 3 + s.n) - .5) * .4; pc.fy = -1.3; });
+    },
     update(g, s, dt) {
+      for (const pc of FR(g).salad.pieces) { if (pc.wait > 0) { pc.wait -= dt; if (pc.wait <= 0) { pc.wait = 0; pc.gone = false; } } else if (pc.drop > 0) { pc.drop = Math.max(0, pc.drop - dt * 2.4); if (!pc.drop) SND.plop(pc.sd * 7 | 0); } }
+      if (s.moreT != null) { s.moreT -= dt; if (s.moreT <= 0) { s.moreT = null; voice.say('fs-more'); } }
       const Fk = s.fork; if (!Fk) return; const t0 = Fk.t; Fk.t += dt;
       if (t0 < .2 && Fk.t >= .2) { sfx.squish(); SND.squelch(); }
       if (t0 < .55 && Fk.t >= .55) { sfx.munch(); s.n++; for (const pc of Fk.take) pc.gone = true; const B = EATH.geo(g); g.fx.burst(B.x, Math.max(g.y0 + B.R * .2, B.y - B.R * 1.05), 12, { colors: ['#ff9aa6', '#fff1a0', '#e6f4c4', '#b58cf0'], speed: 160, g: 500, life: .55, size: 4 }); g.bounce = 1; if (s.n % 3 === 1) voice.say('cook-yum'); }
       if (Fk.t >= .78) EATH.eat(g, s);
     },
     // the fork is back (or a new touch comes once this bite is eaten): when the bowl is empty the recipe is done
-    eat(g, s) { s.fork = null; if (FR(g).salad.pieces.every(pc => pc.gone) && !g.finishedAll) { const B = EATH.geo(g); g.fx.burst(B.x, B.y, 26, { colors: ['#ffd54a', '#ff9ec8', '#ffffff'], speed: 260, g: 300, life: .9, size: 6, shape: 'star' }); g.recipeDone(); s.fin = true; s.finT = 1e9; } },
+    eat(g, s) {
+      s.fork = null; if (!FR(g).salad.pieces.every(pc => pc.gone)) return;
+      s.empty = true; s.moreT = 3; const B = EATH.geo(g); g.fx.burst(B.x, B.y, 26, { colors: ['#ffd54a', '#ff9ec8', '#ffffff'], speed: 260, g: 300, life: .9, size: 6, shape: 'star' });
+      if (!g.finishedAll) g.recipeDone();
+    },
     draw(g, s, c) {
       const B = EATH.geo(g), Fr = FR(g), Fk = s.fork, rest = EATH.rest(B);
       const all = Fr.salad.pieces.length || 1, left = Fr.salad.pieces.filter(p => !p.gone).length / all;
@@ -1021,11 +1041,11 @@
       let fx = rest.x, fy = rest.y, ang = .5, k = 1, carry = null; const topY = Math.max(g.y0 + B.R * .2, B.y - B.R * 1.05);
       if (Fk) { const u = Fk.t; if (u < .2) { const e = ease(u / .2); fx = lerp(rest.x, Fk.x, e); fy = lerp(rest.y, Fk.y - B.R * .4, e); ang = lerp(.5, Math.PI, e); } else if (u < .55) { const e = ease((u - .2) / .35); fx = lerp(Fk.x, B.x, e); fy = lerp(Fk.y - B.R * .4, topY - B.R * .4, e); ang = Math.PI; k = lerp(1, .9, e); carry = Fk.take; } else { const e = ease((u - .55) / .23); fx = lerp(B.x, rest.x, e); fy = lerp(topY - B.R * .4, rest.y, e); ang = lerp(Math.PI, .5, e); } }
       if (carry) carry.forEach((pc, i) => { c.save(); c.translate(fx + (i - (carry.length - 1) / 2) * B.R * .06, fy + B.R * .44 * k); c.rotate(pc.rot); drawPiece1(c, pc.k, B.R * k, pc.sd | 0); c.restore(); });
-      if (!g.finishedAll || Fk) drawFork(c, fx, fy, B.R * .9 * k, ang);
-      if (!s.n && !Fk && !g.finishedAll) pointAt(g, c, B.x, B.y - B.R * .3, Math.max(16, B.R * .14));
+      if (!s.empty || Fk) drawFork(c, fx, fy, B.R * .9 * k, ang);
+      if ((!s.n && !Fk && !g.finishedAll) || (s.empty && g.idle > 3)) pointAt(g, c, B.x, B.y - B.R * .3, Math.max(16, B.R * .14));
     },
-    auto(g, s) { if (s.fork || g.finishedAll) return { wait: 250 }; const B = EATH.geo(g), pc = FR(g).salad.pieces.find(p => !p.gone && !p.taken); if (!pc) return { wait: 250 }; const q = piecePos(pc, B.R); return { tap: [B.x + q.x, B.y + q.y], wait: 300 }; },
-    hint: () => 'fs-eat',
+    auto(g, s) { if (s.fork || s.empty || g.finishedAll) return { wait: 250 }; const B = EATH.geo(g), pc = FR(g).salad.pieces.find(p => !p.gone && !p.taken); if (!pc) return { wait: 250 }; const q = piecePos(pc, B.R); return { tap: [B.x + q.x, B.y + q.y], wait: 300 }; },
+    hint: (g, s) => s.empty ? 'fs-more' : 'fs-eat',
     tip: () => 'HAPPY'
   };
 
@@ -1162,8 +1182,8 @@
     geo(g) {
       // a wide screen puts the jug, the pitcher and the cup in a row; a tall one stands the jug and the cup on a shelf above
       if (g.w > g.SH) { const P = Math.min(g.SH * .6, g.w * .36), floor = Math.min(g.y1 - g.SH * .06, g.by + P * .62), d = Math.min(g.w * .34, P * 1.1); return { P, floor, cs: P * .6, js: P * .78, pit: { x: g.bx, y: floor }, cup: { x: g.bx + d, y: floor - P * .6 * .34 }, jug: { x: g.bx - d, y: floor } }; }
-      const P = Math.min(g.SH * .42, g.w * .56), floor = g.y1 - g.SH * .07, up = floor - P * 1.14, d = g.w * .3;
-      return { P, floor, cs: P * .6, js: P * .78, pit: { x: g.bx, y: floor }, cup: { x: g.bx + d, y: up - P * .6 * .34 }, jug: { x: g.bx - d, y: up } };
+      const P = Math.min(g.SH * .42, g.w * .56), floor = Math.min(g.y1 - g.SH * .07, bubTop(g) - 6), up = floor - P * 1.14, d = g.w * .3;
+      return { P, floor, cs: P * .6, js: P * .78, pit: { x: g.bx, y: floor }, cup: { x: Math.min(g.bx + d, g.w - P * .6 * .64 - 8), y: up - P * .6 * .34 }, jug: { x: g.bx - d, y: up } };
     },
     enter(g, s) { const Fr = FR(g); Fr.juice = Fr.juice || .6; s.cupF = Fr.juice; Fr.pit = s.pit = { juice: 0, water: 0 }; s.line = tier() === 3 ? .78 : .7; s.phase = 'juice'; s.cup = { pose: 0, go: false, back: false, drag: null }; s.jug = { pose: 0, f: .85 }; s.hold = false; s.tap = 0; },
     cupPose(G) { const th = -1.2, tx = G.pit.x + G.P * .1, ty = G.floor - G.P * .93 - G.P * .22, r = rotP(-.31 * G.cs, -.32 * G.cs, th); return { x: tx - r[0], y: ty - r[1], th, lx: tx, ly: ty }; },
@@ -1212,7 +1232,7 @@
 
   // ---- 5. Sugar: spoon by spoon (counted), then stir until the sugar has disappeared.
   const SUG = H['lm-sugar'] = {
-    geo(g) { const P = Math.min(g.SH * .62, g.w * .44), floor = Math.min(g.y1 - g.SH * .05, g.by + P * .58); return { P, floor, x: g.bx, c: { x: g.bx, y: floor - P * .4 } }; },
+    geo(g) { const tall = g.w < g.SH, P = Math.min(g.SH * .62, g.w * (tall ? .6 : .44)), floor = Math.min(g.y1 - g.SH * .05, g.by + P * (tall ? .7 : .58), tall ? bubTop(g) - 6 : 1e9); return { P, floor, x: g.bx, c: { x: g.bx, y: floor - P * .4 } }; },
     enter(g, s) { const Fr = FR(g), C = LM(); s.need = C.spoons; s.n = 0; s.spoon = null; s.sugar = 0; s.dis = 0; s.turns = [1.5, 2, 2.5][C.T - 1]; s.phase = 'spoon'; s.swirl = 0; s.swirlK = 0; Fr.pit = Fr.pit || { juice: .15, water: .55 }; s.pit = Fr.pit; g.setTray([{ id: 'sugar', cnt: { total: C.spoons, done: 0 } }]); },
     drop(g, s, it, x, y, tap) { if (s.phase !== 'spoon' || s.spoon || s.n >= s.need) return false; const G = SUG.geo(g); if (!tap && D(x, y, G.c.x, G.c.y) > G.P * .8) return false; s.spoon = { t: 0, x0: it.x, y0: it.y, it }; return true; },
     down(g, s, p) { if (s.phase !== 'stir') return; s.on = true; s.ang = null; SUG.move(g, s, p); },
@@ -1255,7 +1275,7 @@
 
   // ---- 6. A glass: drop in the ice cubes (counted, clink), then touch or drag the pitcher and it pours the lemonade into the glass.
   const GLH = H['lm-glass'] = {
-    geo(g) { const w = g.w > g.SH * .95, P = Math.min(g.SH * .52, g.w * (w ? .3 : .4)), Gs = Math.min(P * .85, g.SH * .46), floor = Math.min(g.y1 - g.SH * .05, g.by + P * .62), d = w ? Math.min(g.w * .22, P * .95) : g.w * .25; return { P, Gs, floor, pit: { x: g.bx - d, y: floor }, gl: { x: g.bx + d * .85, y: floor } }; },
+    geo(g) { const w = g.w > g.SH * .95, floor = w ? g.y1 - g.SH * .05 : Math.min(g.y1 - g.SH * .07, bubTop(g) - 6), P = Math.min(g.SH * .52, g.w * (w ? .3 : .42), (floor - g.y0 - 6) / 1.74), Gs = Math.min(P * .85, g.SH * .46), d = w ? Math.min(g.w * .22, P * .95) : g.w * .25; return { P, Gs, floor, pit: { x: g.bx - d, y: floor }, gl: { x: g.bx + d * .85, y: floor } }; },
     enter(g, s) { const Fr = FR(g), C = LM(); Fr.pit = Fr.pit || { juice: .15, water: .55 }; s.pit = Fr.pit; Fr.glass = s.Gl = { level: 0, ice: [], straw: null, slice: 0, mint: 0, col: mixHex(lemCol(Fr.pit), '#fffbe0', .35) }; s.need = C.ice; s.n = 0; s.fly = []; s.phase = 'ice'; s.pose = 0; s.go = false; s.back = false; g.setTray([{ id: 'lm-ice', cnt: { total: C.ice, done: 0 } }]); },
     pose(G) { const th = 1.15, tx = G.gl.x - G.Gs * .06, ty = G.floor - G.Gs - G.Gs * .22, r = rotP(.42 * G.P, -.99 * G.P, th); return { x: tx - r[0], y: ty - r[1], th, lx: tx, ly: ty }; },
     drop(g, s, it, x, y, tap) { if (s.phase !== 'ice' || s.n + s.fly.length >= s.need) return false; const G = GLH.geo(g); if (!tap && D(x, y, G.gl.x, G.floor - G.Gs * .5) > G.Gs * .9) return false; s.fly.push({ t: 0, x0: it.x, y0: it.y, rot: Math.random() * 1.2 - .6, k: .9 + Math.random() * .2, it }); sfx.whoosh(); return true; },
@@ -1287,7 +1307,7 @@
 
   // ---- 7. Make it pretty: a straw (any colour; touch another to swap), a lemon slice on the rim, a mint leaf if she likes.
   const GAR = H['lm-garnish'] = {
-    geo(g) { const Gs = Math.min(g.SH * .66, g.w * .55, g.U * .7); return { Gs, x: g.bx, y: g.y1 - g.SH * .06 }; },
+    geo(g) { const Gs = Math.min(g.SH * .6, g.w * .55, g.U * .66); return { Gs, x: g.bx, y: Math.min(g.y1 - g.SH * .04, g.w < g.SH ? bubTop(g) - 6 : 1e9) }; },
     enter(g, s) { const Fr = FR(g); Fr.glass = Fr.glass || { level: .8, ice: [{ x: -.6, rot: .3, k: 1 }, { x: .5, rot: -.4, k: .95 }], col: LEMONADE }; Fr.glass.level = Math.max(Fr.glass.level, .6); s.Gl = Fr.glass; g.setTray(['lm-straw-pink', 'lm-straw-blue', 'lm-straw-green', 'lm-slice', 'fr-mint'].map(id => ({ id }))); },
     drop(g, s, it, x, y, tap) {
       if (s.fin) return false; const G = GAR.geo(g), Gl = s.Gl; if (!tap && D(x, y, G.x, G.y - G.Gs * .6) > G.Gs * .85) return false;
@@ -1333,7 +1353,7 @@
     },
     draw(g, s, c) {
       const G = SIP.geo(g), Gl = s.Gl;
-      if (s.refill) { const u = s.refill.t, e = ease(clamp(u / .6, 0, 1)) * (1 - ease(clamp((u - 1.7) / .4, 0, 1))), ty = G.y - G.Gs - G.Gs * .06, P = Math.max(G.Gs * .3, Math.min(G.Gs * .6, (ty - g.y0 - 8) / .68)), th = 1.15 * e, tx = G.x - G.Gs * .06, r = rotP(.42 * P, -.99 * P, 1.15), ox = tx - r[0], oy = ty - r[1], x = lerp(-P * .7, ox, e), y = lerp(oy + P * .3, oy, e); if (u > .6 && u < 1.7) drawStream(c, tx, ty, tx - G.Gs * .02, G.y + (Gl.level > .003 ? levelOf(GLS, 0, Gl.level) * G.Gs : -G.Gs * .08), Math.max(3, G.Gs * .045), Gl.col || LEMONADE, g.t); drawGlass(c, G.x, G.y, G.Gs, Gl, g.t); drawPitcher(c, x, y, P, .55, Gl.col || LEMONADE, { tilt: th }); return; }
+      if (s.refill) { const u = s.refill.t, e = ease(clamp(u / .6, 0, 1)) * (1 - ease(clamp((u - 1.7) / .4, 0, 1))), ty = G.y - G.Gs - G.Gs * .06, bh = clamp(g.h * .09, 44, 66), P = Math.max(G.Gs * .3, Math.min(G.Gs * .6, (ty - g.y0 - bh * 1.25) / .5)), th = 1.15 * e, tx = G.x - G.Gs * .06, r = rotP(.42 * P, -.99 * P, 1.15), ox = tx - r[0], oy = ty - r[1], x = lerp(-P * .7, ox, e), y = lerp(oy + P * .3, oy, e); if (u > .6 && u < 1.7) drawStream(c, tx, ty, tx - G.Gs * .02, G.y + (Gl.level > .003 ? levelOf(GLS, 0, Gl.level) * G.Gs : -G.Gs * .08), Math.max(3, G.Gs * .045), Gl.col || LEMONADE, g.t); drawGlass(c, G.x, G.y, G.Gs, Gl, g.t); drawPitcher(c, x, y, P, .55, Gl.col || LEMONADE, { tilt: th }); return; }
       const bob = s.sip ? Math.sin(s.sip.t * 20) * 1.5 : 0;
       drawGlass(c, G.x, G.y + bob, G.Gs, Gl, g.t);
       if (s.empty) { const b = SIP.btn(g), k = 1 + Math.sin(g.t * 5) * .06; c.save(); c.translate(b.x, b.y); c.scale(k, k); ell(c, 2, 5, b.r, b.r, 'rgba(80,40,20,.22)'); circ(c, 0, 0, b.r, '#ffffff'); c.strokeStyle = CAT_COL[CAT].main; c.lineWidth = Math.max(3, b.r * .1); c.beginPath(); c.arc(0, 0, b.r, 0, TAU); c.stroke(); drawPitcher(c, -b.r * .05, b.r * .55, b.r * 1.1, .6, Gl.col || LEMONADE, {}); c.restore(); if (!hush() && g.idle > 2) pointAt(g, c, b.x, b.y - b.r * .3, b.r * .5); }
@@ -1387,6 +1407,7 @@
     'fs-mix': 'Mix gently! Slowly round and round.',
     'fs-gently': 'Gently, gently! Slow and careful.',
     'fs-eat': 'Touch the fruit to take a bite with the fork!',
+    'fs-more': 'All gone! Touch the bowl for some more.',
     'lm-roll': 'Press the lemon with a flat hand and roll it back and forth! Rolling makes more juice.',
     'lm-cut': 'Cut the lemon in half! Move the knife along the dotted line.',
     'lm-squeeze': 'Put a lemon half on the juicer, then press and twist!',
