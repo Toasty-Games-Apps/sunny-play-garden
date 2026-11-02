@@ -324,7 +324,7 @@
           return;
         }
       }
-      const s = this.st; if (s && H[s.k].down && !s.fin) { this.free = true; H[s.k].down(this, s, p); }
+      const s = this.st; if (s && H[s.k].down && !s.fin) { this.tipRun = null; this.free = true; H[s.k].down(this, s, p); }   // her own finger stops a helping squiggle
     }
     move(p) {
       this.idle = 0;
@@ -403,8 +403,9 @@
         const at = (u, v) => b.r ? { x: q.x + u * b.r * .55 * q.r, y: oy + v * b.r * .55 * q.r } : b.ex ? { x: q.x + u * b.ex * .5 * q.r, y: oy + v * b.ey * .5 * q.r } : { x: q.x + u * b.hw * .55 * q.r, y: oy + (b.y0 + (b.y1 - b.y0) * (.25 + v * .12)) * q.r };
         const r1 = Math.random() * 2 - 1, r2 = Math.random() * 2 - 1, D = H.decorate;
         if (SAUCES.includes(T.tool) || T.tool === 'icing' || T.tool === 'mozzarella') {   // a short squiggle across the middle
-          const pts = [-.8, -.4, 0, .4, .8].map((u, j) => at(u, (j % 2 ? .35 : -.35) + r2 * .2)); this.free = true; D.down(this, s, { ...pts[0], id: 0 });
-          let j = 1; const step = () => { if (this.st !== s || j >= pts.length) { if (this.st === s) { D.up(this, s, pts[pts.length - 1]); } this.free = false; return; } D.move(this, s, pts[j++]); setTimeout(step, 50); }; setTimeout(step, 50);
+          if (this.tipRun) return;   // one helping squiggle at a time, however fast the bubble is tapped
+          const pts = [-.8, -.4, 0, .4, .8].map((u, j) => at(u, (j % 2 ? .35 : -.35) + r2 * .2)), run = this.tipRun = {}; this.free = true; D.down(this, s, { ...pts[0], id: 0 });
+          let j = 1; const step = () => { if (this.tipRun !== run) return; if (this.st !== s || j >= pts.length || !this.running) { this.tipRun = null; if (this.st === s) { D.up(this, s, pts[pts.length - 1]); } this.free = false; return; } D.move(this, s, pts[j++]); setTimeout(step, 50); }; setTimeout(step, 50);
         } else { const pt = at(r1, r2); D.down(this, s, pt); D.up(this, s, pt); }
       } else if (k === 'pick') { const cd = H.pick.cards(this, s).find(c => c.id === id) || H.pick.cards(this, s)[0]; H.pick.down(this, s, cd); }
       else if (k === 'cut') { const it = this.tray.find(t => t.id === id); if (it) { s.cutter = it.id; this.tool = it.id; } for (let n = 0; n < 30; n++) { const a = H.cut.area(this, s), x = a.x + (Math.random() - .5) * (a.sq ? a.h * 1.6 : a.rx * 1.6), y = a.y + (Math.random() - .5) * (a.sq ? a.h * 1.6 : a.ry * 1.6); if (H.cut.place(this, s, x, y) && H.cut.try(this, s, x, y)) break; } }

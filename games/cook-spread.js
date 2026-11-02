@@ -148,8 +148,9 @@
       const j = s.jars.indexOf(id), jar = G.jars[Math.max(0, j)];
       if (j >= 0 && s.open[j] < 1) { if (!s.opening[j]) H.spread.openJar(g, s, j); return; }
       if (!s.load || s.load.amt <= 0) { H.spread.dip(g, s, Math.max(0, j)); return; }
-      const pts = H.spread.autoPath(g, s, G); let k = 0; s.drag = true; s.last = null; g.loop('spread');
-      const step = () => { if (g.st !== s || s.phase !== 'spread') return; if (k >= pts.length || !s.load || s.load.amt <= 0) { H.spread.up(g, s, {}); return; } H.spread.move(g, s, { x: pts[k][0], y: pts[k][1] }); k++; setTimeout(step, 30); }; step();
+      if (s.auto) return;   // one helping stroke at a time, however fast the bubble is tapped
+      const pts = H.spread.autoPath(g, s, G), run = s.auto = {}; let k = 0; s.drag = true; s.last = null; g.loop('spread');
+      const step = () => { if (g.st !== s || s.phase !== 'spread' || s.auto !== run) return; if (k >= pts.length || !s.load || s.load.amt <= 0 || !g.running) { s.auto = null; H.spread.up(g, s, {}); return; } H.spread.move(g, s, { x: pts[k][0], y: pts[k][1] }); k++; setTimeout(step, 30); }; step();
     },
     // a zigzag over the slice with the least on it, through its bare cells (used by the bubble and by the tests)
     autoPath(g, s, G, n = 16) {
@@ -176,6 +177,7 @@
       if (!s.said.spread) { s.said.spread = true; g.say(s.spec.say || 'cook-spread', 1); }
     },
     down(g, s, p) {
+      s.auto = null;   // her own finger always wins over a helping stroke
       const G = H.spread.geom(g, s);
       if (s.phase === 'close') { if (!s.closeT) H.spread.close(g, s); return; }
       if (s.phase !== 'spread') return;

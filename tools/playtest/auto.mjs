@@ -3,6 +3,24 @@ const W = +process.argv[2] || 1280, H = +process.argv[3] || 800, only = process.
 const wait = ms => new Promise(r => setTimeout(r, ms));
 const P = page => page.evaluate(() => { const g = SPG.cookGame; return { ...g.probe(), cutters: g.cutters, spec: g.st && g.st.spec, arrowPos: g.arrow ? g.arrowPos() : null, tab: g.tab, hasSt: !!g.st, left: g.st && g.st.left ? g.st.left.length : 0, canvasTop: g.canvas.getBoundingClientRect().top, spec: g.st && g.st.spec, recipe: g.R && g.R.id, sauces: g.pieces.map(p => (p.paint || []).length), plate: g.screen === 'cook' ? g.plate() : null }; });
 async function drag(page, pts, steps = 6) { await page.mouse.move(pts[0][0], pts[0][1]); await page.mouse.down(); for (const [x, y] of pts.slice(1)) await page.mouse.move(x, y, { steps }); await page.mouse.up(); }
+// SPAM=1: at the start of every step a toddler mashes the screen first (fast taps everywhere, scribbles, a second finger,
+// the helper's bubble tapped over and over), then the step is played as usual. Never the home button or the grid button.
+const SPAM = !!process.env.SPAM;
+async function spam(page, p, log, id) {
+  const g = await page.evaluate(() => { const g = SPG.cookGame, m = g.menuBtn(); return { m, y0: g.y0, w: g.w, h: g.h }; });
+  const ok = (x, y) => !(x < 110 && y < 110) && Math.hypot(x - g.m.x, y - g.m.y) > g.m.r * 1.8;
+  const pt = () => { for (;;) { const x = 20 + Math.random() * (g.w - 40), y = g.y0 + Math.random() * (g.h - g.y0 - 10); if (ok(x, y)) return [x, y]; } };
+  for (let i = 0; i < 24; i++) { const [x, y] = pt(); await page.mouse.click(x, y); await wait(12); }
+  for (let i = 0; i < 3; i++) { const pts = [pt(), pt(), pt(), pt()]; await drag(page, pts, 2); }
+  const q = await P(page); if (q.bubble) for (let i = 0; i < 8; i++) { await page.mouse.click(q.bubble.x, q.bubble.y); await wait(25); }
+  // a second finger lands while the first is still down, then both lift in the wrong order
+  const [ax, ay] = pt(), [bx, by] = pt();
+  await page.evaluate(([ax, ay, bx, by]) => { const cv = SPG.cookGame.canvas, ev = (t, id, x, y, prim) => cv.dispatchEvent(new PointerEvent(t, { pointerId: id, isPrimary: prim, clientX: x, clientY: y, bubbles: true, cancelable: true, pointerType: 'touch' }));
+    ev('pointerdown', 7, ax, ay, true); ev('pointerdown', 8, bx, by, false); ev('pointermove', 8, bx + 30, by + 10, false); ev('pointermove', 7, ax - 20, ay + 20, true); ev('pointerup', 8, bx + 30, by + 10, false); ev('pointerup', 7, ax - 20, ay + 20, true); }, [ax, ay, bx, by]);
+  await wait(450);
+  const snd = await page.evaluate(() => { const g = SPG.cookGame; return !!(g.snd && g.sndLive && !g.free); });
+  if (snd) { log.push(`${id}: a sound loop is still playing with no finger down (${p.step})`); fails.push(`${id}: sound left on in ${p.step}`); }
+}
 async function playRecipe(page, id, log) {
   let p = await P(page);
   // choose it from the menu
@@ -20,7 +38,7 @@ async function playRecipe(page, id, log) {
     if (p.finishedAll && !shot.undo && p.undo) { shot.undo = 1; if (shots.includes('undo')) await page.screenshot({ path: `${SP}/undo_${id}_${W}x${H}.png` }); await page.mouse.click(p.undo.x, p.undo.y); await wait(700); const q = await P(page); const back = q.eat.some(Boolean) && !q.st.fin; log.push(`${id}: undo after eating ${back ? 'OK' : 'FAILED'}`); if (!back) fails.push(`${id}: undo`); continue; }
     if (p.finishedAll && !shot.undo && !p.undo) { shot.undo = 1; log.push(`${id}: no undo button after eating`); fails.push(`${id}: no undo button`); }
     if (p.finishedAll) { if (shots.includes('serve') && !shot.done) { shot.done = 1; await page.screenshot({ path: `${SP}/done_${id}_${W}x${H}.png` }); } if (p.arrowPos) { await page.mouse.click(p.arrowPos.x, p.arrowPos.y); await wait(400); continue; } }
-    const k = p.step; if (k !== lastStep) { log.push(`${id}: ${k}`); lastStep = k; stuck = Date.now(); }
+    const k = p.step; if (k !== lastStep) { log.push(`${id}: ${k}`); lastStep = k; stuck = Date.now(); if (SPAM && p.screen === 'cook' && !(p.st && p.st.fin)) { await spam(page, p, log, id); continue; } }
     const U = p.U, bx = p.bx, by = p.by, st = p.st || {};
     if (st.fin && k !== 'serve') { await wait(200); continue; }
     if (p.busy) { await wait(120); continue; }
