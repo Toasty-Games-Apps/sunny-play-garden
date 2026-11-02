@@ -36,7 +36,7 @@ async function playRecipe(page, id, log) {
     if (p.screen === 'intro') { await page.mouse.click(W / 2, H / 2); await wait(300); continue; }
     if (p.trans) { await wait(150); continue; }
     // eaten up: the undo button under the camera must bring the whole food back (once per recipe), then it is eaten again
-    if (p.finishedAll && !shot.undo && p.undo) { shot.undo = 1; if (shots.includes('undo')) await page.screenshot({ path: `${SP}/undo_${id}_${W}x${H}.png` }); await page.mouse.click(p.undo.x, p.undo.y); await wait(700); const q = await P(page); const back = q.eat.some(Boolean) && !q.st.fin; log.push(`${id}: undo after eating ${back ? 'OK' : 'FAILED'}`); if (!back) fails.push(`${id}: undo`); continue; }
+    if (p.finishedAll && !shot.undo && p.undo) { shot.undo = 1; if (shots.includes('undo')) await page.screenshot({ path: `${SP}/undo_${id}_${W}x${H}.png` }); await page.mouse.click(p.undo.x, p.undo.y); await wait(700); const q = await P(page); const back = (q.eat.some(Boolean) || q.ownEat) && !q.st.fin && !q.st.n; log.push(`${id}: undo after eating ${back ? 'OK' : 'FAILED'}`); if (!back) fails.push(`${id}: undo`); continue; }
     if (p.finishedAll && !shot.undo && !p.undo) { shot.undo = 1; log.push(`${id}: no undo button after eating`); fails.push(`${id}: no undo button`); }
     if (p.finishedAll) { if (shots.includes('serve') && !shot.done) { shot.done = 1; await page.screenshot({ path: `${SP}/done_${id}_${W}x${H}.png` }); } if (p.arrowPos) { await page.mouse.click(p.arrowPos.x, p.arrowPos.y); await wait(400); continue; } }
     // each step is timed on its own (a pizza has three decorate steps in a row, a cake two)

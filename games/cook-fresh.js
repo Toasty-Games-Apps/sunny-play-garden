@@ -1001,7 +1001,8 @@
 
   // ---- 6. Eat it with a fork: each touch spears a piece (a little grape piece or two with it) and lifts it away to eat.
   const EATH = H['fs-eat'] = {
-    camera: true,
+    camera: true, eats: true,
+    uneat(g, s) { s.fork = null; EATH.more(g, s); },   // the kitchen's undo button: the whole salad tumbles back in
     geo(g) { const R = Math.min(g.w * .4, g.SH * .52, g.U * .46); return { x: g.bx, y: g.by - R * .02, R }; },
     enter(g, s) { const Fr = FR(g); if (!Fr.salad || !Fr.salad.pieces.length) Fr.salad = copySalad(SAMPLE_SALAD); for (const p of Fr.salad.pieces) { p.drop = 0; p.wait = 0; p.taken = p.gone = false; } s.fork = null; s.n = 0; s.empty = false; s.moreT = null; g.fx.burst(g.bx, g.by, 24, { colors: ['#ffd54a', '#ffffff', '#ff9ec8'], speed: 280, g: 200, life: 1, size: 7, shape: 'star' }); },
     rest(B) { return { x: B.x + B.R * 1.08, y: B.y + B.R * .25 }; },
@@ -1329,7 +1330,8 @@
   // ---- 8. Drink it: each touch is a sip through the straw (slurp!) and the lemonade goes down; when the glass is empty, touch the
   // pitcher for another glass (it comes back full for a photo).
   const SIP = H['lm-sip'] = {
-    camera: true,
+    camera: true, eats: true,
+    uneat(g, s) { if (s.refill) return; s.sip = null; s.empty = false; s.moreT = null; s.refill = { t: 0 }; sfx.whoosh(); },   // the kitchen's undo button: the pitcher fills the glass again
     geo: g => GAR.geo(g),
     enter(g, s) { const Fr = FR(g); Fr.glass = Fr.glass || { level: .8, ice: [{ x: -.6, rot: .3, k: 1 }, { x: .5, rot: -.4, k: .95 }], col: LEMONADE }; s.Gl = Fr.glass; if (s.Gl.level < .1) s.Gl.level = .8; if (!s.Gl.straw) { s.Gl.straw = STRAW['lm-straw-pink']; s.Gl.strawIn = 1; } s.n = 0; s.N = 6; s.per = s.Gl.level / s.N; s.sip = null; s.empty = false; s.refill = null; s.moreT = null; },
     btn(g) { const r = g.uiR * .62; return { x: g.w - r - 18, y: clamp(g.by - g.SH * .12, g.y0 + r + 8, g.y1 - r * 3.2), r }; },
