@@ -183,7 +183,7 @@
       const cancelHold = () => { clearTimeout(card._hold); clearTimeout(card._hl); card.classList.remove('holding'); };
       card.addEventListener('pointerdown', e => {
         if (e.button > 0) return; down = { x: e.clientX, y: e.clientY, t: performance.now() };
-        if (hubEdit) { down = null; startHubDrag(e, g, card); return; }
+        if (hubEdit) { down = null; if (!hubEdit.drag || e.isPrimary) startHubDrag(e, g, card); return; }   // one app moves at a time (a first finger always starts afresh)
         // hold an app for about two seconds, then a grown-up confirms and the apps can be moved around
         cancelHold(); card._hl = setTimeout(() => card.classList.add('holding'), 350);
         card._hold = setTimeout(() => { if (!down) return; down = null; cancelHold(); SPG.sfx.pop(); askGate(enterHubEdit); }, 2000);
@@ -269,13 +269,14 @@
     store.saveSettings(); renderCards(); SPG.sfx.chime();
   }
   function startHubDrag(e, g, card) {
+    document.querySelectorAll('.card-ghost').forEach(n => n.remove());
     const r = card.getBoundingClientRect(), src = card.querySelector('canvas'), ghost = h('div', { class: 'card-ghost', style: `width:${r.width}px;height:${r.height}px;--tint:${(g.tint || tints[g.id] || ['#fff'])[0]};--edge:${(tints[g.id] || [0, '#ddd'])[1]}` });
     const gc = document.createElement('canvas'); gc.width = src.width; gc.height = src.height; gc.getContext('2d').drawImage(src, 0, 0); gc.style.width = src.getBoundingClientRect().width + 'px'; ghost.append(gc, h('span', { class: 'card-name' }, t(g.name))); document.body.append(ghost);
     const D = hubEdit.drag = { id: g.id, ghost, ox: e.clientX - r.left, oy: e.clientY - r.top, dwell: 0, dir: 0, pid: e.pointerId };
     const place = ev => { ghost.style.transform = `translate(${ev.clientX - D.ox}px, ${ev.clientY - D.oy}px) scale(1.08) rotate(-3deg)`; };
     place(e); SPG.sfx.tap(); card.classList.add('drag-src');
     const move = ev => {
-      if (!hubEdit || hubEdit.drag !== D) return; place(ev);
+      if (!hubEdit || hubEdit.drag !== D || ev.pointerId !== D.pid) return; place(ev);
       const el = document.elementFromPoint(ev.clientX, ev.clientY), tc = el && el.closest && el.closest('#hub-games .card');
       if (tc && tc.dataset.id !== g.id) {
         const tg = SPG.games.find(x => x.id === tc.dataset.id); if (tg) {
@@ -287,7 +288,8 @@
       const dir = ev.clientX < 70 ? -1 : ev.clientX > innerWidth - 70 ? 1 : 0, now = performance.now();
       if (!dir) D.dir = 0; else if (D.dir !== dir) { D.dir = dir; D.since = now; } else if (now - D.since > 650) { const st = document.querySelector('#hub-games .pages'); if (st && st._go) { st._go(st._where() + dir); SPG.sfx.tap(); } D.since = now; }
     };
-    const end = () => {
+    const end = ev => {
+      if (ev.pointerId !== D.pid) return;   // another finger lifting does not drop the app
       document.removeEventListener('pointermove', move); document.removeEventListener('pointerup', end); document.removeEventListener('pointercancel', end);
       ghost.remove(); if (hubEdit && hubEdit.drag === D) { hubEdit.drag = null; store.saveSettings(); SPG.sfx.pop(); renderCards(); }
     };
