@@ -299,8 +299,8 @@
       } else if (this.phase === 'read') { if (!this.reading && !this.later) this.phase = 'pick'; }
       else if (this.phase === 'pick') {
         this.idle += dt;
-        if (this.idle > 9) {   // nothing touched for a while: sing the pattern again (and say the question once)
-          this.idle = 0; this.read(false); R.hint++;
+        if (this.idle > 9) {   // nothing touched for a while: sing the pattern again (three times at most: a child who walked away is not sung at for ever) and say the question once
+          this.idle = 0; if (R.hint < 3) this.read(false); R.hint++;
           if (!this.saidNext) { this.saidNext = true; voice.say('pat-next'); }
           if (R.hint >= 2) { const want = this.segs[R.shown + R.filled].u; this.picks.forEach(q => { q.glow = same(q.u, want) ? 1 : 0; }); }
         }

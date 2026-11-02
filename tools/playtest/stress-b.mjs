@@ -123,6 +123,7 @@ for (const name of GAMES) {
   const g0 = page.errs.length, stars0 = await Q(() => SPG.store.active.stars);
   await Q(() => { __qa.lines.length = 0; __qa.said.length = 0; __qa.maxLive = 0; });
   await open(name); await wait(900);
+  { const sc = await Q(() => __qa.scan()); if (sc.bad.length) fail(name, 'NaN before anything was touched: ' + sc.bad.join(', ')); }   // (a counter nobody set yet)
   // 1. mashing
   await mash(name, SECS);
   const peak = await Q(() => __qa.maxLive);
@@ -191,6 +192,12 @@ if (process.env.REG !== '0') {
     if (!(await Q(() => SPG.shapesGame.askCount()))) { fail('Shape Builder', 'no count question for this picture'); return; }
     for (let k = 0; k < 3; k++) { await Q(() => { SPG.shapesGame.idle = 11; }); await wait(3200); }
     const asks = await said(n0, '^shapes-count/'); if (asks > 2) fail('Shape Builder', `the count question was said ${asks} times`);
+  });
+  // Caterpillars: nobody touching sings the pattern again three times at most, not every nine seconds for ever
+  await reg('Caterpillars', async () => {
+    if (!(await until(() => SPG.app.running().inst.phase === 'pick'))) { fail('Caterpillars', 'the caterpillar never asked'); return; }
+    const n = await Q(async () => { const g = SPG.app.running().inst, rd = g.read; let n = 0; g.read = function (...a) { n++; return rd.apply(this, a); }; for (let k = 0; k < 6; k++) { g.idle = 10; await new Promise(r => setTimeout(r, 150)); } g.read = rd; return n; });
+    if (n > 3) fail('Caterpillars', `an untouched caterpillar sang ${n} times`);
   });
   // Coloring Book: Done on an empty page is no star (and no party); one bit of colour and it is
   await reg('Coloring Book', async () => {
