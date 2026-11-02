@@ -183,7 +183,7 @@
       const cancelHold = () => { clearTimeout(card._hold); clearTimeout(card._hl); card.classList.remove('holding'); };
       card.addEventListener('pointerdown', e => {
         if (e.button > 0) return; down = { x: e.clientX, y: e.clientY, t: performance.now() };
-        if (hubEdit) { down = null; startHubDrag(e, g, card); return; }
+        if (hubEdit) { down = null; if (!hubEdit.drag || e.isPrimary) startHubDrag(e, g, card); return; }   // one app moves at a time (a first finger always starts afresh)
         // hold an app for about two seconds, then a grown-up confirms and the apps can be moved around
         cancelHold(); card._hl = setTimeout(() => card.classList.add('holding'), 350);
         card._hold = setTimeout(() => { if (!down) return; down = null; cancelHold(); SPG.sfx.pop(); askGate(enterHubEdit); }, 2000);
@@ -269,13 +269,14 @@
     store.saveSettings(); renderCards(); SPG.sfx.chime();
   }
   function startHubDrag(e, g, card) {
+    document.querySelectorAll('.card-ghost').forEach(n => n.remove());
     const r = card.getBoundingClientRect(), src = card.querySelector('canvas'), ghost = h('div', { class: 'card-ghost', style: `width:${r.width}px;height:${r.height}px;--tint:${(g.tint || tints[g.id] || ['#fff'])[0]};--edge:${(tints[g.id] || [0, '#ddd'])[1]}` });
     const gc = document.createElement('canvas'); gc.width = src.width; gc.height = src.height; gc.getContext('2d').drawImage(src, 0, 0); gc.style.width = src.getBoundingClientRect().width + 'px'; ghost.append(gc, h('span', { class: 'card-name' }, t(g.name))); document.body.append(ghost);
     const D = hubEdit.drag = { id: g.id, ghost, ox: e.clientX - r.left, oy: e.clientY - r.top, dwell: 0, dir: 0, pid: e.pointerId };
     const place = ev => { ghost.style.transform = `translate(${ev.clientX - D.ox}px, ${ev.clientY - D.oy}px) scale(1.08) rotate(-3deg)`; };
     place(e); SPG.sfx.tap(); card.classList.add('drag-src');
     const move = ev => {
-      if (!hubEdit || hubEdit.drag !== D) return; place(ev);
+      if (!hubEdit || hubEdit.drag !== D || ev.pointerId !== D.pid) return; place(ev);
       const el = document.elementFromPoint(ev.clientX, ev.clientY), tc = el && el.closest && el.closest('#hub-games .card');
       if (tc && tc.dataset.id !== g.id) {
         const tg = SPG.games.find(x => x.id === tc.dataset.id); if (tg) {
@@ -287,7 +288,8 @@
       const dir = ev.clientX < 70 ? -1 : ev.clientX > innerWidth - 70 ? 1 : 0, now = performance.now();
       if (!dir) D.dir = 0; else if (D.dir !== dir) { D.dir = dir; D.since = now; } else if (now - D.since > 650) { const st = document.querySelector('#hub-games .pages'); if (st && st._go) { st._go(st._where() + dir); SPG.sfx.tap(); } D.since = now; }
     };
-    const end = () => {
+    const end = ev => {
+      if (ev.pointerId !== D.pid) return;   // another finger lifting does not drop the app
       document.removeEventListener('pointermove', move); document.removeEventListener('pointerup', end); document.removeEventListener('pointercancel', end);
       ghost.remove(); if (hubEdit && hubEdit.drag === D) { hubEdit.drag = null; store.saveSettings(); SPG.sfx.pop(); renderCards(); }
     };
@@ -359,8 +361,16 @@
     try { const d = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text)); return [...new Uint8Array(d)].map(v => v.toString(16).padStart(2, '0')).join(''); }
     catch (_) { let x = 5381; for (const ch of text) x = ((x << 5) + x + ch.charCodeAt(0)) >>> 0; return 'h' + x; }
   }
+  // A child mashing the number pad hits the answer now and then (about once in two minutes): after three wrong answers in a row the
+  // pad rests, 8 s, then 16, then 30 (a right answer starts over), so mashing gets nowhere while a grown-up only ever waits a moment.
+  let gateWrong = 0, gateStrikes = 0, gateRest = 0, gateRestT = 0;
+  const gateResting = () => performance.now() < gateRest;
+  function paintGateRest() {
+    const on = gateResting(); $('numpad').classList.toggle('resting', on); clearTimeout(gateRestT);
+    if (on) { $('gate-hint').textContent = t('Too many tries. Please wait a little and try again.'); gateRestT = setTimeout(() => { $('numpad').classList.remove('resting'); if (gateState) $('gate-hint').textContent = gateState.hint || ''; }, gateRest - performance.now()); }
+  }
   function openGateSheet(title, hint, forgot) {
-    $('gate-title').textContent = title; $('gate-hint').textContent = hint;
+    $('gate-title').textContent = title; $('gate-hint').textContent = hint; if (gateState) gateState.hint = hint; paintGateRest();
     $('gate-forgot').classList.toggle('hidden', !forgot);
     // a grown-up can also use the device's fingerprint or screen lock (switched on in Grown-ups); not when a new PIN is being typed in or for the recovery sums
     $('gate-device').classList.toggle('hidden', !(store.settings.deviceAuth && gateState && !gateState.capture && gateState.mode !== 'recover'));
@@ -370,7 +380,7 @@
     if (store.settings.pin) { askPin(onPass); return; }
     gateState = { onPass, entry: '', max: 2, mode: 'math' };
     newQuestion();
-    openGateSheet('Grown-ups only', t('Answer to continue'), false);
+    openGateSheet(t('Grown-ups only'), t('Answer to continue'), false);
   }
   // PIN entry. With opts.capture the typed PIN is handed over (setting a new PIN) instead of being checked.
   function askPin(onPass, opts = {}) {
@@ -407,7 +417,7 @@
     pad.append(key('0', '', () => type('0')));
     pad.append(key(icon('check'), 'ok', () => submit()));
     function type(d) {
-      const g = gateState; if (g.entry.length >= g.max || g.busy) return;
+      const g = gateState; if (g.entry.length >= g.max || g.busy || gateResting()) return;
       g.entry += d; paintGate();
       if (g.mode === 'pin' && g.entry.length === g.max) submit();
     }
@@ -415,9 +425,10 @@
       const box = $('gate-answer');
       box.classList.remove('shake'); void box.offsetWidth; box.classList.add('shake');
       SPG.sfx.oops();
+      if (++gateWrong >= 3) { gateWrong = 0; gateRest = performance.now() + [8000, 16000, 30000][Math.min(2, gateStrikes++)]; paintGateRest(); }
     }
     async function submit() {
-      const g = gateState; if (!g || g.busy) return;
+      const g = gateState; if (!g || g.busy || gateResting()) return;
       let ok;
       if (g.mode === 'pin') {
         if (g.capture) { const cap = g.onPass; gateState = null; closeOverlay(overlays.gate); cap(g.entry); return; }
@@ -429,7 +440,7 @@
         store.settings.pin = ''; store.saveSettings(); ok = true;
       }
       if (ok) {
-        const cb = g.onPass; gateState = null;
+        const cb = g.onPass; gateState = null; gateWrong = 0; gateStrikes = 0;
         closeOverlay(overlays.gate);
         cb && cb();
       } else {

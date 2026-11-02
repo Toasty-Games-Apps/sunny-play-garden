@@ -224,7 +224,7 @@
     popBalloon(f) {
       this.shake = 1; this.wetK = 1;
       const lost = Math.min(BALLOON_COST, this.bag.total); this.addPoints(-BALLOON_COST);
-      this.float(f.x, f.y - f.r, lost ? '-' + lost : 'Splash!', '#2f8fdd');
+      if (lost) this.float(f.x, f.y - f.r, '-' + lost, '#2f8fdd');   // (nothing to lose: the splash says it all, no English word on screen)
       this.fx.burst(f.x, f.y, 90, { colors: ['#bfe9ff', '#6cc6f5', '#fff', '#3aa8f0'], speed: 950, g: 1500, life: 1.1, size: 9, up: 380 });
       for (let k = 0; k < 40; k++) this.fx.p.push({ x: Math.random() * this.w, y: -10 - Math.random() * this.h * .3, vx: (Math.random() - .5) * 240, vy: 200 + Math.random() * 500, g: 1300, life: 1.2 + Math.random(), max: 1.6, size: 4 + Math.random() * 8, color: ['#bfe9ff', '#6cc6f5', '#fff'][k % 3], shape: 'circle', rot: 0, vr: 0 });
       for (let k = 0; k < 34; k++) this.drips.push({ x: Math.random() * this.w, y: Math.random() * this.h * .8, r: 8 + Math.random() * 22, vy: 10 + Math.random() * 40, life: 3 + Math.random() * 2 });

@@ -704,8 +704,10 @@
         const sayAll = () => voice.say('letter/' + lc, 'sound/' + lc, 'is-for', 'word/' + lc);
         SPG.ui.press(letter, () => { sfx.pop(); voice.say('letter/' + lc, 'sound/' + lc); });
         SPG.ui.press(pic, () => { sfx.boing(); pic.classList.remove('jig'); void pic.offsetWidth; pic.classList.add('jig'); voice.say('word/' + lc); });
-        this.later(sayAll, 350);
-        if (++this.bag.seen % 5 === 0) { store.addStars(1); sfx.chime(); }
+        // a card counts as seen once it has been looked at for a moment (flipping through as fast as she can gives no stars),
+        // and only this card's line is said (the cards flipped past are not)
+        for (const id of this.cardT || []) { clearTimeout(id); this.timers.delete(id); }
+        this.cardT = [this.later(sayAll, 350), this.later(() => { if (++this.bag.seen % 5 === 0) { store.addStars(1); sfx.chime(); } store.save(); }, 1800)];
       };
       const go = d => { i = (i + d + 26) % 26; sfx.tap(); render(d); };
       SPG.ui.press(prev, () => go(-1)); SPG.ui.press(next, () => go(1));
@@ -725,8 +727,9 @@
       this.reset('lg-find');
       const area = el('div', 'lg-options');
       const say = btn('lg-btn lg-say big', 'Hear the letter', icon('speaker'));
-      let target = null, qcase = 'upper', wrong = 0, locked = false;
+      let target = null, qcase = 'upper', wrong = 0, locked = false, nextQ = 0;
       const ask = () => {
+        clearTimeout(nextQ); this.timers.delete(nextQ);   // (the case chip asks a new question at once: the one waiting is not asked as well)
         const { name, all } = this.pool();
         const mode = this.bag.findCase || 'mix';
         qcase = mode === 'mix' ? (Math.random() < .5 ? 'upper' : 'lower') : mode;
@@ -756,7 +759,7 @@
           b.classList.add('right');
           const r = b.getBoundingClientRect(); this.burst(r.left + r.width / 2, r.top + r.height / 2);
           voice.say('great-job', 'letter/' + target, 'sound/' + target);
-          this.later(ask, 2600);
+          nextQ = this.later(ask, 2600);
         } else {
           wrong++; sfx.oops(); b.classList.remove('nope'); void b.offsetWidth; b.classList.add('nope');
           voice.say('try-again', 'letter/' + target);
@@ -941,7 +944,7 @@
       };
       SPG.ui.press(say, () => voice.say('count-how'));
       this.numIntro = this.numIntro || 0;
-      this.root.append(this.backButton(), say, area); window.requestAnimationFrame(ask);
+      this.root.append(this.backButton(), say, area); window.requestAnimationFrame(() => card.isConnected && ask());   // (not when she left in the same moment)
     }
 
     /* ---------------- add and take away ---------------- */
@@ -994,7 +997,7 @@
         }
       };
       SPG.ui.press(say, () => this.sayExpr());
-      this.root.append(this.backButton(), say, area); window.requestAnimationFrame(ask);
+      this.root.append(this.backButton(), say, area); window.requestAnimationFrame(() => card.isConnected && ask());
     }
 
     // Confetti as tiny DOM canvas over the whole game.

@@ -553,7 +553,7 @@
         grid.append(tile);
       });
       const found = Object.keys(this.bag.seen).length;
-      const done = el('button', 'btn go', icon('check'), ' Done'); done.type = 'button';
+      const done = el('button', 'btn go', icon('check'), ' ' + SPG.t('Done')); done.type = 'button';
       SPG.ui.press(done, () => { wrap.remove(); this.book = null; this.resume(); });
       sheet.append(el('div', 'gd-book-count', `${found} / ${art.CREATURES.length}`), grid, done); wrap.append(sheet); this.host.append(wrap);
     }

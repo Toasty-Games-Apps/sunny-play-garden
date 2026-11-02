@@ -160,12 +160,15 @@
       this.tick = this.tick.bind(this);
       const cv = this.canvas;
       const at = e => { const r = cv.getBoundingClientRect(); this.aim.x = (e.clientX - r.left) * this.w / r.width; this.aim.y = (e.clientY - r.top) * this.h / r.height; };
+      // the water runs while any finger is down (a second finger lifting off does not stop it) and follows the newest finger
+      this.fingers = [];
       cv.addEventListener('pointerdown', e => {
         e.preventDefault(); try { cv.setPointerCapture(e.pointerId); } catch (_) { /* capture is optional */ }
+        this.fingers = this.fingers.filter(id => id !== e.pointerId).concat(e.pointerId);
         at(e); this.aim.down = true; this.lastTouch = this.t; this.touch();
       });
-      cv.addEventListener('pointermove', e => { if (this.aim.down) { e.preventDefault(); at(e); this.lastTouch = this.t; } });
-      for (const n of ['pointerup', 'pointercancel']) cv.addEventListener(n, () => { this.aim.down = false; });
+      cv.addEventListener('pointermove', e => { if (this.aim.down && e.pointerId === this.fingers[this.fingers.length - 1]) { e.preventDefault(); at(e); this.lastTouch = this.t; } });
+      for (const n of ['pointerup', 'pointercancel', 'lostpointercapture']) cv.addEventListener(n, e => { this.fingers = this.fingers.filter(id => id !== e.pointerId); this.aim.down = this.fingers.length > 0; });
       this.newRound(true);
     }
 
@@ -265,7 +268,7 @@
     /* ------------------------------------------------------------ loop */
     start() { this.resize(); this.resume(); }
     resume() { if (this.running) return; this.running = true; this.last = performance.now(); this.raf = requestAnimationFrame(this.tick); }
-    pause() { this.running = false; cancelAnimationFrame(this.raf); this.aim.down = false; if (this.hose) { this.hose.off(); this.hose = null; } }
+    pause() { this.running = false; cancelAnimationFrame(this.raf); this.aim.down = false; this.fingers = []; if (this.hose) { this.hose.off(); this.hose = null; } }
     destroy() { this.pause(); clearTimeout(this._nt); this.canvas.remove(); this.counter.el.remove(); }
 
     tick(now) {
@@ -313,12 +316,12 @@
           if (f.heat <= 0) {
             f.out = true; f.heat = 0; f.steam = 1.2;
             this.fx.burst(p.x, p.y - p.s * .5, 10, { colors: ['#ffffff', '#e7f4ff', '#cfe9ff'], speed: 75, g: -80, life: .95, size: p.s * .2 });
-            sfx.puff();
+            if (this.t - (this.puffT ?? -9) > .2) { this.puffT = this.t; sfx.puff(); }   // flames fading out together by themselves make one puff, not a loud pile of them
           }
         }
         // pets
         const pt = b.pet;
-        if (pt.state === 'wait' && b.flames.every(f => f.lit && f.out)) { pt.state = 'ready'; pt.readyT = 0; sfx.chime(); if (!this.saidPet) { this.saidPet = true; voice.say('fire-pet'); } }
+        if (pt.state === 'wait' && b.flames.every(f => f.lit && f.out)) { pt.state = 'ready'; pt.readyT = 0; if (this.t - (this.chimeT ?? -9) > .3) { this.chimeT = this.t; sfx.chime(); } if (!this.saidPet) { this.saidPet = true; voice.say('fire-pet'); } }
         if (pt.state === 'ready') pt.readyT += dt;   // the pet waits, bouncing, until she taps it: the firefighters never rescue on their own
       }
       this.burn = clamp(burning / 8, 0, 1);

@@ -30,9 +30,11 @@
       this.tick = this.tick.bind(this);
       const cv = this.canvas;
       const at = e => { const r = cv.getBoundingClientRect(); this.bucket.tx = (e.clientX - r.left) * this.w / r.width; };
-      cv.addEventListener('pointerdown', e => { e.preventDefault(); try { cv.setPointerCapture(e.pointerId); } catch (_) { /* capture is optional */ } this.dragging = true; at(e); });
-      cv.addEventListener('pointermove', e => { if (this.dragging) { e.preventDefault(); at(e); } });
-      for (const t of ['pointerup', 'pointercancel']) cv.addEventListener(t, () => { this.dragging = false; });
+      // the bucket follows the newest finger, and keeps following one that is still down when another lifts off
+      this.fingers = [];
+      cv.addEventListener('pointerdown', e => { e.preventDefault(); try { cv.setPointerCapture(e.pointerId); } catch (_) { /* capture is optional */ } this.fingers = this.fingers.filter(id => id !== e.pointerId).concat(e.pointerId); this.dragging = true; at(e); });
+      cv.addEventListener('pointermove', e => { if (this.dragging && e.pointerId === this.fingers[this.fingers.length - 1]) { e.preventDefault(); at(e); } });
+      for (const t of ['pointerup', 'pointercancel', 'lostpointercapture']) cv.addEventListener(t, e => { this.fingers = this.fingers.filter(id => id !== e.pointerId); this.dragging = this.fingers.length > 0; });
       this.onKey = e => { this.keys[e.key] = e.type === 'keydown'; };
       addEventListener('keydown', this.onKey); addEventListener('keyup', this.onKey);
       if (this.bag.pets) this.showPetCounter();
@@ -42,7 +44,7 @@
     resize() {
       const r = this.canvas.getBoundingClientRect();
       if (!r.width || !r.height) return;
-      const ow = this.w || r.width;
+      const ow = this.w || r.width, oh = this.h || r.height;
       this.w = r.width; this.h = r.height;
       const dpr = SPG.ui.dpr();
       this.canvas.width = Math.round(this.w * dpr); this.canvas.height = Math.round(this.h * dpr);
@@ -53,12 +55,19 @@
       this.dropR = Math.max(11, Math.min(28, Math.min(this.w, this.h) * .036));
       this.cs = Math.max(.55, Math.min(1.5, Math.min(this.w, this.h * 1.4) / 750 + .1));
       if (!this.bucket.x) this.bucket.x = this.bucket.tx = this.w / 2; else { this.bucket.x *= this.w / ow; this.bucket.tx *= this.w / ow; }
+      // the screen turned: everything out in the world keeps its place on the new screen (dinosaurs, pets and drops never end up off the side)
+      const kx = this.w / ow, ky = this.h / oh, M = this.met, P = this.pets;
+      if (kx !== 1 || ky !== 1) {
+        for (const o of [...this.drops, ...this.ripples, ...this.craters, ...(M ? M.rocks : []), ...(P ? P.list : [])]) { o.x *= kx; o.y *= ky; }
+        if (M) { M.s = Math.min(this.h * .22, this.w * .17); for (const d of M.dinos) { d.x *= kx; d.tx *= kx; } }
+        if (P) P.net.x *= kx;
+      }
       this.draw();
     }
 
     start() { this.resize(); this.resume(); voice.say('catch-drops'); }
     resume() { if (this.running) return; this.running = true; this.last = performance.now(); this.raf = requestAnimationFrame(this.tick); }
-    pause() { this.running = false; cancelAnimationFrame(this.raf); this.dragging = false; }
+    pause() { this.running = false; cancelAnimationFrame(this.raf); this.dragging = false; this.fingers = []; }
     destroy() { this.pause(); removeEventListener('keydown', this.onKey); removeEventListener('keyup', this.onKey); this.canvas.remove(); this.counter.el.remove(); this.petCounter?.el.remove(); }
 
     cloudX(i) { return this.w * (.2 + i * .3) + Math.sin(this.t * .35 + i * 2) * this.w * .06; }
