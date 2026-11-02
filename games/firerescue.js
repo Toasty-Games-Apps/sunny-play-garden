@@ -160,12 +160,15 @@
       this.tick = this.tick.bind(this);
       const cv = this.canvas;
       const at = e => { const r = cv.getBoundingClientRect(); this.aim.x = (e.clientX - r.left) * this.w / r.width; this.aim.y = (e.clientY - r.top) * this.h / r.height; };
+      // the water runs while any finger is down (a second finger lifting off does not stop it) and follows the newest finger
+      this.fingers = [];
       cv.addEventListener('pointerdown', e => {
         e.preventDefault(); try { cv.setPointerCapture(e.pointerId); } catch (_) { /* capture is optional */ }
+        this.fingers = this.fingers.filter(id => id !== e.pointerId).concat(e.pointerId);
         at(e); this.aim.down = true; this.lastTouch = this.t; this.touch();
       });
-      cv.addEventListener('pointermove', e => { if (this.aim.down) { e.preventDefault(); at(e); this.lastTouch = this.t; } });
-      for (const n of ['pointerup', 'pointercancel']) cv.addEventListener(n, () => { this.aim.down = false; });
+      cv.addEventListener('pointermove', e => { if (this.aim.down && e.pointerId === this.fingers[this.fingers.length - 1]) { e.preventDefault(); at(e); this.lastTouch = this.t; } });
+      for (const n of ['pointerup', 'pointercancel', 'lostpointercapture']) cv.addEventListener(n, e => { this.fingers = this.fingers.filter(id => id !== e.pointerId); this.aim.down = this.fingers.length > 0; });
       this.newRound(true);
     }
 
@@ -265,7 +268,7 @@
     /* ------------------------------------------------------------ loop */
     start() { this.resize(); this.resume(); }
     resume() { if (this.running) return; this.running = true; this.last = performance.now(); this.raf = requestAnimationFrame(this.tick); }
-    pause() { this.running = false; cancelAnimationFrame(this.raf); this.aim.down = false; if (this.hose) { this.hose.off(); this.hose = null; } }
+    pause() { this.running = false; cancelAnimationFrame(this.raf); this.aim.down = false; this.fingers = []; if (this.hose) { this.hose.off(); this.hose = null; } }
     destroy() { this.pause(); clearTimeout(this._nt); this.canvas.remove(); this.counter.el.remove(); }
 
     tick(now) {
