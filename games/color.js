@@ -338,8 +338,8 @@
   }
   const hasPaint = ops => ops.some(op => op[0] !== ALL);
   // something is on the page now (after the last start over): Done on an empty page is not a finished picture and gives no star
-  const painted = ops => { for (let i = ops.length - 1; i >= 0 && ops[i][0] !== ALL; i--) if (op0Paints(ops[i][0])) return true; return false; };
-  const op0Paints = k => k !== ERASE && k !== CLEAR && k !== PEEL;
+  const RUBS = new Set([ERASE, CLEAR, PEEL]);   // (taking away is not colouring)
+  const painted = ops => { for (let i = ops.length - 1; i >= 0 && ops[i][0] !== ALL; i--) if (!RUBS.has(ops[i][0])) return true; return false; };
 
   // Douglas-Peucker: fewer points for the same stroke.
   function simplify(pts, eps = 1.6) {
