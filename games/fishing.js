@@ -88,7 +88,7 @@
       this.tier = SPG.level.tier('fishing');
       this.spots = SPOTS.filter(sp => sp.tier <= (this.tier === 1 ? 1 : 2));
       this.cfg = [null, { wait: [1.4, 2.4], taps: 1 }, { wait: [2, 3.8], taps: 3 }, { wait: [2.6, 4.8], taps: 5 }][this.tier];
-      this.fx = new art.Fx(); this.t = 0; this.running = false; this.mode = 'idle';   // idle -> ready (rod in hand) -> cast -> wait -> bite -> reel -> jump -> card
+      this.fx = new art.Fx(); this.t = 0; this.running = false; this.mode = 'idle'; this.modeT = 0;   // idle -> ready (rod in hand) -> cast -> wait -> bite -> reel -> jump -> card
       this.rings = []; this.spoken = {}; this.rodHint = 0; this.shake = 0; this.rodAng = 0; this.swim = []; this.bugs = []; this.nightLast = null; this.respawn = []; this.cardInfo = null;
       this.tick = this.tick.bind(this); SPG.fishingGame = this;
       const cv = this.canvas;
