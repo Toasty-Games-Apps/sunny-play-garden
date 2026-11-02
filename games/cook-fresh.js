@@ -1307,7 +1307,7 @@
 
   // ---- 7. Make it pretty: a straw (any colour; touch another to swap), a lemon slice on the rim, a mint leaf if she likes.
   const GAR = H['lm-garnish'] = {
-    geo(g) { const Gs = Math.min(g.SH * .6, g.w * .55, g.U * .66); return { Gs, x: g.bx, y: Math.min(g.y1 - g.SH * .04, g.w < g.SH ? bubTop(g) - 6 : 1e9) }; },
+    geo(g) { const tall = g.w < g.SH, y = Math.min(g.y1 - g.SH * .04, tall ? bubTop(g) - 6 : 1e9), Gs = Math.min(g.SH * .6, g.w * (tall ? .74 : .55), g.U * .66, (y - g.y0 - 10) / 1.3); return { Gs, x: g.bx, y }; },
     enter(g, s) { const Fr = FR(g); Fr.glass = Fr.glass || { level: .8, ice: [{ x: -.6, rot: .3, k: 1 }, { x: .5, rot: -.4, k: .95 }], col: LEMONADE }; Fr.glass.level = Math.max(Fr.glass.level, .6); s.Gl = Fr.glass; g.setTray(['lm-straw-pink', 'lm-straw-blue', 'lm-straw-green', 'lm-slice', 'fr-mint'].map(id => ({ id }))); },
     drop(g, s, it, x, y, tap) {
       if (s.fin) return false; const G = GAR.geo(g), Gl = s.Gl; if (!tap && D(x, y, G.x, G.y - G.Gs * .6) > G.Gs * .85) return false;
