@@ -1077,7 +1077,8 @@
       // The camera only comes out for the finishing touches: the last decorating step before serving, and then the plate itself (even when empty).
       if (this.screen !== 'cook' || this.trans || !this.st) return null;
       const steps = this.R.steps, nxt = steps[this.stIdx + 1];
-      if (!(this.st.k === 'serve' || (this.st.k === 'decorate' && nxt && nxt.k === 'serve'))) return null;
+      const last = k => k === 'serve' || (H[k] && H[k].camera);   // a step that ends a recipe (serve, or a handler that says camera: true)
+      if (!(last(this.st.k) || (this.st.k === 'decorate' && nxt && last(nxt.k)))) return null;
       const r = this.uiR * .6; return { x: r + 16, y: clamp((this.y0 + this.y1) / 2, this.y0 + r + 8, this.y1 - r * 2.4), r };
     },
     albumBtn() { const r = this.uiR * .6; return { x: 14 + this.uiR + 18 + r, y: 14 + this.uiR / 2, r }; },
