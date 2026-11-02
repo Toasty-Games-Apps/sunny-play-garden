@@ -192,6 +192,7 @@
     /* ---------------------------------------------------------------- input */
     press(x, y, id) {
       this.idle = 0;
+      if (this.hold && this.hold.id !== id) this.dropHold();   // a second finger: whatever the first one carried goes back home, never left floating in the air
       const near = (b, r) => Math.hypot(x - b.x, y - b.y) < r;
       if (this.zoomOn) { this.pressZoom(x, y, id, near); return; }
       if (this.picking) { const hit = this.pickLayout().find(k => x > k.x && x < k.x + k.w && y > k.y && y < k.y + k.h); if (hit) this.chooseRoom(hit.id); else { this.picking = false; sfx.tap(); } return; }
@@ -415,6 +416,7 @@
       } else this.lean.x *= 1 - Math.min(1, dt * 5);
       this.purrLevel += ((this.zoomOn ? target : 0) - this.purrLevel) * Math.min(1, dt * (target > this.purrLevel ? 3 : 1.1));
       if (this.zoomOn && this.purrLevel > .06) this.startPurr();
+      else if (this.purrMode && !hs && this.purrLevel < .02) this.stopPurr();   // the purr has faded after her finger lifted: really stop it (it starts again on the next stroke)
       if (this.purrCtl && this.purrMode === 'synth') this.purrCtl.set(this.purrLevel);
       else if (this.purrMode === 'clip' && this.purrLevel > .15 && this.t > this.clipEnd - .05) { this.clipEnd = this.t + 1.5; voice.ambient('purr/' + id, .7 * this.purrLevel).then(d => { this.clipEnd = this.t + (d || 1.5); }).catch(() => {}); }
       for (const m of this.mist) { m.x += m.vx * dt; m.y += m.vy * dt; m.vx *= 1 - dt * 1.5; m.vy *= 1 - dt * 1.5; m.r += dt * 26; m.life -= dt * 1.5; }

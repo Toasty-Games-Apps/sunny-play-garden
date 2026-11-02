@@ -306,7 +306,8 @@
   }
 
   /* ------------------------------------------------------------ playback */
-  let token = 0, current = null;
+  let token = 0, current = null, ambGen = 0;
+  const ambLive = new Set();   // recorded critter noises and purrs playing now (voice.ambient)
   // calm voice (see say): what is being said now, what waits for the voice to be free, and how fast she is touching things
   const CALM = { window: 2200, flood: 4, quiet: 1400, stale: 1800 };
   let talk = null, lastAsk = 0;
@@ -637,18 +638,19 @@
       return fallbackKey ? SPG.voice.say(fallbackKey) : undefined;
     },
     // Quietly play a recorded critter noise if there is one. Never interrupts speech. Resolves to its length in seconds (0 = none).
+    // stop() (leaving a game, the tab hidden) also silences these, so a recorded purr never plays on behind the menu.
     async ambient(key, gain = .2) {
       if (!settings().voice || SPG.voice.hushed || skip(key) || !A.ctx) return 0;
-      await ready;
+      const gen = ambGen; await ready;
       const set = chooseSet(key); if (!set) return 0;
-      const buf = await loadBuffer(set, key); if (!buf) return 0;
-      const src = A.ctx.createBufferSource(); src.buffer = buf;
+      const buf = await loadBuffer(set, key); if (!buf || gen !== ambGen) return 0;
+      const src = A.ctx.createBufferSource(); src.buffer = buf; ambLive.add(src); src.onended = () => ambLive.delete(src);
       const g = A.ctx.createGain(); g.gain.value = (buf._gain || 1) * gain;
       src.connect(g); g.connect(A.master);
       const [off, dur] = buf._trim || [0, undefined]; src.start(0, off, dur);
       return dur || buf.duration;
     },
-    stop() { token++; dropWaiting(); talk = null; current?.stop(); watchers.forEach(f => { try { f(null); } catch (_) { /* ignore */ } }); },
+    stop() { token++; dropWaiting(); talk = null; current?.stop(); ambGen++; ambLive.forEach(s => { try { s.stop(); } catch (_) { /* ended */ } }); ambLive.clear(); watchers.forEach(f => { try { f(null); } catch (_) { /* ignore */ } }); },
     praise() { const k = [...PRAISE]; return SPG.voice.say(k[Math.floor(Math.random() * k.length)]); },
     // Something that wants to know what is being said (a feature kept in backup/ uses it): fn(list of lines), or fn(null) on stop.
     watch(fn) { watchers.push(fn); },
