@@ -54,6 +54,7 @@ open ios/App/App.xcodeproj         # Product > Archive, then Distribute App > Ap
 | Part | Where |
 |---|---|
 | The one screen: a web view that fills every window, hidden status bar, edge swipes held for one extra swipe, screen kept on, sound restored after a call | `ios/App/App/SproutViewController.swift` |
+| The window's real safe area for the page (`SproutView.insets`, and `SPG.native.insets` on every change): on the iPhone Duo WebKit's `env(safe-area-inset-*)` reads 0 while the side status bar and home indicator still cover the edges. styles.css uses the larger of the two (`--ios-t/r/b/l`) | `SproutView` in the same file; the iOS block at the end of `js/native.js` |
 | Saving pictures to Photos with **add-only** access. The system asks only after the grown-up gate, or when the switch in Grown-ups > Photos and pictures is turned on. | `SproutPhotos` in the same file; `SPG.native.saveToGallery` and `SPG.native.photos` in `js/native.js` |
 | Audio keeps playing with the ring/silent switch on, because spoken instructions are how a pre-reader plays | `AppDelegate.swift` (`.playback`) |
 | Safe areas: the game area and the sheets stay clear of the camera, a side status bar (iPhone Duo) and the home bar | `html.ios` rules at the end of `styles.css` |

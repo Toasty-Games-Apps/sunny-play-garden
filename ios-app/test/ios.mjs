@@ -21,9 +21,10 @@ const note = (what, v) => { say('note', what, v); out.notes[what] = v; };
 const step = async (name, fn) => { try { await fn(); } catch (e) { ok(false, name + ' (threw)', T.err(e)); } };
 const r4 = v => Math.round(v * 4) / 4;
 const rectOf = el => { const r = el.getBoundingClientRect(); return { x: r.left, y: r.top, w: r.width, h: r.height, r: r.right, b: r.bottom }; };
-// the CSS safe area, as the page sees it
-function cssSafe() {
-  const d = document.createElement('div'); d.style.cssText = 'position:fixed;left:0;top:0;width:0;height:0;visibility:hidden;padding:env(safe-area-inset-top,0px) env(safe-area-inset-right,0px) env(safe-area-inset-bottom,0px) env(safe-area-inset-left,0px)';
+// the CSS safe area the game lays itself out with (styles.css --ios-*: WebKit's env() or the app's own numbers, whichever is larger)
+function cssSafe(raw) {
+  const v4 = raw ? 'env(safe-area-inset-top,0px) env(safe-area-inset-right,0px) env(safe-area-inset-bottom,0px) env(safe-area-inset-left,0px)' : 'var(--ios-t) var(--ios-r) var(--ios-b) var(--ios-l)';
+  const d = document.createElement('div'); d.style.cssText = 'position:fixed;left:0;top:0;width:0;height:0;visibility:hidden;padding:' + v4;
   document.body.append(d); const s = getComputedStyle(d), v = [s.paddingTop, s.paddingRight, s.paddingBottom, s.paddingLeft].map(parseFloat); d.remove(); return v;
 }
 const inside = (r, s, slack = 1) => r.x >= s[3] - slack && r.y >= s[0] - slack && r.r <= innerWidth - s[1] + slack && r.b <= innerHeight - s[2] + slack;
@@ -61,7 +62,7 @@ await step('app', async () => {
   ok(!document.querySelector('script[src*="signvideo"]'), 'no camera sign videos in this build');
   const mimes = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4', 'audio/ogg;codecs=opus'].filter(m => window.MediaRecorder && MediaRecorder.isTypeSupported(m));
   ok(!!window.MediaRecorder && mimes.length > 0, 'the recorder has a format', mimes); note('recorder formats', mimes);
-  for (const p of ['App', 'Filesystem', 'Share', 'TextToSpeech', 'NativeBiometric', 'SproutPhotos', 'SproutTest']) ok(C.isPluginAvailable(p), 'plugin ' + p);
+  for (const p of ['App', 'Filesystem', 'Share', 'TextToSpeech', 'NativeBiometric', 'SproutPhotos', 'SproutView', 'SproutTest']) ok(C.isPluginAvailable(p), 'plugin ' + p);
   ok(!C.isPluginAvailable('Media') && !C.isPluginAvailable('SproutWidget'), 'no Android-only plugins');
   ok(T.gum === 0, 'the microphone was not asked for at start', T.gum);
   note('version', SPG.version); note('user agent', navigator.userAgent); note('audio session (web)', navigator.audioSession ? navigator.audioSession.type : 'none');
@@ -83,6 +84,7 @@ await step('window', async () => {
   ok(Math.abs(innerWidth - win[0]) <= 1 && Math.abs(innerHeight - win[1]) <= 1, 'the web view fills the window', { page: [innerWidth, innerHeight], window: win });
   const s = cssSafe(), ns = (i.safe || [0, 0, 0, 0]).map(r4);
   ok(s.every((v, k) => Math.abs(v - ns[k]) <= 1), 'CSS safe areas match the system', { css: s, native: ns });
+  note('WebKit env() safe area', cssSafe(true));
   ok(document.documentElement.scrollWidth <= innerWidth + 1 && document.documentElement.scrollHeight <= innerHeight + 1, 'the hub does not scroll the page');
   // the cards on the page being looked at, and the grown-ups button, are on screen and out of the system areas
   const cards = [...document.querySelectorAll('#hub-games .card')].map(rectOf).filter(r => r.x > -2 && r.r < innerWidth + 2);

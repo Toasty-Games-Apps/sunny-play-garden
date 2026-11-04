@@ -10,12 +10,16 @@ import AVFoundation
 //    app (a second swipe still works, so a grown-up is never locked in; Guided Access is the real lock);
 //  - the screen stays on while the app is open, like the website's wake lock;
 //  - the web view always fills the window, so any window size (iPad windows, iPhone Duo outer and inner displays, rotation) just
-//    resizes the page and the game lays itself out again. Nothing here looks at the device model or the screen size.
+//    resizes the page and the game lays itself out again. Nothing here looks at the device model or the screen size;
+//  - the page is told the window's real safe area (`SPG.native.insets`): on the iPhone Duo WebKit's env(safe-area-inset-*) reads 0
+//    while the side status bar and the home indicator still cover the edges, so the game keeps clear using these numbers.
 class SproutViewController: CAPBridgeViewController {
     override var preferredScreenEdgesDeferringSystemGestures: UIRectEdge { .all }
+    private var sentInsets = UIEdgeInsets(top: -1, left: -1, bottom: -1, right: -1)
 
     override func capacitorDidLoad() {
         bridge?.registerPluginInstance(SproutPhotosPlugin())
+        bridge?.registerPluginInstance(SproutViewPlugin())
         #if DEBUG
         bridge?.registerPluginInstance(SproutTestPlugin())
         #endif
@@ -28,6 +32,25 @@ class SproutViewController: CAPBridgeViewController {
         UIApplication.shared.isIdleTimerDisabled = true
         setNeedsUpdateOfScreenEdgesDeferringSystemGestures()
         setNeedsUpdateOfHomeIndicatorAutoHidden()
+    }
+
+    override func viewSafeAreaInsetsDidChange() {
+        super.viewSafeAreaInsetsDidChange()
+        sendInsets()
+    }
+
+    override func viewDidLayoutSubviews() {
+        super.viewDidLayoutSubviews()
+        sendInsets()
+    }
+
+    // Only when they change (turning, the other display, a new window size). Before the game has loaded the call does nothing and the
+    // page asks for them itself (SproutView.insets).
+    private func sendInsets() {
+        let i = view.safeAreaInsets
+        guard i != sentInsets else { return }
+        sentInsets = i
+        webView?.evaluateJavaScript("window.SPG && SPG.native && SPG.native.insets && SPG.native.insets(\(i.top),\(i.right),\(i.bottom),\(i.left))", completionHandler: nil)
     }
 
     override func viewWillDisappear(_ animated: Bool) {
@@ -87,6 +110,24 @@ public class SproutPhotosPlugin: CAPPlugin, CAPBridgedPlugin {
             if let n = call.getString("name"), !n.isEmpty { opts.originalFilename = n }
             req.addResource(with: .photo, data: data, options: opts)
         }, completionHandler: { ok, _ in call.resolve(["saved": ok]) })
+    }
+}
+
+// The window's safe area for the page (top, right, bottom, left in points), asked for once the game has loaded and after a resize.
+@objc(SproutViewPlugin)
+public class SproutViewPlugin: CAPPlugin, CAPBridgedPlugin {
+    public let identifier = "SproutViewPlugin"
+    public let jsName = "SproutView"
+    public let pluginMethods: [CAPPluginMethod] = [
+        CAPPluginMethod(name: "insets", returnType: CAPPluginReturnPromise)
+    ]
+
+    @objc func insets(_ call: CAPPluginCall) {
+        DispatchQueue.main.async {
+            guard let v = self.bridge?.viewController?.view else { call.resolve([:]); return }
+            let i = v.safeAreaInsets
+            call.resolve(["t": i.top, "r": i.right, "b": i.bottom, "l": i.left])
+        }
     }
 }
 

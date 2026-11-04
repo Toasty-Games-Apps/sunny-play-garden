@@ -18,10 +18,16 @@
   --peach: #ffd2a6;
   --butter: #fff0a8;
   --shadow: 0 10px 0 rgba(90, 63, 94, .13), 0 22px 34px rgba(90, 63, 94, .16);
-  --safe-t: env(safe-area-inset-top, 0px);
-  --safe-b: env(safe-area-inset-bottom, 0px);
-  --safe-l: env(safe-area-inset-left, 0px);
-  --safe-r: env(safe-area-inset-right, 0px);
+  /* --nat-* are only set by the iOS app (js/native.js: the window's real safe area, because WebKit can report 0 on the iPhone Duo);
+     everywhere else they are unset and these are the plain env() insets */
+  --ios-t: max(env(safe-area-inset-top, 0px), var(--nat-t, 0px));
+  --ios-r: max(env(safe-area-inset-right, 0px), var(--nat-r, 0px));
+  --ios-b: max(env(safe-area-inset-bottom, 0px), var(--nat-b, 0px));
+  --ios-l: max(env(safe-area-inset-left, 0px), var(--nat-l, 0px));
+  --safe-t: var(--ios-t);
+  --safe-b: var(--ios-b);
+  --safe-l: var(--ios-l);
+  --safe-r: var(--ios-r);
   --pad: clamp(14px, 3vmin, 40px);
 }
 
@@ -1260,13 +1266,16 @@ html.big-ui { --ui: clamp(56px, 13.5vmin, 94px); --chip: clamp(48px, 10.5vmin, 7
    indicator, so nothing a child needs is under them; the meadow backdrop shows in those thin edges. Inside the game the --safe-*
    insets are 0 (the host already keeps clear), so a game's own panels are not pushed in twice. The HUD buttons outside the host
    still use the real insets. Sheets keep at least the old 16px margin and never sit under a cut-out either. */
-html.ios .game-host { top: env(safe-area-inset-top, 0px); right: env(safe-area-inset-right, 0px); bottom: env(safe-area-inset-bottom, 0px); left: env(safe-area-inset-left, 0px);
+html.ios .game-host { top: var(--ios-t); right: var(--ios-r); bottom: var(--ios-b); left: var(--ios-l);
   --safe-t: 0px; --safe-r: 0px; --safe-b: 0px; --safe-l: 0px; }
-html.ios .overlay { padding: max(16px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) max(16px, env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); }
+html.ios .overlay { padding: max(16px, var(--ios-t)) max(16px, var(--ios-r)) max(16px, var(--ios-b)) max(16px, var(--ios-l)); }
 /* a sheet never reaches under a side status bar, the camera or the home bar (iPhone Duo, iPhones on their side): 94vw / 92vh are
    of the whole screen, so on iOS they are also held inside the safe area; the scrolling sheets scroll instead of growing */
-html.ios .overlay > .sheet { max-width: calc(100vw - max(16px, env(safe-area-inset-left, 0px)) - max(16px, env(safe-area-inset-right, 0px))); }
-html.ios .overlay > .sheet.wide, html.ios .setup .sheet { max-height: calc(100dvh - max(16px, env(safe-area-inset-top, 0px)) - max(16px, env(safe-area-inset-bottom, 0px))); }
+html.ios .overlay > .sheet { max-width: calc(100vw - max(16px, var(--ios-l)) - max(16px, var(--ios-r))); }
+html.ios .overlay > .sheet.wide, html.ios .setup .sheet { max-height: calc(100dvh - max(16px, var(--ios-t)) - max(16px, var(--ios-b))); }
+/* the new-player sheet sits in a screen that already keeps clear of the safe area (the iPhone Duo's side status bar takes 84 pt of a
+   466 pt window), so 94vw of the whole window would run off its left edge: hold it inside what is left, same 3% margins as before */
+html.ios .setup .sheet { max-width: calc(100vw - max(3vw, var(--ios-l)) - max(3vw, var(--ios-r))); }
 /* the privacy policy inside the iOS app (Grown-ups > About) */
 .privacy-view { z-index: 60; }
 .privacy-sheet { width: min(96vw, 760px); height: min(88vh, 960px); display: flex; flex-direction: column; gap: 12px; align-items: center; }

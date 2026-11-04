@@ -109,5 +109,20 @@
     addEventListener('spgaudioresume', wake);
     const App = plugins().App;
     if (App && App.addListener) App.addListener('resume', () => setTimeout(wake, 300));
+    // The window's real safe area from the app (SproutViewController): WebKit's env(safe-area-inset-*) can read 0 where the system
+    // still covers an edge (the iPhone Duo's side status bar and home indicator). styles.css uses the larger of the two (--ios-*).
+    let ins = '';
+    const setInsets = o => {
+      if (!o || o.t == null) return;
+      const v = [o.t, o.r, o.b, o.l].map(x => Math.max(0, Math.round(+x || 0))), key = v.join(',');
+      if (key === ins) return; ins = key;
+      const st = document.documentElement.style;
+      ['t', 'r', 'b', 'l'].forEach((k, i) => st.setProperty('--nat-' + k, v[i] + 'px'));
+      // the game area changed size without the window changing: let the hub and the running game lay themselves out again
+      dispatchEvent(new Event('resize'));
+    };
+    N.insets = (t, r, b, l) => setInsets({ t, r, b, l });
+    const ask = () => { const V = plugins().SproutView; if (V && V.insets) V.insets().then(setInsets).catch(() => {}); };
+    ask(); addEventListener('resize', () => setTimeout(ask, 120));
   }
 })();
