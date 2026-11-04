@@ -577,12 +577,12 @@
     const file = h('input', { type: 'file', accept: '.json,application/json', style: 'display:none' });
     file.addEventListener('change', async () => {
       const f = file.files && file.files[0]; if (!f) return;
-      const r = sync.restoreFileText(await f.text());
-      say(r.ok ? (r.total > 1 ? t('Backup file restored ({n} players here now). Nothing that was already here was lost.', { n: r.total }) : t('Backup file restored (1 player here now). Nothing that was already here was lost.')) : SAY[r.error]);
+      const r = await sync.restoreFile(await f.text());
+      say(r.ok ? (r.total > 1 ? t('Backup file restored ({n} players here now). Nothing that was already here was lost.', { n: r.total }) : t('Backup file restored (1 player here now). Nothing that was already here was lost.')) + (r.clips ? ' ' + t('Voice recordings brought back: {n}.', { n: r.clips }) : '') : SAY[r.error]);
     });
     const save = h('button', { class: 'btn small', type: 'button' }, t('Save a backup file'));
-    save.addEventListener('click', () => {
-      const blob = new Blob([sync.fileText()], { type: 'application/json' });
+    save.addEventListener('click', async () => {
+      const blob = await sync.fileBlob();   // the players and the family's voice recordings
       SPG.native.saveFile(blob, sync.fileName(), 'application/json').then(ok => say(SPG.native.isApp ? (ok ? t('Choose where to keep the backup file.') : t('The backup file was not saved.')) : t('Backup file saved to this device’s downloads.')));
     });
     const restore = h('button', { class: 'btn small quiet', type: 'button' }, t('Restore from a backup file'));

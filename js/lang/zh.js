@@ -149,6 +149,7 @@ SPG.i18n.add('zh', {
     "Use a different email": "使用其他邮箱",
     "Backup file restored ({n} players here now). Nothing that was already here was lost.": "备份文件已恢复（现在这里有 {n} 位玩家）。原有的内容一点都没有丢失。",
     "Backup file restored (1 player here now). Nothing that was already here was lost.": "备份文件已恢复（现在这里有 1 位玩家）。原有的内容一点都没有丢失。",
+    "Voice recordings brought back: {n}.": "已找回的语音录音：{n} 条。",
     "Save a backup file": "保存备份文件",
     "Choose where to keep the backup file.": "选择保存备份文件的位置。",
     "The backup file was not saved.": "备份文件没有保存。",

@@ -153,6 +153,7 @@ SPG.i18n.add('es', {
     "Use a different email": "Usar otro correo",
     "Backup file restored ({n} players here now). Nothing that was already here was lost.": "Archivo de copia restaurado (ahora hay {n} jugadores aquí). No se perdió nada de lo que ya estaba.",
     "Backup file restored (1 player here now). Nothing that was already here was lost.": "Archivo de copia restaurado (ahora hay 1 jugador aquí). No se perdió nada de lo que ya estaba.",
+    "Voice recordings brought back: {n}.": "Grabaciones de voz recuperadas: {n}.",
     "Save a backup file": "Guardar un archivo de copia",
     "Choose where to keep the backup file.": "Elige dónde guardar el archivo de copia.",
     "The backup file was not saved.": "El archivo de copia no se guardó.",

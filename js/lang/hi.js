@@ -149,6 +149,7 @@ SPG.i18n.add('hi', {
     "Use a different email": "दूसरा ईमेल इस्तेमाल करें",
     "Backup file restored ({n} players here now). Nothing that was already here was lost.": "बैकअप फ़ाइल वापस आ गई (अब यहाँ {n} खिलाड़ी हैं)। जो पहले से यहाँ था, उसमें से कुछ नहीं खोया।",
     "Backup file restored (1 player here now). Nothing that was already here was lost.": "बैकअप फ़ाइल वापस आ गई (अब यहाँ 1 खिलाड़ी है)। जो पहले से यहाँ था, उसमें से कुछ नहीं खोया।",
+    "Voice recordings brought back: {n}.": "वापस आईं आवाज़ की रिकॉर्डिंग: {n}।",
     "Save a backup file": "बैकअप फ़ाइल सेव करें",
     "Choose where to keep the backup file.": "चुनें कि बैकअप फ़ाइल कहाँ रखनी है।",
     "The backup file was not saved.": "बैकअप फ़ाइल सेव नहीं हुई।",

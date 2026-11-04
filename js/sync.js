@@ -253,6 +253,40 @@
 
     /* -------------------------------------------------------- backup files */
     fileText() { return JSON.stringify({ app: 'little-sprout-park', v: 1, saved: Date.now(), profiles: store.exportProfiles() }); },
+    // The whole backup file a grown-up saves: the players, plus the family's named voices and every recording on this device (each
+    // as base64 in the file, a voice of 100 lines is about 3 MB), so recordings can move to a new phone without the cloud backup.
+    async fileBlob() {
+      const out = JSON.parse(sync.fileText()), V = SPG.voice;
+      if (V && V.syncList) {
+        try {
+          await V.ready; const clips = [];
+          for (const c of await V.syncList()) {
+            const b = await V.syncBlob(c.set, c.key); if (!b) continue;
+            clips.push({ set: c.set, key: c.key, stamp: c.stamp, mime: b.type || 'audio/webm', data: b64(new Uint8Array(await b.arrayBuffer())) });
+          }
+          out.v = 2; out.voices = { list: V.voiceList(), clips };
+        } catch (_) { /* a file without recordings is still a good backup */ }
+      }
+      return new Blob([JSON.stringify(out)], { type: 'application/json' });
+    },
+    // Restore a backup file: players merge as before; voices and recordings come back with the cloud backup's rules (a newer
+    // recording wins, a voice deleted on this device stays deleted). Old files without voices restore exactly as before.
+    async restoreFile(text) {
+      const r = sync.restoreFileText(text); if (!r.ok) return r;
+      let j; try { j = JSON.parse(text); } catch (_) { return r; }
+      const V = SPG.voice, got = j.voices; r.clips = 0;
+      if (!got || !V || !V.importClip) return r;
+      try {
+        await V.ready; await V.adoptVoiceList(got.list || {});
+        const removed = new Set(((V.voiceList() || {}).removed) || []);
+        for (const c of got.clips || []) {
+          if (!c || !c.set || !c.key || !c.data || removed.has(c.set) || !(c.stamp > V.stampOf(c.set, c.key))) continue;
+          const blob = new Blob([unb64(c.data)], { type: c.mime || 'audio/webm' });
+          if (await V.importClip(c.set, c.key, blob, c.stamp)) r.clips++;
+        }
+      } catch (_) { /* the players are restored even if the recordings could not be */ }
+      tellVoices(); return r;
+    },
     fileName() { const d = new Date(); return `little-sprout-park-backup-${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}.json`; },
     restoreFileText(text) {
       let j; try { j = JSON.parse(text); } catch (_) { return fail('notbackup'); }

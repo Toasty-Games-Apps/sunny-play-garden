@@ -321,6 +321,18 @@ await step('photos', async () => {
   const FS = PL.Filesystem, w = await FS.writeFile({ path: 'test-backup.json', data: btoa(unescape(encodeURIComponent(txt))), directory: 'CACHE' });
   const rd = await FS.readFile({ path: 'test-backup.json', directory: 'CACHE', encoding: 'utf8' }); await FS.deleteFile({ path: 'test-backup.json', directory: 'CACHE' });
   ok(rd.data === txt && /^file:/.test(w.uri), 'the file the share sheet sends is written correctly', w.uri);
+  // the file a grown-up saves also carries the family's recordings: lose one, restore the file, and it is back and plays
+  if (out.voice && SPG.voice.hasDeviceClip(out.voice, 'letter/a')) {
+    const full = await (await SPG.sync.fileBlob()).text(), j = JSON.parse(full);
+    const clip = ((j.voices || {}).clips || []).find(c => c.set === out.voice && c.key === 'letter/a');
+    ok(!!clip && clip.data.length > 100 && (j.voices.list.voices || []).some(v => v.id === out.voice), 'the backup file holds the voices and their recordings', { clips: ((j.voices || {}).clips || []).length, kb: Math.round(full.length / 1024) });
+    await SPG.voice.deleteClip(out.voice, 'letter/a');
+    ok(!SPG.voice.hasDeviceClip(out.voice, 'letter/a'), 'a recording can be deleted');
+    const back = await SPG.sync.restoreFile(full);
+    ok(back.ok && back.clips >= 1 && SPG.voice.hasDeviceClip(out.voice, 'letter/a'), 'restoring the backup file brings the recording back', back);
+    let played = false; try { played = !!(await SPG.voice.previewClip(out.voice, 'letter/a')); } catch (e) { note('play after restore', String(e)); }
+    ok(played, 'the restored recording plays');
+  } else note('backup file with recordings', 'no recording to try (the recording check did not save one)');
   // device unlock: Face ID / Touch ID / passcode availability on this simulator
   try { note('Face ID / Touch ID on this simulator', await PL.NativeBiometric.isAvailable({ useFallback: true })); } catch (e) { note('Face ID / Touch ID on this simulator', String(e)); }
   // the privacy policy opens inside the app
