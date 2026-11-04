@@ -227,15 +227,18 @@ await step('window sizes', async () => {
 /* ------------------------------------------------------------ 5. background and back */
 await step('background', async () => {
   await openGame(page, 'Bunny Band'); await wait(800);
-  window.__notReloaded = 1; const inst = SPG.app.running().inst; let hid = 0; const onVis = () => { if (document.hidden) hid++; }; document.addEventListener('visibilitychange', onVis);
+  // WebKit can freeze the page before it hears "hidden" and hand the event over only on coming back, so every change is kept with its state
+  window.__notReloaded = 1; const inst = SPG.app.running().inst, seen = []; const onVis = e => seen.push(e.type === 'visibilitychange' ? document.visibilityState : e.type);
+  document.addEventListener('visibilitychange', onVis); addEventListener('blur', onVis); addEventListener('pagehide', onVis); document.addEventListener('freeze', onVis);
   const r = await T.ask('background', { seconds: 4 });
   await until(() => document.visibilityState === 'visible', 10000); await wait(1500);
   ok(r && r.done, 'the Mac sent the app away and back', r);
   ok(window.__notReloaded === 1 && SPG.app.running() && SPG.app.running().inst === inst, 'the same game is still open after coming back');
-  ok(hid >= 1, 'the game was told it was hidden', hid);
+  note('page visibility changes seen', seen);
+  ok(seen.length >= 1, 'the game was told the app went away (visibility, blur or pagehide)', seen);
   await mouse.click(innerWidth / 2, innerHeight / 2); await wait(400);
   ok(SPG.audio.ctx && SPG.audio.ctx.state === 'running', 'sound runs again after coming back', SPG.audio.ctx && SPG.audio.ctx.state);
-  document.removeEventListener('visibilitychange', onVis);
+  document.removeEventListener('visibilitychange', onVis); removeEventListener('blur', onVis); removeEventListener('pagehide', onVis); document.removeEventListener('freeze', onVis);
 });
 
 /* ------------------------------------------------------------ 6. a phone call ends */

@@ -78,9 +78,11 @@ each one has JPEGs without alpha.
 | iPhone, Dynamic Island, medium (required) | `sim-iphone-games` | 1206 × 2622 |
 | iPhone, Dynamic Island, large (optional) | `sim-iphone-max` | 1320 × 2868 |
 | iPad 13" (required) | `sim-ipad-13` | 2064 × 2752 |
-| iPhone Duo, inner and outer displays | `sim-iphone-duo` | 2007 × 2853 and 1398 × 2034 |
+| iPhone Duo, outer display | `sim-iphone-duo` | 1398 × 2034 |
 
-The sizes are what the simulators produce; check them against the run. The scenes are hub, kitchen, coloring, feelings, fishing,
+The sizes are what the simulators produce; check them against the run. The iPhone Duo simulator on GitHub's Macs shows only the
+outer display and has no fold control, so there are no inner-display (2007 × 2853) screenshots yet. Take those on a real iPhone Duo
+from TestFlight if App Store Connect asks for them. The scenes are hub, kitchen, coloring, feelings, fishing,
 Pet Shop, rain, tracing, shapes and pet care. They are the same as the Play screenshots, but without captions. Upload up to 10 per
 slot.
 
@@ -141,17 +143,41 @@ The app does not use the camera.
 | Microphone permission | Asked only when a grown-up starts recording. The tests check that nothing asks before then. |
 | Sign language and camera sign videos | Held back on both platforms (`backup/`). The release check refuses them, and the iOS app has no camera permission. |
 
+## What the simulator runs check
+
+Every push that changes the game runs the **Build iOS app** workflow: the games' own play-tests and the iOS checks run inside the
+real app on these simulators (iOS 27, Xcode 27):
+
+| Job | Simulator | Tests |
+|---|---|---|
+| `iphone-max` | iPhone Pro Max (440 × 956 pt) | iOS checks, cloud backup against the real worker code on the Mac, data kept after closing the app, restore on a new phone, all four languages, screenshots |
+| `iphone-games` | iPhone Pro (402 × 874 pt) | the games' play-tests (all 15 kitchen recipes, Shape Builder, Tidy Time, Caterpillars, Feeling Friends, Fishing Pond, Clay Corner, Pet Care, Hair Salon, Hide and Seek, numbers, age tiers, fixes, monkey), screenshots |
+| `iphone-small` | the smallest iPhone offered | iOS checks, the monkey test (every game mashed like a toddler), kitchen, Tidy Time |
+| `ipad-13` | iPad Pro 13" | iOS checks, kitchen, Shape Builder, Clay Corner, fixes, monkey, screenshots |
+| `ipad-mini` | iPad mini (744 × 1133 pt) | iOS checks (including the window resized to the iPhone Duo's outer 466 × 678 and inner 669 × 951 pt displays), monkey, Tidy Time |
+| `iphone-duo` | iPhone Duo (outer display) | iOS checks, kitchen, monkey, Tidy Time, Shape Builder, screenshots |
+
+The iOS checks cover: the game fills the window and every button stays inside the real safe area; turning the device and resizing
+the window keep the hub page, the open game, the painting and the recipe step; canvases stay sharp; five fingers at once; taps and
+swipes land under the finger; going to the background and back; a phone call ending; the Sprout voice and the phone's voices; the
+microphone asked for only when recording starts; recording, playback, backup file, restore; Photos (add-only); the gate and
+Face ID; the privacy page.
+
 ## Not tested yet (needs real devices)
 
 All iOS testing so far is in **simulators** on GitHub's macOS runners, with Xcode 27 and iOS 27. It was **not** done on a physical
 iPhone, iPad or iPhone Duo. These still need a person with a device and TestFlight:
 
-- the real microphone and the permission prompt, and how recordings sound;
+- the real microphone and the permission prompt, and how recordings sound. The simulators record from a stand-in microphone. On iOS
+  the page's sound is set up to play with the silent switch on, and WebKit refuses the microphone in that mode, so the app switches
+  to play-and-record only while a grown-up records (`SPG.native.recording`). Check that a recording works and that the game's
+  sound comes back afterwards;
 - the speaker with the ring/silent switch on;
 - Face ID, Touch ID and passcode;
 - saving to Photos and the share sheet;
 - a real phone call or alarm in the middle of play;
-- folding and unfolding a real iPhone Duo during play;
+- folding and unfolding a real iPhone Duo during play, and the inner display. The simulator has neither, so the inner display's
+  size was only tested as a resized window on an iPad;
 - speed on older iPads;
 - the recovery email to a real inbox.
 
