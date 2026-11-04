@@ -1,0 +1,5 @@
+/* What iOS shows under the app icon and in the permission questions (English). */
+"CFBundleDisplayName" = "Sprout Park";
+"NSMicrophoneUsageDescription" = "Grown-ups can record family voices for the games. The microphone is only used while a grown-up is recording in the grown-up settings.";
+"NSFaceIDUsageDescription" = "Grown-ups can use Face ID to open the grown-up settings. It is only used when a grown-up turns it on.";
+"NSPhotoLibraryAddUsageDescription" = "A grown-up can choose to save finished pictures and kitchen and clay photos to Photos. The app only adds pictures and never looks at your library.";

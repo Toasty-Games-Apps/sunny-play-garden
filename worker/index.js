@@ -17,7 +17,7 @@
 //   POST   /api/recovery/confirm { code, verificationCode } -> sends the family code to the verified inbox
 // Voice files are encrypted on the device like the backup, and the names they are stored under are scrambled (a keyed
 // hash), so the server cannot tell whose voice it is or which line it says.
-// The website and the Android app (origin https://localhost) may both call these routes.
+// The website, the Android app (origin https://localhost) and the iOS app (origin capacitor://localhost) may call these routes.
 // Every backup request carries `X-Family: <64 hex chars>`.
 import { DurableObject } from 'cloudflare:workers';
 import { deriveFamilyId, handleRecovery } from './recovery.js';
@@ -29,7 +29,9 @@ const KEEP_DAYS = 400;               // a backup nobody has touched for this lon
 const MAX_CLIP = 400_000;            // bytes per encrypted voice file (a spoken line is about 15-40 KB)
 const MAX_VOICE_TOTAL = 80_000_000;  // bytes of voice files per family
 const MAX_VOICE_COUNT = 6000;        // files per family
-const APP_ORIGINS = new Set(['https://localhost']);   // the Android app (Capacitor serves the game from here)
+// The two apps, where Capacitor serves the game from the device itself: Android (https://localhost) and iPhone/iPad
+// (capacitor://localhost, Capacitor's iOS scheme). Nothing else: other sites get 403, the website itself is same-origin.
+const APP_ORIGINS = new Set(['https://localhost', 'capacitor://localhost']);
 const json = (body, status = 200) => new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' } });
 const WEB_NOTICE = '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex"><title>Little Sprout Park</title></head><body style="font:18px/1.5 system-ui,sans-serif;max-width:36rem;margin:15vh auto;padding:1rem;background:#eaf6fb;color:#5a3f5e"><h1>Little Sprout Park</h1><p>The browser game is closed. Little Sprout Park is moving to the Android app.</p><p><a href="/privacy.html">Privacy policy</a> · <a href="mailto:nicholasolsen22@gmail.com">Support</a></p></body></html>';
 const WEB_HEADERS = {
@@ -189,7 +191,7 @@ export default {
         return new Response('[]\n', { headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' } });
       return new Response('Browser play is closed.', { status: 410, headers: { 'Cache-Control': 'no-store' } });
     }
-    // The website talks to its own address; the Android app is the one other caller that is allowed.
+    // The website talks to its own address; the Android and iOS apps (APP_ORIGINS) are the only other callers that are allowed.
     const origin = request.headers.get('Origin');
     const cors = corsFor(origin);
     let sameHost = false; try { sameHost = !!origin && new URL(origin).host === url.host; } catch (_) { /* 'null' or junk */ }

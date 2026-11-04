@@ -330,7 +330,7 @@
     const cv = document.createElement('canvas'); el.append(cv); host.append(el);
     let px = 0, running = true, raf = 0, hopT = 0, cheerT = 0, idle = 0, t = Math.random() * 5, last = performance.now(), drawn = 0;
     const setSize = n => {
-      px = n; const dpr = Math.min(devicePixelRatio || 1, 1.5);
+      px = n; const dpr = SPG.ui.dpr();
       cv.width = Math.round(n * dpr); cv.height = Math.round(n * 1.15 * dpr); cv.style.width = n + 'px'; cv.style.height = n * 1.15 + 'px';
     };
     setSize(size);

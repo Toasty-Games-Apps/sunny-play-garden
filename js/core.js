@@ -600,8 +600,9 @@
 
   // A small "icon + number" pill next to the stars, for counting things (fruits sliced, drops caught...).
   SPG.ui = {
-    // Full-screen game canvases render at up to 1.5x: much cheaper per frame on tablets, still crisp.
-    dpr: () => Math.min(window.devicePixelRatio || 1, 1.5),
+    // Full-screen game canvases render at up to 1.5x: much cheaper per frame on Android tablets, still crisp. In the iPhone and iPad
+    // app (3x and 2x screens with fast graphics) they render at up to 2x, so the artwork stays sharp on those screens.
+    dpr: () => Math.min(window.devicePixelRatio || 1, SPG.native && SPG.native.ios ? 2 : 1.5),
     // Act the instant a finger touches a button (no need to lift on the exact spot). Keyboard and
     // assistive-technology activation (click with no pointer) still works.
     press(el, fn) {
@@ -645,7 +646,7 @@
     standalone,
     // Safari (iPad) only has the prefixed version; iPhone Safari has none, so it needs "Add to Home Screen".
     canFullscreen: !!(document.documentElement.requestFullscreen || document.documentElement.webkitRequestFullscreen),
-    isIOS: /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1),
+    isIOS: !!(SPG.native && SPG.native.ios) || /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1),
     isFullscreen: () => !!(document.fullscreenElement || document.webkitFullscreenElement),
     needsInstallForFullscreen: () => safe.isIOS && !standalone() && !safe.isFullscreen(),
     async enterFullscreen() {
@@ -706,4 +707,7 @@
       });
     }
   };
+  // iPhone and iPad (the app and the website): the game canvases stay inside the safe area (notch, Dynamic Island, the iPhone Duo's
+  // status bar, the home indicator), see `html.ios .game-host` in styles.css.
+  document.documentElement.classList.toggle('ios', safe.isIOS);
 })();

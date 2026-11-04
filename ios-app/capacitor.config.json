@@ -1,0 +1,14 @@
+{
+  "appId": "com.toastygames.littlesproutpark",
+  "appName": "Little Sprout Park",
+  "webDir": "www",
+  "backgroundColor": "#a9e1f3",
+  "ios": {
+    "contentInset": "never",
+    "backgroundColor": "#a9e1f3",
+    "scrollEnabled": false,
+    "allowsLinkPreview": false,
+    "preferredContentMode": "mobile",
+    "webContentsDebuggingEnabled": false
+  }
+}

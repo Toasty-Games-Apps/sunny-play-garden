@@ -11,3 +11,13 @@ android-app/android/local.properties
 .claude/
 store/screenshots/raw/
 release/
+ios-app/node_modules/
+ios-app/www/
+ios-app/ios/App/build/
+ios-app/ios/DerivedData/
+*.p8
+*.p12
+*.mobileprovision
+*.ipa
+*.xcarchive/
+AuthKey_*.p8

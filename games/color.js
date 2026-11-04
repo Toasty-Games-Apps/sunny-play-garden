@@ -391,6 +391,8 @@
   // On iPhone/iPad (and in the Android app, where the share sheet is only a fallback) a download can pull the child out of the app, so a grown-up has to okay it there.
   const okToSave = fn => ((SPG.safe.isIOS || SPG.native.isApp) && SPG.app && SPG.app.askGate) ? SPG.app.askGate(fn) : fn();
   // Android app: the picture goes straight into the phone's photo gallery (album "Sprout Park"), no share sheet and no gate.
+  // iOS app: straight into Photos once a grown-up has allowed it; the first time the grown-up gate comes first, then the system asks
+  // for "add only" Photos access (so a child never answers that question), and the picture is saved.
   // Only if that fails does the share sheet open (behind the grown-up gate), so nothing is lost.
   // `done` runs once the picture has been handed over (a cancelled grown-up gate just never calls it).
   async function saveToDevice(blob, name, done) {
@@ -398,7 +400,11 @@
     if (SPG.native.isApp && SPG.native.saveToGallery) {
       let ok = false; try { ok = await SPG.native.saveToGallery(blob, name); } catch (_) { ok = false; }
       if (ok) return done(true);
-      return (SPG.app && SPG.app.askGate) ? SPG.app.askGate(share) : share();
+      const after = !SPG.native.photos ? share : async () => {
+        if (await SPG.native.photos.request()) { let again = false; try { again = await SPG.native.saveToGallery(blob, name); } catch (_) { again = false; } if (again) return done(true); }
+        share();
+      };
+      return (SPG.app && SPG.app.askGate) ? SPG.app.askGate(after) : after();
     }
     okToSave(share);
   }

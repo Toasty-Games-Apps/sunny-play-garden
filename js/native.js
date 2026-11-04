@@ -1,14 +1,16 @@
-// The bridge to the Android app (Capacitor). On the website none of this does anything: `SPG.native.isApp` is false and
-// every helper falls back to what the browser does. Inside the Android app the game files are on the phone (no website),
-// and this file covers the few things a bare WebView cannot do on its own: saving a file, the back button, and where the
-// optional cloud backup lives.
+// The bridge to the Android and iOS apps (Capacitor). On the website none of this does anything: `SPG.native.isApp` is false and
+// every helper falls back to what the browser does. Inside the apps the game files are on the device (no website), and this
+// file covers the few things a bare web view cannot do on its own: saving a file or a picture, the Android back button, the
+// device's own unlock, and where the optional cloud backup lives. `SPG.native.platform` is 'android', 'ios' or 'web'.
 (() => {
   const SPG = window.SPG = window.SPG || { games: [] };
   const cap = window.Capacitor;
   const isApp = !!(cap && cap.isNativePlatform && cap.isNativePlatform());
   const plugins = () => (cap && cap.Plugins) || {};
+  const platform = isApp ? ((cap.getPlatform && cap.getPlatform()) || 'android') : 'web', ios = platform === 'ios';
+  const toB64 = blob => new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result).split(',')[1]); r.onerror = rej; r.readAsDataURL(blob); });
   const N = SPG.native = {
-    isApp,
+    isApp, platform, ios,
     // Where /api/backup lives. The website uses its own address; the app needs the full address (set when the app is built).
     apiBase: isApp ? ((window.SPG_APP && window.SPG_APP.api) || '') : '',
     // Saves a Blob as a file the grown-up can keep: on the website a normal download, in the app the phone's share sheet
@@ -29,9 +31,18 @@
       return true;
     },
     // Puts a picture straight into the device's own photos, with no questions (only used when a grown-up allowed it).
-    // In the app: an album called "Sprout Park" in the phone's gallery (@capacitor-community/media, no storage permission needed).
+    // In the Android app: an album called "Sprout Park" in the phone's gallery (@capacitor-community/media, no storage permission needed).
+    // In the iOS app: Photos, with "add only" access (SproutPhotos in ios-app/ios/App/App/SproutViewController.swift). It never asks:
+    // without permission it resolves false, and the game asks for permission only after the grown-up gate (N.photos.request).
     // On the website: a normal download (it shows in Downloads); on iPhone/iPad a download needs a grown-up, so nothing happens.
     async saveToGallery(blob, name) {
+      if (ios) {
+        try {
+          const P = plugins().SproutPhotos; if (!P) return false;
+          const r = await P.save({ data: await toB64(blob), name });
+          return !!(r && r.saved);
+        } catch (_) { return false; }
+      }
       if (isApp) {
         try {
           const { Media } = plugins(); if (!Media) return false;
@@ -46,6 +57,12 @@
       if (SPG.safe && SPG.safe.isIOS) return false;
       return N.saveFile(blob, name, blob.type || 'image/jpeg');
     }
+  };
+  // iOS app: may pictures go into Photos? status() is 'granted', 'ask' (never asked yet), 'denied' or 'restricted'; request() shows the
+  // system question, so it is only called after the grown-up gate or from the grown-ups panel.
+  if (ios) N.photos = {
+    async status() { try { return ((await plugins().SproutPhotos.status()) || {}).status || 'denied'; } catch (_) { return 'denied'; } },
+    async request() { try { return ((await plugins().SproutPhotos.request()) || {}).status === 'granted'; } catch (_) { return false; } }
   };
   // The Android widget (mini games on the home or Flip cover screen) rests when today's play time is used up.
   if (isApp && plugins().SproutWidget) N.widget = { setRest: reached => plugins().SproutWidget.setRest({ reached: !!reached }) };
@@ -63,7 +80,7 @@
     // asks the device once, so a grown-up knows it works before it is switched on; resolves a small token to save (or '' in the app)
     async enroll() {
       try {
-        if (isApp) { await plugins().NativeBiometric.verifyIdentity({ reason: SPG.t('Use your fingerprint or phone lock for the grown-ups area'), title: SPG.t('Grown-ups only'), subtitle: 'Little Sprout Park', useFallback: true }); return 'app'; }
+        if (isApp) { await plugins().NativeBiometric.verifyIdentity({ reason: ios ? SPG.t('Use Face ID, Touch ID or the passcode for the grown-ups area') : SPG.t('Use your fingerprint or phone lock for the grown-ups area'), title: SPG.t('Grown-ups only'), subtitle: 'Little Sprout Park', useFallback: true }); return 'app'; }
         const cred = await navigator.credentials.create({ publicKey: { challenge: crypto.getRandomValues(new Uint8Array(32)), rp: { name: 'Little Sprout Park' }, user: { id: crypto.getRandomValues(new Uint8Array(16)), name: 'grown-up', displayName: 'Grown-up' }, pubKeyCredParams: [{ type: 'public-key', alg: -7 }, { type: 'public-key', alg: -257 }], authenticatorSelection: { authenticatorAttachment: 'platform', userVerification: 'required' }, timeout: 60000 } });
         return cred ? b64(cred.rawId) : '';
       } catch (_) { return ''; }
@@ -82,5 +99,15 @@
     if (App && App.addListener) App.addListener('backButton', () => { if (SPG.safe && SPG.safe.onBack) SPG.safe.onBack(); });
     // An old copy of the website's offline cache has no use inside the app.
     if (navigator.serviceWorker && navigator.serviceWorker.getRegistrations) navigator.serviceWorker.getRegistrations().then(l => l.forEach(r => r.unregister())).catch(() => {});
+  }
+  // iOS app: the sound is part of playing (spoken instructions for a child who cannot read yet), so it plays with the silent switch on,
+  // like the native audio session the app sets up. After a call, Siri or an alarm, and on coming back to the app, the paused web audio
+  // is started again (the next touch would do it too).
+  if (ios) {
+    try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch (_) { /* older iOS */ }
+    const wake = () => { if (SPG.audio && SPG.audio.ctx && SPG.audio.ctx.state !== 'running') SPG.audio.unlock(); };
+    addEventListener('spgaudioresume', wake);
+    const App = plugins().App;
+    if (App && App.addListener) App.addListener('resume', () => setTimeout(wake, 300));
   }
 })();

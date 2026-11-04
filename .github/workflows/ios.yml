@@ -1,0 +1,219 @@
+# Builds and tests the iPhone and iPad app (ios-app/) on GitHub's macOS runners with Xcode 27.
+#
+# Three parts:
+#   1. sim-build   a Debug build for the simulator with the in-app self-test (ios-app/test/README.md). Never shipped.
+#   2. sim-test    that build on fresh simulators: a big iPhone, a small iPhone, iPad Pro 13", iPad mini and iPhone Duo. The tests run
+#                  inside the real app (WebKit, the real plugins) and the Mac takes real simulator screenshots. Results, logs and
+#                  screenshots (also App Store screenshots) are attached to the run as "sim-<device>".
+#   3. archive     the Release build for the App Store. It is checked first (ios-app/test/check-release-ios.mjs). Without signing secrets
+#                  it is an unsigned archive (proof that it builds for devices). With them it is a signed .ipa ("SproutPark-ipa"), and
+#                  when the run is started by hand with "upload" ticked it is also sent to App Store Connect (TestFlight). Releasing
+#                  to the App Store stays a manual step in App Store Connect.
+#
+# Signing secrets (Settings > Secrets and variables > Actions), from App Store Connect > Users and Access > Integrations > Keys,
+# a Team key with the Admin role (so Xcode can make the distribution certificate and the App Store profile itself):
+#   ASC_KEY_ID          the key id
+#   ASC_ISSUER_ID       the issuer id shown above the list of keys
+#   ASC_KEY_P8_BASE64   the downloaded AuthKey_<id>.p8, base64 encoded (base64 -i AuthKey_XXXX.p8 | pbcopy)
+# Optional repository variable SPG_API_BASE: the https address of the cloud backup (the same as for Android).
+name: Build iOS app
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version shown in the App Store (1.0.0 first)'
+        required: false
+        default: '1.0.0'
+      build_number:
+        description: 'Build number: higher than every build already uploaded for this version (empty: the run number)'
+        required: false
+        default: ''
+      upload:
+        description: 'Send the signed build to App Store Connect (TestFlight). Needs the signing secrets.'
+        type: boolean
+        default: false
+      tests:
+        description: 'Simulator tests: full, quick or none'
+        required: false
+        default: 'full'
+  push:
+    branches: [ccr-812ba91c-62t8en]
+    paths: ['ios-app/**', 'js/**', 'games/**', 'index.html', 'styles.css', 'privacy.html', 'fonts/**', 'audio/**', 'icons/**', 'tools/app-web.mjs', 'tools/store-scenes.mjs', 'tools/playtest/**', 'worker/**', '.github/workflows/ios.yml']
+concurrency:
+  group: ios-${{ github.ref }}
+  cancel-in-progress: true
+env:
+  BUNDLE: com.toastygames.littlesproutpark
+  WRANGLER_SEND_METRICS: 'false'
+jobs:
+  sim-build:
+    if: github.event.inputs.tests != 'none'
+    runs-on: xcode-27
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm, cache-dependency-path: ios-app/package-lock.json }
+      - name: Use the newest Xcode 27
+        run: |
+          X=$(ls -d /Applications/Xcode_27*.app | sort -V | tail -1); sudo xcode-select -s "$X"; xcodebuild -version
+      - name: What this Mac offers (runtimes, device types, simctl commands)
+        run: |
+          xcrun simctl list runtimes
+          xcrun simctl list devicetypes
+          xcrun simctl help | sed -n '1,140p'
+      - name: Pack the game with the self-test
+        working-directory: ios-app
+        env: { SPG_SELFTEST: '1', SPG_TEST_API: 'http://127.0.0.1:8787' }
+        run: |
+          npm ci
+          node build-web.mjs
+          npx cap sync ios
+          # test build only: let the app reach the local test backup on this Mac (the release build has no such exception)
+          /usr/libexec/PlistBuddy -c "Add :NSAppTransportSecurity dict" -c "Add :NSAppTransportSecurity:NSAllowsLocalNetworking bool true" ios/App/App/Info.plist
+      - name: Build for the simulator (Debug)
+        working-directory: ios-app/ios/App
+        run: |
+          set -o pipefail
+          xcodebuild -project App.xcodeproj -scheme App -configuration Debug -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath "$RUNNER_TEMP/dd" CODE_SIGNING_ALLOWED=NO build 2>&1 | grep -E "error|warning: .*(Sprout|App/)|BUILD|Signing|\*\*" | tail -80
+          cd "$RUNNER_TEMP/dd/Build/Products/Debug-iphonesimulator" && ditto -c -k --keepParent App.app "$GITHUB_WORKSPACE/SproutPark-sim.zip"
+      - uses: actions/upload-artifact@v4
+        with: { name: sim-app, path: SproutPark-sim.zip, retention-days: 7 }
+
+  sim-test:
+    needs: sim-build
+    runs-on: xcode-27
+    timeout-minutes: 150
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # the app's own checks, languages, the backup round trip, closing and opening, and App Store screenshots (6.9")
+          - { label: iphone-max, pick: 'iPhone [0-9]+ Pro Max', backup: true, full: 'ios,after:keep,after:restore,lang:en,lang:es,lang:hi,lang:zh,store-shots', quick: 'ios,after:keep,after:restore,store-shots' }
+          # every game's play-test (all 15 recipes, every shape picture, sorting, patterns, feelings, fishing, clay, pet care, salon, rapid tapping...)
+          - { label: iphone-games, pick: 'iPhone [0-9]+ Pro$', backup: false, full: 'auto,shapes,sort,pattern,feelings,fishing,clay,care,salon,fixes,monkey,hide,num,tiers', quick: 'auto,fixes,monkey' }
+          - { label: iphone-small, pick: 'iPhone ([0-9]+e|SE|[0-9]+ mini)', backup: false, full: 'ios,monkey,auto,sort', quick: 'ios,monkey' }
+          - { label: ipad-13, pick: 'iPad Pro 13', backup: false, full: 'ios,auto,shapes,clay,fixes,monkey,store-shots', quick: 'ios,store-shots' }
+          - { label: ipad-mini, pick: 'iPad mini', backup: false, full: 'ios,monkey,sort', quick: 'ios' }
+          - { label: iphone-duo, pick: 'iPhone Duo', backup: false, full: 'ios,auto,monkey,sort,shapes,store-shots', quick: 'ios,store-shots' }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - uses: actions/download-artifact@v4
+        with: { name: sim-app }
+      - name: Use the newest Xcode 27
+        run: |
+          X=$(ls -d /Applications/Xcode_27*.app | sort -V | tail -1); sudo xcode-select -s "$X"; xcodebuild -version
+      - name: Start a local backup service (the real worker code, on this Mac only)
+        if: matrix.backup
+        run: |
+          (npx --yes wrangler dev --ip 127.0.0.1 --port 8787 > "$RUNNER_TEMP/wrangler.log" 2>&1 &)
+          for i in $(seq 1 90); do c=$(curl -s -o /dev/null -w '%{http_code}' -H 'Origin: capacitor://localhost' http://127.0.0.1:8787/api/backup || true); if [ "$c" != "000" ]; then echo "backup service answers ($c)"; break; fi; sleep 2; done
+          # the allow list: the iOS app's origin may call it, another site may not
+          curl -s -o /dev/null -w 'from capacitor://localhost: %{http_code}\n' -X OPTIONS -H 'Origin: capacitor://localhost' http://127.0.0.1:8787/api/backup
+          curl -s -o /dev/null -w 'from https://evil.example: %{http_code}\n' -H 'Origin: https://evil.example' http://127.0.0.1:8787/api/backup
+      - name: Make the simulator and install the app
+        id: sim
+        run: |
+          UDID=$(node ios-app/test/make-sim.mjs --pick '${{ matrix.pick }}' --name 'sprout-${{ matrix.label }}')
+          echo "udid=$UDID" >> "$GITHUB_OUTPUT"
+          unzip -q SproutPark-sim.zip
+          xcrun simctl install "$UDID" App.app
+          # what a grown-up would allow: the microphone (for recording voices) and adding pictures to Photos
+          xcrun simctl privacy "$UDID" grant microphone "$BUNDLE" || true
+          xcrun simctl privacy "$UDID" grant photos-add "$BUNDLE" || true
+          xcrun simctl io "$UDID" enumerate || true
+      - name: Run the tests inside the app
+        env:
+          TESTS: ${{ github.event.inputs.tests == 'quick' && matrix.quick || matrix.full }}
+        run: node ios-app/test/run-sim.mjs --udid '${{ steps.sim.outputs.udid }}' --label '${{ matrix.label }}' --out sim-results --tests "$TESTS"
+      - name: App Store screenshots (no alpha) and a summary
+        if: always()
+        run: |
+          mkdir -p sim-results/appstore
+          for f in sim-results/*store-shots-*.png; do [ -e "$f" ] || continue; sips -s format jpeg -s formatOptions 95 "$f" --out "sim-results/appstore/$(basename "${f%.png}").jpg" > /dev/null; done
+          ls sim-results/appstore | head -40 || true
+          for f in sim-results/appstore/*.jpg; do [ -e "$f" ] && sips -g pixelWidth -g pixelHeight "$f" | tail -2 | tr '\n' ' ' && echo; break; done
+          cat sim-results/summary-*.md >> "$GITHUB_STEP_SUMMARY" || true
+          [ -f "$RUNNER_TEMP/wrangler.log" ] && tail -40 "$RUNNER_TEMP/wrangler.log" || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: { name: 'sim-${{ matrix.label }}', path: sim-results, retention-days: 30 }
+
+  archive:
+    runs-on: xcode-27
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm, cache-dependency-path: ios-app/package-lock.json }
+      - name: Use the newest Xcode 27
+        run: |
+          X=$(ls -d /Applications/Xcode_27*.app | sort -V | tail -1); sudo xcode-select -s "$X"; xcodebuild -version
+      - name: Pack the game (release) and check it
+        working-directory: ios-app
+        env: { SPG_API_BASE: '${{ vars.SPG_API_BASE }}', SPG_VERSION_NAME: '${{ github.event.inputs.version || ''1.0.0'' }}' }
+        run: |
+          npm ci
+          node build-web.mjs
+          node test/check-release-ios.mjs
+          npx cap sync ios
+      - name: Signing key (only if the secrets are set)
+        env: { P8: '${{ secrets.ASC_KEY_P8_BASE64 }}', KID: '${{ secrets.ASC_KEY_ID }}', ISS: '${{ secrets.ASC_ISSUER_ID }}' }
+        run: |
+          if [ -n "$P8" ] && [ -n "$KID" ] && [ -n "$ISS" ]; then
+            echo "$P8" | base64 -d > "$RUNNER_TEMP/AuthKey.p8"; chmod 600 "$RUNNER_TEMP/AuthKey.p8"; echo "SIGNED=1" >> "$GITHUB_ENV"; echo "signing with the App Store Connect key"
+          else echo "no signing secrets: the archive is built unsigned (it cannot go to TestFlight)"; fi
+      - name: Archive (Release)
+        working-directory: ios-app/ios/App
+        env: { KID: '${{ secrets.ASC_KEY_ID }}', ISS: '${{ secrets.ASC_ISSUER_ID }}' }
+        run: |
+          set -o pipefail
+          VN='${{ github.event.inputs.version }}'; VN=${VN:-1.0.0}
+          BN='${{ github.event.inputs.build_number }}'; BN=${BN:-$GITHUB_RUN_NUMBER}
+          echo "version $VN, build $BN"
+          COMMON=(-project App.xcodeproj -scheme App -configuration Release -destination 'generic/platform=iOS' -archivePath "$RUNNER_TEMP/SproutPark.xcarchive" MARKETING_VERSION="$VN" CURRENT_PROJECT_VERSION="$BN")
+          if [ "$SIGNED" = "1" ]; then
+            xcodebuild "${COMMON[@]}" -allowProvisioningUpdates -authenticationKeyPath "$RUNNER_TEMP/AuthKey.p8" -authenticationKeyID "$KID" -authenticationKeyIssuerID "$ISS" archive 2>&1 | grep -E "error|BUILD|ARCHIVE|Signing|\*\*" | tail -60
+          else
+            xcodebuild "${COMMON[@]}" CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" archive 2>&1 | grep -E "error|BUILD|ARCHIVE|\*\*" | tail -60
+          fi
+      - name: Check the built app
+        run: |
+          A="$RUNNER_TEMP/SproutPark.xcarchive/Products/Applications/App.app"
+          plutil -p "$A/Info.plist" | grep -E "CFBundle(Identifier|ShortVersionString|Version|DisplayName)|MinimumOSVersion|UsageDescription|NonExempt|UIStatusBarHidden" || true
+          test -f "$A/PrivacyInfo.xcprivacy" && echo "privacy manifest: in the app"
+          test -f "$A/public/index.html" && echo "game files: in the app ($(du -sh "$A/public" | cut -f1))"
+          if [ -d "$A/public/test" ] || grep -q selftest "$A/public/index.html"; then echo "the self-test is in the release build"; exit 1; fi
+          if strings "$A/App" | grep -q SproutTestPlugin; then echo "the Debug test plugin is in the release build"; exit 1; fi
+          if plutil -p "$A/Info.plist" | grep -q NSAppTransportSecurity; then echo "network exception in the release build"; exit 1; fi
+          echo "app size: $(du -sh "$A" | cut -f1)"
+      - name: Export the signed .ipa
+        if: env.SIGNED == '1'
+        env: { KID: '${{ secrets.ASC_KEY_ID }}', ISS: '${{ secrets.ASC_ISSUER_ID }}' }
+        run: |
+          xcodebuild -exportArchive -archivePath "$RUNNER_TEMP/SproutPark.xcarchive" -exportOptionsPlist ios-app/ExportOptions.plist -exportPath "$RUNNER_TEMP/export" \
+            -allowProvisioningUpdates -authenticationKeyPath "$RUNNER_TEMP/AuthKey.p8" -authenticationKeyID "$KID" -authenticationKeyIssuerID "$ISS"
+          ls -la "$RUNNER_TEMP/export"
+      - name: Send to App Store Connect (TestFlight), only when asked
+        if: env.SIGNED == '1' && github.event.inputs.upload == 'true'
+        env: { KID: '${{ secrets.ASC_KEY_ID }}', ISS: '${{ secrets.ASC_ISSUER_ID }}' }
+        run: |
+          cp ios-app/ExportOptions.plist "$RUNNER_TEMP/upload.plist"; /usr/libexec/PlistBuddy -c "Set :destination upload" "$RUNNER_TEMP/upload.plist"
+          xcodebuild -exportArchive -archivePath "$RUNNER_TEMP/SproutPark.xcarchive" -exportOptionsPlist "$RUNNER_TEMP/upload.plist" -exportPath "$RUNNER_TEMP/upload" \
+            -allowProvisioningUpdates -authenticationKeyPath "$RUNNER_TEMP/AuthKey.p8" -authenticationKeyID "$KID" -authenticationKeyIssuerID "$ISS"
+          echo "Uploaded. The build appears in App Store Connect > TestFlight after Apple processes it. Releasing to the App Store stays manual."
+      - name: Remove the signing key
+        if: always()
+        run: rm -f "$RUNNER_TEMP/AuthKey.p8"
+      - uses: actions/upload-artifact@v4
+        if: env.SIGNED == '1'
+        with: { name: SproutPark-ipa, path: '${{ runner.temp }}/export/*.ipa' }
+      - name: Zip the unsigned archive
+        if: env.SIGNED != '1'
+        run: cd "$RUNNER_TEMP" && ditto -c -k --keepParent SproutPark.xcarchive "$GITHUB_WORKSPACE/SproutPark-unsigned-xcarchive.zip"
+      - uses: actions/upload-artifact@v4
+        if: env.SIGNED != '1'
+        with: { name: SproutPark-unsigned-archive, path: SproutPark-unsigned-xcarchive.zip, retention-days: 14 }

@@ -374,6 +374,7 @@
     $('gate-forgot').classList.toggle('hidden', !forgot);
     // a grown-up can also use the device's fingerprint or screen lock (switched on in Grown-ups); not when a new PIN is being typed in or for the recovery sums
     $('gate-device').classList.toggle('hidden', !(store.settings.deviceAuth && gateState && !gateState.capture && gateState.mode !== 'recover'));
+    if (SPG.native.ios) $('gate-device').querySelector('span').textContent = t('Use Face ID or passcode');
     openOverlay(overlays.gate);
   }
   function askGate(onPass) {
@@ -626,7 +627,7 @@
       sub: () => [(store.settings.timer ? t('{m} a day', { m: hm(store.settings.timer) }) : t('No daily limit')), { off: t('Night mode off'), on: t('Night mode on'), auto: t('Night mode on a schedule') }[SPG.night.mode()]].join(' · '),
       body: () => [timerSection(), nightSection()] },
     { id: 'locks', icon: '🔒', title: () => t('Locks and safety'),
-      sub: () => [store.settings.pin ? t('PIN set') : t('No PIN yet'), store.settings.deviceAuth ? t('Fingerprint on') : ''].filter(Boolean).join(' · '),
+      sub: () => [store.settings.pin ? t('PIN set') : t('No PIN yet'), store.settings.deviceAuth ? (SPG.native.ios ? t('Face ID on') : t('Fingerprint on')) : ''].filter(Boolean).join(' · '),
       body: () => [pinSection(), deviceAuthSection(), safeSection(), pinningSection()] },
     { id: 'access', icon: '👓', title: () => t('Accessibility'),
       sub: () => ([store.settings.vision ? t('Colour filter on') : '', store.settings.contrast ? t('Stronger contrast') : '', store.settings.bigUI ? t('Bigger buttons') : ''].filter(Boolean).join(' · ') || t('All off')),
@@ -726,6 +727,13 @@
   }
 
   function pinningSection() {
+    if (safe.isIOS) return h('section', {}, h('h3', {}, t('Locking the iPhone or iPad properly')),
+      h('p', {}, t('To keep your child in Little Sprout Park, use Guided Access:')),
+      h('ol', { class: 'steps' },
+        h('li', {}, t('Settings → Accessibility → Guided Access: turn it on and set a Guided Access passcode.')),
+        h('li', {}, t('Open Little Sprout Park and triple-click the side button (or the Home button).')),
+        h('li', {}, t('Tap Start. The device now stays in the app.')),
+        h('li', {}, t('To end it, triple-click again and type the Guided Access passcode.'))));
     return h('section', {}, h('h3', {}, t('Locking the tablet properly')),
       h('p', {}, t('To help keep your child in Little Sprout Park, use Android app pinning. The steps and names may vary by device:')),
       h('ol', { class: 'steps' },
@@ -739,7 +747,20 @@
     return h('section', {}, h('h3', {}, t('About')),
       h('p', {}, t('Little Sprout Park version {v}. No ads or tracking. Children\'s play needs no account.', { v: SPG.version })),
       h('p', { class: 'fine' }, t('Names, stars, gardens, coloring pictures and voice recordings stay on this device unless a grown-up turns on cloud backup. Grown-ups can optionally email their family code to a verified inbox.')),
-      h('a', { href: 'privacy.html', target: '_blank', rel: 'noopener noreferrer' }, t('Read the privacy policy')));
+      privacyLink());
+  }
+  function privacyLink() {
+    const a = h('a', { href: 'privacy.html', target: '_blank', rel: 'noopener noreferrer' }, t('Read the privacy policy'));
+    if (SPG.native.ios) a.addEventListener('click', e => { e.preventDefault(); showPrivacy(); });
+    return a;
+  }
+  // iOS app: the privacy policy in a sheet over the panel, read from the app itself (works offline, never leaves the app)
+  function showPrivacy() {
+    const close = h('button', { class: 'btn small go', type: 'button' }, t('Close'));
+    const wrap = h('div', { class: 'overlay privacy-view', role: 'dialog', 'aria-modal': 'true', 'aria-label': t('Privacy policy') },
+      h('div', { class: 'sheet privacy-sheet' }, h('iframe', { src: 'privacy.html', title: t('Privacy policy') }), close));
+    close.addEventListener('click', () => wrap.remove());
+    document.body.append(wrap);
   }
 
   // Language (js/i18n.js): what the games say and what the screens show. Choosing another one restarts the app in it.
@@ -961,9 +982,14 @@
 
   // Kitchen photos: the camera button in Sprout Kitchen keeps photos in the game's own album; a grown-up can also let them go to the device's photos
   function photoSection() {
-    const app = SPG.native && SPG.native.isApp, ios = safe.isIOS && !app;
+    const app = SPG.native && SPG.native.isApp, ios = safe.isIOS && !app, iosApp = app && SPG.native.ios;
     const sw = h('button', { class: 'switch', type: 'button', role: 'switch', 'aria-checked': String(!!store.settings.photoSave), 'aria-label': t('Save kitchen photos to this device') });
-    sw.addEventListener('click', () => { store.settings.photoSave = !store.settings.photoSave; store.saveSettings(); sw.setAttribute('aria-checked', String(store.settings.photoSave)); });
+    const photoNote = h('p', { class: 'fine' });
+    sw.addEventListener('click', async () => {
+      // the iOS app asks for "add only" Photos access here, while a grown-up is looking (never in front of a child)
+      if (iosApp && !store.settings.photoSave && !(await SPG.native.photos.request())) { photoNote.textContent = t('Photos access is off. To allow it: Settings → Sprout Park → Photos → Add Photos Only.'); return; }
+      photoNote.textContent = '';
+      store.settings.photoSave = !store.settings.photoSave; store.saveSettings(); sw.setAttribute('aria-checked', String(store.settings.photoSave)); });
     const count = h('p', { class: 'fine' }, t('Counting photos…'));
     if (SPG.photos) SPG.photos.count('kitchen').then(n => { count.textContent = n === 1 ? t('1 photo in the kitchen album on this device (the newest 60 for each player are kept).') : t('{n} photos in the kitchen album on this device (the newest 60 for each player are kept).', { n }); });
     const clear = confirmButton(t('Delete all kitchen photos'), 'danger', async () => { if (SPG.photos) await SPG.photos.clear('kitchen'); renderParent(); });
@@ -972,8 +998,8 @@
     const clayClear = confirmButton(t('Delete all clay pictures'), 'danger', async () => { if (SPG.photos) await SPG.photos.clear('clay'); renderParent(); });
     return h('section', {}, h('h3', {}, t('Photos and pictures')),
       h('p', {}, t('In Sprout Kitchen the camera button takes a photo of the food your child made, and in Clay Corner it takes a picture of the clay creation. Pictures are always kept in the game’s own album, on this device only.')),
-      h('p', {}, app ? t('In the Coloring Book the Save picture button always puts the finished picture into this phone’s photo gallery (album “Sprout Park”). Every picture also stays in the Coloring Book’s own gallery.') : t('In the Coloring Book the Save picture button downloads the picture to this device. Every picture also stays in the Coloring Book’s own gallery.')),
-      ios ? h('p', { class: 'fine' }, t('On iPhone and iPad the photos stay in the kitchen album.')) : h('div', { class: 'setting' }, h('span', {}, app ? t('Also save them to this phone’s photo gallery (album “Sprout Park”)') : t('Also save them to this device (as a download)')), sw),
+      h('p', {}, iosApp ? t('In the Coloring Book the Save picture button puts the finished picture into Photos. The first time, a grown-up is asked to allow it. Every picture also stays in the Coloring Book’s own gallery.') : app ? t('In the Coloring Book the Save picture button always puts the finished picture into this phone’s photo gallery (album “Sprout Park”). Every picture also stays in the Coloring Book’s own gallery.') : t('In the Coloring Book the Save picture button downloads the picture to this device. Every picture also stays in the Coloring Book’s own gallery.')),
+      ios ? h('p', { class: 'fine' }, t('On iPhone and iPad the photos stay in the kitchen album.')) : h('div', { class: 'setting' }, h('span', {}, iosApp ? t('Also save them to Photos') : app ? t('Also save them to this phone’s photo gallery (album “Sprout Park”)') : t('Also save them to this device (as a download)')), sw), photoNote,
       count, clear,
       h('h4', {}, t('Clay Corner pictures')),
       h('p', {}, t('The camera in Clay Corner takes a picture of the clay creation. Pictures are kept in the game’s own album, and the same switch above also sends them to the device’s photo gallery.')),
@@ -1005,16 +1031,17 @@
   function deviceAuthSection() {
     if (deviceAuthOk === null) { deviceAuthOk = false; SPG.native.deviceAuth.available().then(v => { if (v) { deviceAuthOk = true; renderParent(); } }); }
     if (!deviceAuthOk) return null;
-    const on = !!store.settings.deviceAuth;
+    const on = !!store.settings.deviceAuth, ios = SPG.native.ios;
     const btn = h('button', { class: 'btn small ' + (on ? 'quiet' : 'go'), type: 'button' }, on ? t('Turn off') : t('Turn on'));
     btn.addEventListener('click', async () => {
-      if (on) { store.settings.deviceAuth = ''; store.saveSettings(); pinNote = t('Fingerprint / phone lock is off.'); renderParent(); return; }
+      if (on) { store.settings.deviceAuth = ''; store.saveSettings(); pinNote = ios ? t('Face ID / passcode is off.') : t('Fingerprint / phone lock is off.'); renderParent(); return; }
       const tok = await SPG.native.deviceAuth.enroll();
-      if (tok) { store.settings.deviceAuth = tok; store.saveSettings(); pinNote = t('Done. The grown-up screens now also have a "Use fingerprint or phone lock" button. The PIN still works too.'); } else pinNote = t('That did not work, so it was not turned on.');
+      if (tok) { store.settings.deviceAuth = tok; store.saveSettings(); pinNote = ios ? t('Done. The grown-up screens now also have a "Use Face ID or passcode" button. The PIN still works too.') : t('Done. The grown-up screens now also have a "Use fingerprint or phone lock" button. The PIN still works too.'); } else pinNote = t('That did not work, so it was not turned on.');
       renderParent();
     });
-    return h('section', {}, h('h3', {}, t('Fingerprint or phone lock')),
-      h('p', {}, on ? t('On: grown-up screens can be opened with this device’s fingerprint, face or screen lock, as well as the PIN or question.') : t('Let a grown-up open the grown-up screens with this device’s own fingerprint, face or screen lock, as well as the PIN. It stays on this device.')),
+    return h('section', {}, h('h3', {}, ios ? t('Face ID, Touch ID or passcode') : t('Fingerprint or phone lock')),
+      h('p', {}, ios ? (on ? t('On: grown-up screens can be opened with Face ID, Touch ID or this device’s passcode, as well as the PIN or question.') : t('Let a grown-up open the grown-up screens with Face ID, Touch ID or this device’s passcode, as well as the PIN. It stays on this device.'))
+        : on ? t('On: grown-up screens can be opened with this device’s fingerprint, face or screen lock, as well as the PIN or question.') : t('Let a grown-up open the grown-up screens with this device’s own fingerprint, face or screen lock, as well as the PIN. It stays on this device.')),
       h('div', { class: 'row' }, btn));
   }
 

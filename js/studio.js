@@ -107,7 +107,9 @@
       box.append(row);
     };
     group(t('Female voices'), ch.female); group(t('Male voices'), ch.male); group(t('More voices'), ch.other);
-    box.append(h('p', { class: 'fine' }, SPG.i18n.lang() === 'en' ? 'Want more or better voices? On Android open Settings > System > Languages > Text-to-speech output, choose Google or Samsung text-to-speech, then install an English (US, UK or Australia) voice from its settings. They appear here by themselves.' : t('Want more or better voices? On Android open Settings > System > Languages > Text-to-speech output, choose Google or Samsung text-to-speech, then install a {lang} voice from its settings. They appear here by themselves.', { lang: SPG.i18n.info().native })));
+    // iPhone and iPad get their voices from Settings > Accessibility > Spoken Content; Android from its text-to-speech settings
+    if (SPG.safe.isIOS) box.append(h('p', { class: 'fine' }, SPG.i18n.lang() === 'en' ? 'Want more or better voices? On iPhone or iPad open Settings > Accessibility > Spoken Content > Voices, choose English and download an Enhanced or Premium voice. It appears here by itself.' : t('Want more or better voices? On iPhone or iPad open Settings > Accessibility > Spoken Content > Voices, choose {lang} and download an Enhanced or Premium voice. It appears here by itself.', { lang: SPG.i18n.info().native })));
+    else box.append(h('p', { class: 'fine' }, SPG.i18n.lang() === 'en' ? 'Want more or better voices? On Android open Settings > System > Languages > Text-to-speech output, choose Google or Samsung text-to-speech, then install an English (US, UK or Australia) voice from its settings. They appear here by themselves.' : t('Want more or better voices? On Android open Settings > System > Languages > Text-to-speech output, choose Google or Samsung text-to-speech, then install a {lang} voice from its settings. They appear here by themselves.', { lang: SPG.i18n.info().native })));
     return box;
   }
 

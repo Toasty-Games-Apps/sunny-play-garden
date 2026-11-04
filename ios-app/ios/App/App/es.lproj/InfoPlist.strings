@@ -1,0 +1,5 @@
+/* Lo que iOS muestra bajo el icono y en las preguntas de permisos (español de Latinoamérica). */
+"CFBundleDisplayName" = "Sprout Park";
+"NSMicrophoneUsageDescription" = "Los adultos pueden grabar las voces de la familia para los juegos. El micrófono solo se usa mientras un adulto graba en los ajustes para adultos.";
+"NSFaceIDUsageDescription" = "Los adultos pueden usar Face ID para abrir los ajustes para adultos. Solo se usa si un adulto lo activa.";
+"NSPhotoLibraryAddUsageDescription" = "Un adulto puede guardar en Fotos los dibujos terminados y las fotos de la cocina y de la plastilina. La app solo añade imágenes y nunca mira tu fototeca.";
