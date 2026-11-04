@@ -46,7 +46,7 @@ async function screenshot(file, want) {
 async function runOne(t) {
   const name = t.name, run = `${label}-${name}-${Date.now()}`;
   const fresh = !(name === 'after' && t.args[0] === 'keep');
-  const plan = { test: name, run, fresh, args: t.args.slice(), shots, prefix: `${label}-${t.spec.replace(/[:+]/g, '-')}`, timeout: name === 'auto' || name === 'kitchen-look' ? 3000 : name === 'ios' ? 1800 : 900, env: { BACKUP: backup ? '1' : '0' } };
+  const plan = { test: name, run, fresh, args: t.args.slice(), shots, prefix: `${label}-${t.spec.replace(/[:+]/g, '-')}`, timeout: name === 'auto' || name === 'kitchen-look' ? 3000 : name === 'ios' || name === 'shapes' ? 1800 : 900, env: { BACKUP: backup ? '1' : '0' } };
   // the play-tests take the window size first (node test.mjs W H ...), except the monkey test: seconds per game, then W H
   if (name === 'monkey') plan.lead = ['14', 'W', 'H'];
   // the simulator on a build server draws more slowly than Chromium (a recipe takes up to twice as long), so the kitchen test gets more time

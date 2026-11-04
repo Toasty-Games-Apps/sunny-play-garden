@@ -103,7 +103,16 @@ const page = {
   async $(sel) { return query(sel) ? handle(sel) : null; },
   async $$(sel) { return query(sel, true).map((e, i) => handle(sel + ' >> nth=' + i)); },
   async screenshot({ path } = {}) { if (path) await T.shot(String(path).split('/').pop().replace(/\.png$/, '')); return new Uint8Array(0); },
-  async setViewportSize({ width, height }) { did(`setViewportSize ${width}x${height}`); await T.turn(width > height ? 'landscape' : 'portrait'); },
+  // an iPad in windowed mode cannot be turned by the app: the window then gets that shape inside the screen (the widest or tallest it can
+  // be), as when a grown-up resizes the app's window, and the whole screen again for the screen's own shape
+  async setViewportSize({ width, height }) {
+    did(`setViewportSize ${width}x${height}`); const land = width > height;
+    await T.turn(land ? 'landscape' : 'portrait'); if ((innerWidth > innerHeight) === land) return;
+    const i = await T.info(), sc = i && i.screen; if (!sc || !T.resize) return;
+    const [sw, sh] = sc;
+    if ((sw > sh) === land) { await T.resize(0, 0); return; }
+    if (land) await T.resize(sw, Math.round(sw * height / width)); else await T.resize(Math.round(sh * width / height), sh);
+  },
   viewportSize: () => ({ width: innerWidth, height: innerHeight }),
   on(ev, cb) { (handlers[ev] = handlers[ev] || []).push(cb); },
   context: () => ({ async close() { await home(); } }),

@@ -47,7 +47,15 @@ async function playRecipe(page, id, log) {
     if (st.fin && k !== 'serve') { if (process.env.DBG && Date.now() - (shot.dbg || 0) > 4000) { shot.dbg = Date.now(); log.push('waiting ' + JSON.stringify(await page.evaluate(() => { const g = SPG.cookGame, s = g.st; return { k: s.k, finT: s.finT, flies: g.flies.length, motions: g.motions.map(m => m.kind || m.type || Object.keys(m).join('/')), trans: !!g.trans, running: g.running }; }))); } await wait(200); continue; }
     if (p.busy) { await wait(120); continue; }
     // the camera: on the plate (serve, or a recipe's own eating step) a photo of the food goes into the kitchen album, once per recipe, before the first bite
-    if (p.cam && !shot.cam && !p.finishedAll && !st.n && k !== 'decorate') { shot.cam = 1; const rest = await page.evaluate(() => Math.max(0, (SPG.cookGame.camUntil || 0) - SPG.cookGame.t)); if (rest) await wait(rest * 1000 + 300); const before = (await P(page)).photos; await page.mouse.click(p.cam.x, p.cam.y); let got = false; for (let i = 0; i < 30 && !got; i++) { await wait(150); got = (await P(page)).photos > before; } log.push(`${id}: photo ${got ? 'OK' : 'FAILED'}`); if (!got) fails.push(`${id}: photo`); continue; }
+    if (p.cam && !shot.cam && !p.finishedAll && !st.n && k !== 'decorate') { shot.cam = 1; const rest = await page.evaluate(() => Math.max(0, (SPG.cookGame.camUntil || 0) - SPG.cookGame.t)); if (rest) await wait(rest * 1000 + 300); // touches are ignored while a step slides in (slow on a simulator), and saving the picture can take a few seconds there; a tap that
+      // did not start the camera (no flash) is tried once more
+      for (let i = 0; i < 80 && (await P(page)).trans; i++) await wait(150);
+      const before = (await P(page)).photos, cam = (await P(page)).cam || p.cam; let got = false;
+      for (let tries = 0; tries < 2 && !got; tries++) {
+        await page.mouse.click(cam.x, cam.y); await wait(200);
+        const started = await page.evaluate(() => !!(SPG.cookGame.snapping || SPG.cookGame.snapAnim || SPG.cookGame.flash > 0));
+        for (let i = 0; i < 130 && !got; i++) { got = (await P(page)).photos > before; if (!got) await wait(150); if (!started && i > 20) break; }
+      } log.push(`${id}: photo ${got ? 'OK' : 'FAILED'}`); if (!got) fails.push(`${id}: photo`); continue; }
     // a kind of step that says how to play itself (SPG.cookKit H[kind].auto)
     if (p.auto) { const a = p.auto; if (a.tap) await page.mouse.click(a.tap[0], a.tap[1]); else if (a.drag) await drag(page, a.drag, a.steps || 4); await wait(a.wait || 250); continue; }
     if (k === 'pick') { const cd = p.cards[Math.floor(Math.random() * p.cards.length)]; await page.mouse.click(cd.x, cd.y); await wait(400); continue; }
