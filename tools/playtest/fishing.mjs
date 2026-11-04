@@ -26,7 +26,10 @@ for (const sp of pr.spots) {
 const after = await P(); ok(after.total === pr.spots.length, 'every fish counted (' + after.total + ')');
 await page.mouse.click(pr.book.x, pr.book.y); await page.waitForTimeout(200); await shot('5-book'); ok((await P()).mode === 'book', 'the fish book opens'); await page.mouse.click(pr.w / 2, pr.h / 2); ok((await P()).mode !== 'book', 'the book closes');
 // night: the same pond by moonlight, with fireflies, and a catch at night
-await page.evaluate(() => SPG.night.set('on')); await page.waitForTimeout(3500); ok((await P()).night, 'night mode is on'); await shot('6-night-idle'); ok((await P()).bugs.some(b => b.k === 'firefly'), 'fireflies at night');
+await page.evaluate(() => SPG.night.set('on')); await page.waitForTimeout(3500); ok((await P()).night, 'night mode is on'); await shot('6-night-idle');
+// fireflies drift in one by one after dark (a slow machine draws fewer frames, so give them up to 10 s)
+for (let i = 0; i < 65 && !(await P()).bugs.some(b => b.k === 'firefly'); i++) await page.waitForTimeout(100);
+ok((await P()).bugs.some(b => b.k === 'firefly'), 'fireflies at night');
 await page.mouse.click(pr.rod.x, pr.rod.y); await page.mouse.click(pr.spots[1].x, pr.spots[1].y); ok(await waitMode('wait'), 'a night cast lands'); await page.waitForTimeout(900); await shot('7-night-wait'); ok(await waitMode('bite'), 'a night bite'); await shot('8-night-bite');
 for (let k = 0; k < (await P()).taps; k++) { await page.mouse.click(pr.w * .5, pr.h * .5); await page.waitForTimeout(250); } ok(await waitMode('card', 8000), 'a night catch is shown'); await page.waitForTimeout(600); await shot('9-night-card'); await page.mouse.click(pr.w / 2, pr.h / 2);
 await page.mouse.click(pr.book.x, pr.book.y); await page.waitForTimeout(300); await shot('10-night-book'); await page.mouse.click(pr.w / 2, pr.h / 2);

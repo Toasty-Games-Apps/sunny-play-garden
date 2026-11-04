@@ -11,6 +11,8 @@
   const toB64 = blob => new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result).split(',')[1]); r.onerror = rej; r.readAsDataURL(blob); });
   const N = SPG.native = {
     isApp, platform, ios,
+    // a grown-up is recording (true) or has finished (false); only the iOS app needs to do something (see the end of this file)
+    recording() {},
     // Where /api/backup lives. The website uses its own address; the app needs the full address (set when the app is built).
     apiBase: isApp ? ((window.SPG_APP && window.SPG_APP.api) || '') : '',
     // Saves a Blob as a file the grown-up can keep: on the website a normal download, in the app the phone's share sheet
@@ -107,6 +109,12 @@
     try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch (_) { /* older iOS */ }
     const wake = () => { if (SPG.audio && SPG.audio.ctx && SPG.audio.ctx.state !== 'running') SPG.audio.unlock(); };
     addEventListener('spgaudioresume', wake);
+    // WebKit refuses the microphone while the page's audio session is "playback": play-and-record only while a grown-up records
+    // (Grown-ups > Voices), then back to playback and the game's sound is woken again
+    N.recording = on => {
+      try { if (navigator.audioSession) navigator.audioSession.type = on ? 'play-and-record' : 'playback'; } catch (_) { /* older iOS */ }
+      if (!on) setTimeout(wake, 250);
+    };
     const App = plugins().App;
     if (App && App.addListener) App.addListener('resume', () => setTimeout(wake, 300));
     // The window's real safe area from the app (SproutViewController): WebKit's env(safe-area-inset-*) can read 0 where the system

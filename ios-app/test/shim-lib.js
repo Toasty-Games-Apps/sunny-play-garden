@@ -76,6 +76,11 @@ function query(sel, all) {
   return all ? list : list[0] || null;
 }
 const visible = e => { const r = e.getBoundingClientRect(), s = getComputedStyle(e); return r.width > 0 && r.height > 0 && s.visibility !== 'hidden' && s.display !== 'none'; };
+// an element handle as Playwright gives one (only what the play-tests use): el.evaluate(fn, arg), el.click(), el.textContent()
+const handle = sel => ({ sel,
+  async evaluate(fn, arg) { did('handle.evaluate ' + sel); return copy(await fn(query(sel), copy(arg))); },
+  click: () => clickEl(sel),
+  async textContent() { const el = query(sel); return el ? el.textContent : null; } });
 async function clickEl(sel) {
   did('click ' + sel);
   let el = null; for (let i = 0; i < 50; i++) { el = query(sel); if (el && visible(el)) break; await wait(100); }
@@ -95,8 +100,8 @@ const page = {
   waitForTimeout: wait,
   async waitForFunction(fn, arg, { timeout = 30000 } = {}) { did('waitForFunction ' + String(fn).replace(/\s+/g, ' ').slice(0, 90)); const t0 = Date.now(); for (;;) { const v = await fn(arg); if (v) return v; if (Date.now() - t0 > timeout) throw new Error('waitForFunction timed out'); await wait(100); } },
   click: clickEl,
-  async $(sel) { return query(sel) ? { sel } : null; },
-  async $$(sel) { return query(sel, true).map((e, i) => ({ sel: sel + ' >> nth=' + i })); },
+  async $(sel) { return query(sel) ? handle(sel) : null; },
+  async $$(sel) { return query(sel, true).map((e, i) => handle(sel + ' >> nth=' + i)); },
   async screenshot({ path } = {}) { if (path) await T.shot(String(path).split('/').pop().replace(/\.png$/, '')); return new Uint8Array(0); },
   async setViewportSize({ width, height }) { did(`setViewportSize ${width}x${height}`); await T.turn(width > height ? 'landscape' : 'portrait'); },
   viewportSize: () => ({ width: innerWidth, height: innerHeight }),

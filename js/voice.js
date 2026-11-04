@@ -461,12 +461,19 @@
 
   /* ------------------------------------------------------------ recording (grown-ups) */
   async function startRecording() {
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: true, autoGainControl: true } });
-    const mime = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4', 'audio/ogg;codecs=opus'].find(m => window.MediaRecorder && MediaRecorder.isTypeSupported(m)) || '';
-    const rec = new MediaRecorder(stream, mime ? { mimeType: mime } : undefined);
+    // the iPhone/iPad app plays its sound as "playback" (it ignores the silent switch), which WebKit does not allow while the
+    // microphone is open: the app switches to play-and-record only for the recording (SPG.native.recording), then back
+    const nat = (SPG.native && SPG.native.recording) || (() => {});
+    nat(true);
+    let stream = null, mime = '', rec = null;
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: true, autoGainControl: true } });
+      mime = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4', 'audio/ogg;codecs=opus'].find(m => window.MediaRecorder && MediaRecorder.isTypeSupported(m)) || '';
+      rec = new MediaRecorder(stream, mime ? { mimeType: mime } : undefined);
+    } catch (e) { if (stream) stream.getTracks().forEach(t => t.stop()); nat(false); throw e; }
     const chunks = [];
     rec.ondataavailable = e => { if (e.data && e.data.size) chunks.push(e.data); };
-    const done = new Promise(res => { rec.onstop = () => { stream.getTracks().forEach(t => t.stop()); res(new Blob(chunks, { type: rec.mimeType || mime || 'audio/webm' })); }; });
+    const done = new Promise(res => { rec.onstop = () => { stream.getTracks().forEach(t => t.stop()); nat(false); res(new Blob(chunks, { type: rec.mimeType || mime || 'audio/webm' })); }; });
     rec.start();
     return { stop: () => { if (rec.state !== 'inactive') rec.stop(); return done; }, cancel: () => { chunks.length = 0; if (rec.state !== 'inactive') rec.stop(); } };
   }

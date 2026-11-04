@@ -310,9 +310,16 @@ await step('recording', async () => {
   ok(await V.previewClip(id, 'letter/a'), 'the recording plays back');
   ok(V.hasDeviceClip(id, 'letter/a'), 'the recording is stored on the device');
   out.voice = id; T.fakeMic = false;
-  // the real microphone, as far as the simulator allows (no failure: a build server may have no input at all)
-  try { const s = await Promise.race([navigator.mediaDevices.getUserMedia({ audio: true }), wait(5000).then(() => 'timeout')]); note('real microphone on this simulator', s === 'timeout' ? 'no answer in 5 s' : 'opened (' + s.getAudioTracks().length + ' track)'); if (s !== 'timeout') s.getTracks().forEach(t => t.stop()); }
-  catch (e) { note('real microphone on this simulator', `${e.name}: ${e.message}`); }
+  // the real microphone through the game's own recorder, as far as the simulator allows (a build server may have no input at all,
+  // so no input is only a note); what must never happen is WebKit refusing it because of the app's audio session ("playback")
+  let late = false;
+  try {
+    const pr = V.startRecording(), r = await Promise.race([pr, wait(6000).then(() => 'timeout')]);
+    if (r === 'timeout') { late = true; note('real microphone on this simulator', 'no answer in 6 s'); pr.then(x => x.stop()).catch(() => {}); }
+    else { ok(navigator.audioSession ? navigator.audioSession.type === 'play-and-record' : true, 'the audio session allows the microphone while recording', navigator.audioSession && navigator.audioSession.type); await wait(1200); const blob = await r.stop(); note('real microphone on this simulator', 'recorded ' + blob.size + ' bytes'); }
+  } catch (e) { ok(!/category is not compatible/i.test(e.message || ''), 'the audio session allows the microphone', `${e.name}: ${e.message}`); note('real microphone on this simulator', `${e.name}: ${e.message}`); }
+  await wait(400);
+  if (!late) ok(!navigator.audioSession || navigator.audioSession.type === 'playback', 'after recording the sound plays as playback again (with the silent switch on)', navigator.audioSession && navigator.audioSession.type);
 });
 
 /* ------------------------------------------------------------ 9. photos, files, the gate, privacy */
@@ -345,7 +352,12 @@ await step('photos', async () => {
   // the privacy policy opens inside the app
   SPG.grownups.open('about'); await wait(400);
   const link = [...document.querySelectorAll('#parent-body a')].find(a => /privacy/i.test(a.getAttribute('href') || ''));
-  if (link) { link.click(); await wait(1200); const fr = document.querySelector('.privacy-sheet iframe'); ok(!!fr && /Privacy/i.test(fr.contentDocument && fr.contentDocument.title || ''), 'the privacy policy opens inside the app'); await T.shot('privacy'); const x = document.querySelector('.privacy-sheet .btn'); x && x.click(); await wait(300); }
+  if (link) { link.click();
+    // the page inside the frame loads from the app's files; a simulator on a build server can take a few seconds the first time
+    const titleOf = () => { const f = document.querySelector('.privacy-sheet iframe'); try { return f && f.contentDocument ? f.contentDocument.title : ''; } catch (e) { return 'unreadable: ' + e.message; } };
+    await until(() => /Privacy/i.test(titleOf()), 8000);
+    const fr = document.querySelector('.privacy-sheet iframe');
+    ok(!!fr && /Privacy/i.test(titleOf()), 'the privacy policy opens inside the app', { frame: !!fr, src: fr && fr.src, title: titleOf(), state: fr && fr.contentDocument && fr.contentDocument.readyState, at: fr && fr.contentWindow && String(fr.contentWindow.location) }); await T.shot('privacy'); const x = document.querySelector('.privacy-sheet .btn'); x && x.click(); await wait(300); }
   else ok(false, 'the privacy policy link is in About');
   const s = cssSafe(), panel = document.querySelector('#parent .sheet, #parent .panel, #parent-body');
   if (panel) { const pr = rectOf(panel); ok(inside(pr, s, 2), 'the Grown-ups panel is inside the safe area', pr); }

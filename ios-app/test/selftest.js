@@ -99,7 +99,7 @@
     console.log(`== ${plan.test} on ${navigator.userAgent} at ${innerWidth}x${innerHeight} (dpr ${devicePixelRatio})`);
     const timeout = new Promise(r => setTimeout(() => r('timeout'), (plan.timeout || 900) * 1000));
     // a test that stops moving: say what it asked for last, what is open and what the page looks like (once per stall)
-    const state = () => { const r = SPG.app.running && SPG.app.running(), o = [...document.querySelectorAll('.overlay:not(.hidden), .sheet:not(.hidden), [role=dialog]:not(.hidden)')].map(e => e.id || e.className).join(',');
+    const state = () => { const r = SPG.app.running && SPG.app.running(), o = [...document.querySelectorAll('.overlay:not(.hidden), [role=dialog]:not(.hidden)')].filter(e => e.getClientRects().length).map(e => e.id || e.className).join(',');
       return `game ${r ? r.id : 'none'}, screen ${(document.querySelector('.screen:not(.hidden)') || {}).id || '?'}, open: ${o || 'nothing'}, ${innerWidth}x${innerHeight}`; };
     let stallAt = 0;
     const watch = setInterval(() => { const l = T.last; if (!l || Date.now() - l.t < 20000 || stallAt === l.t) return; stallAt = l.t;
