@@ -152,10 +152,10 @@ real app on these simulators (iOS 27, Xcode 27):
 |---|---|---|
 | `iphone-max` | iPhone Pro Max (440 × 956 pt) | iOS checks, cloud backup against the real worker code on the Mac, data kept after closing the app, restore on a new phone, all four languages, screenshots |
 | `iphone-games` | iPhone Pro (402 × 874 pt) | the games' play-tests (all 15 kitchen recipes, Shape Builder, Tidy Time, Caterpillars, Feeling Friends, Fishing Pond, Clay Corner, Pet Care, Hair Salon, Hide and Seek, numbers, age tiers, fixes, monkey), screenshots |
-| `iphone-small` | the smallest iPhone offered | iOS checks, the monkey test (every game mashed like a toddler), kitchen, Tidy Time |
+| `iphone-small` | iPhone SE (3rd generation), 375 × 667 pt: the smallest iPhone Xcode 27 offers | iOS checks, the monkey test (every game mashed like a toddler), kitchen, Tidy Time |
 | `ipad-13` | iPad Pro 13" | iOS checks, kitchen, Shape Builder, Clay Corner, fixes, monkey, screenshots |
-| `ipad-mini` | iPad mini (744 × 1133 pt) | iOS checks (including the window resized to the iPhone Duo's outer 466 × 678 and inner 669 × 951 pt displays), monkey, Tidy Time |
-| `iphone-duo` | iPhone Duo (outer display) | iOS checks, kitchen, monkey, Tidy Time, Shape Builder, screenshots |
+| `ipad-mini` | iPad mini (744 × 1133 pt) | iOS checks (including the window resized to the iPhone Duo's outer 466 × 678 and inner 669 × 951 pt displays, a 375 pt phone and a short wide window), monkey, Tidy Time |
+| `iphone-duo` | iPhone Duo, outer display (466 × 678 pt, safe area 84 pt on the camera side and 34 pt at the bottom) | iOS checks, kitchen, monkey, Tidy Time, Shape Builder, screenshots |
 
 The iOS checks cover: the game fills the window and every button stays inside the real safe area; turning the device and resizing
 the window keep the hub page, the open game, the painting and the recipe step; canvases stay sharp; five fingers at once; taps and
@@ -163,15 +163,32 @@ swipes land under the finger; going to the background and back; a phone call end
 microphone asked for only when recording starts; recording, playback, backup file, restore; Photos (add-only); the gate and
 Face ID; the privacy page.
 
+Things the simulators showed about themselves (not about the app):
+
+- The iPad simulators run in iPadOS windowed mode. The test cannot turn them ("the current windowing mode does not allow
+  programmatic changes to interface orientation"), and opening Settings leaves the app on screen beside it, so the iPad jobs check
+  turning by resizing the window and leave going to the background to the iPhone jobs.
+- The simulators on a build server draw far fewer frames than a phone. Game timers count in game time, so the play-tests wait for
+  what they expect (a celebration, a piece landing) instead of a fixed time. `SLOW=6` runs any play-test with a throttled CPU in
+  Chromium to find such waits before they reach the Mac.
+
+Bugs the simulator runs found in the game, fixed for every platform:
+
+- The hub could come back on the previous page after the screen was turned and turned back (a late scroll event moved the remembered
+  page), and after the iPhone Duo's side safe area arrived the strip could stay scrolled by the old page width.
+- On narrow screens (the iPhone Duo's outer display, the iPhone SE) the kitchen's camera and undo buttons covered the left-hand food
+  when there were several cookies, cupcakes or sandwich pieces, so the last bites there could not be taken. Several foods now keep
+  that column free.
+
 ## Not tested yet (needs real devices)
 
 All iOS testing so far is in **simulators** on GitHub's macOS runners, with Xcode 27 and iOS 27. It was **not** done on a physical
 iPhone, iPad or iPhone Duo. These still need a person with a device and TestFlight:
 
-- the real microphone and the permission prompt, and how recordings sound. The simulators record from a stand-in microphone. On iOS
-  the page's sound is set up to play with the silent switch on, and WebKit refuses the microphone in that mode, so the app switches
-  to play-and-record only while a grown-up records (`SPG.native.recording`). Check that a recording works and that the game's
-  sound comes back afterwards;
+- the real microphone and the permission prompt, and how recordings sound. On iOS the page's sound is set up to play with the
+  silent switch on, and WebKit refuses the microphone in that mode, so the app switches to play-and-record only while a grown-up
+  records (`SPG.native.recording`). In the simulators that path records (the Mac's input, about 35 KB for a short line) and the
+  game's sound comes back afterwards; on a device check the permission prompt, the recording and the sound afterwards;
 - the speaker with the ring/silent switch on;
 - Face ID, Touch ID and passcode;
 - saving to Photos and the share sheet;
