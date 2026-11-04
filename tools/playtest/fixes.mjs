@@ -147,6 +147,13 @@ await home();
     await page.evaluate(() => { const st = document.querySelector('#hub-games .pages'); st.scrollLeft = 2 * st.clientWidth; });
     const a3 = await settle(v => v.includes(b2[0]));
     ok(a3.includes(b2[0]), 'hub: a scroll nobody asked for goes back to the page ' + JSON.stringify(a3.slice(0, 2)));
+    // WebKit, when the phone turns right after a swipe: the strip gets wider and snaps to the nearest page before any resize event
+    // has run. That scroll is the screen's, not her swipe (an iPhone went back to the first page this way)
+    await page.evaluate(() => { const st = document.querySelector('#hub-games .pages'); st.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, pointerId: 4, pointerType: 'touch' })); });
+    await page.evaluate(() => { const st = document.querySelector('#hub-games .pages'); st.style.width = Math.round(st.clientWidth * 2.17) + 'px'; st.scrollLeft = 0; }); await page.waitForTimeout(600);
+    await page.evaluate(() => { const st = document.querySelector('#hub-games .pages'); st.style.width = ''; st._restore(); });
+    const a4 = await settle(v => v.includes(b2[0]));
+    ok(a4.includes(b2[0]), 'hub: the strip snapping as the page gets wider is not a swipe ' + JSON.stringify(a4.slice(0, 2)));
     await page.evaluate(() => document.querySelectorAll('#hub-games .pg-dot')[0].dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, pointerId: 3, pointerType: 'touch' }))); await page.waitForTimeout(800);
   }
 }

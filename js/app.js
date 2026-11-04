@@ -207,6 +207,9 @@
       // only a page change the child made moves hubFirst (a swipe, the arrows, the dots): the strip also scrolls when the screen turns
       // or the safe area changes, sometimes late and in steps on a slow phone, and none of that may change the games they come back to
       // a scroll nobody asked for (WebKit snapping the strip again after the safe area changed) goes back to the remembered page
+      // WebKit snaps the strip to the nearest page as soon as the screen turns, before the window's resize event: a scroll that comes
+      // with a new page width is the screen's, never her swipe (it ended when the width changed)
+      const cw = strip.clientWidth; if (cw && strip._cw && Math.abs(cw - strip._cw) > 1) strip._mine = false; if (cw) strip._cw = cw;
       let i = where();
       if (!hubFrozen && i !== hubPage) {
         if (strip._mine) { hubPage = i; hubFirst = i * hubPer; }

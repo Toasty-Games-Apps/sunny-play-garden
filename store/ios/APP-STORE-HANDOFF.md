@@ -183,7 +183,9 @@ Bugs the simulator runs found in the game, fixed for every platform:
 - The hub could come back on another page after the screen was turned and turned back: the page strip also scrolls by itself while
   the screen changes size (late and in steps on a slow phone), and that scrolling moved the remembered page. Now only a swipe, the
   arrows or the dots change it. After the iPhone Duo's side safe area arrived the strip could also stay scrolled by the old page
-  width; it now goes back onto the same page.
+  width; it now goes back onto the same page. WebKit also snaps the strip to the nearest page the moment the phone turns, before
+  the window's resize event, so right after a swipe that snap looked like her own page turn (the iPhone went back to the first
+  page); a scroll that comes with a new page width now never counts as hers.
 - On narrow screens (the iPhone Duo's outer display, the iPhone SE) the kitchen's camera and undo buttons covered the left-hand food
   when there were several cookies, cupcakes or sandwich pieces, so the last bites there could not be taken. Several foods now keep
   that column free.
