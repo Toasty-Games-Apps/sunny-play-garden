@@ -17,6 +17,8 @@ export async function newPage(browser, w, h, opts = {}) {
   // a headless window that went fullscreen (safe mode asks for it on the first tap) cannot be resized any more, so the tests turn it off
   if (!opts.fullscreen) await ctx.addInitScript(() => { Element.prototype.requestFullscreen = function () { return Promise.resolve(); }; });
   const page = await ctx.newPage(); const errs = [];
+  // SLOW=6: the CPU runs six times slower (like an iOS simulator on a build server), to find tests that rely on a fast frame rate
+  if (process.env.SLOW) { const cdp = await ctx.newCDPSession(page); await cdp.send('Emulation.setCPUThrottlingRate', { rate: +process.env.SLOW }); }
   page.on('pageerror', e => errs.push('pageerror: ' + e.message)); page.on('console', m => { if (m.type() === 'error') errs.push('console: ' + m.text()); });
   await page.goto('http://localhost:' + (process.env.PORT || 8123) + '/index.html'); await page.waitForTimeout(400);
   page.errs = errs; return page;

@@ -21,6 +21,9 @@ const note = (what, v) => { say('note', what, v); out.notes[what] = v; };
 const step = async (name, fn) => { try { await fn(); } catch (e) { ok(false, name + ' (threw)', T.err(e)); } };
 const r4 = v => Math.round(v * 4) / 4;
 const rectOf = el => { const r = el.getBoundingClientRect(); return { x: r.left, y: r.top, w: r.width, h: r.height, r: r.right, b: r.bottom }; };
+// the hub cards a child can see: the page strip clips the pages beside it (their cards still have places on screen, behind its edges)
+const shown = () => { const st = document.querySelector('#hub-games .pages'), sr = st ? st.getBoundingClientRect() : { left: 0, right: innerWidth };
+  return [...document.querySelectorAll('#hub-games .card')].filter(c => { const r = c.getBoundingClientRect(); return r.width > 0 && Math.min(r.right, sr.right) - Math.max(r.left, sr.left) > r.width / 2; }); };
 // the CSS safe area the game lays itself out with (styles.css --ios-*: WebKit's env() or the app's own numbers, whichever is larger)
 function cssSafe(raw) {
   const v4 = raw ? 'env(safe-area-inset-top,0px) env(safe-area-inset-right,0px) env(safe-area-inset-bottom,0px) env(safe-area-inset-left,0px)' : 'var(--ios-t) var(--ios-r) var(--ios-b) var(--ios-l)';
@@ -87,7 +90,7 @@ await step('window', async () => {
   note('WebKit env() safe area', cssSafe(true));
   ok(document.documentElement.scrollWidth <= innerWidth + 1 && document.documentElement.scrollHeight <= innerHeight + 1, 'the hub does not scroll the page');
   // the cards on the page being looked at, and the grown-ups button, are on screen and out of the system areas
-  const cards = [...document.querySelectorAll('#hub-games .card')].map(rectOf).filter(r => r.x > -2 && r.r < innerWidth + 2);
+  const cards = shown().map(rectOf);
   ok(cards.length > 0 && cards.every(r => inside(r, s, 2)), 'hub cards are inside the safe area', cards.length);
   ok(cards.every(r => r.w >= 60 && r.h >= 60), 'hub cards are big enough to touch', cards.map(r => Math.round(r.w)).slice(0, 3));
   note('hub cards on a page', cards.length);
@@ -123,11 +126,11 @@ await step('rotation', async () => {
     // the page turn is a smooth scroll, slow on a simulator: wait until the last dot is lit and the strip has stopped moving
     const strip = document.querySelector('#hub-games .pages');
     for (let i = 0, last = -1; i < 40; i++) { const x = strip.scrollLeft; if (dots[dots.length - 1].classList.contains('on') && x === last) break; last = x; await wait(150); }
-    const seen = () => [...document.querySelectorAll('#hub-games .card')].filter(c => { const r = c.getBoundingClientRect(); return r.left >= -2 && r.right <= innerWidth + 2 && r.width > 0; }).map(c => c.getAttribute('aria-label'));
+    const seen = () => shown().map(c => c.getAttribute('aria-label'));
     const before = seen(); const r = await turnTo(otherWay()); if (r && r.error) note('rotation error', r.error);
     const after = seen();
     ok(before.length && after.includes(before[0]), 'turning keeps the hub page', { before: before.slice(0, 3), after: after.slice(0, 3), size: [innerWidth, innerHeight] });
-    const s = cssSafe(); ok([...document.querySelectorAll('#hub-games .card')].map(rectOf).filter(q => q.x > -2 && q.r < innerWidth + 2).every(q => inside(q, s, 2)), 'hub cards inside the safe area after turning', s);
+    const s = cssSafe(); ok(shown().map(rectOf).every(q => inside(q, s, 2)), 'hub cards inside the safe area after turning', s);
     await T.shot('hub-turned');
     await turnTo(startShape);
     ok(seen().includes(before[0]), 'turning back keeps the hub page', seen().slice(0, 3));
@@ -209,7 +212,7 @@ await step('window sizes', async () => {
   for (const [w, h, label] of sizes) {
     await T.resize(w, h); if (Math.abs(innerWidth - w) > 1) continue;
     // the hub rebuilds its pages after the resize settles; a slow simulator can take a few seconds, so wait for it (up to 6 s)
-    const s = cssSafe(), visibleCards = () => [...document.querySelectorAll('#hub-games .card')].map(rectOf).filter(q => q.x > -2 && q.r < innerWidth + 2);
+    const s = cssSafe(), visibleCards = () => shown().map(rectOf);
     await until(() => { const c = visibleCards(); return c.length && c.every(q => inside(q, s, 2)) && document.documentElement.scrollWidth <= innerWidth + 1 && document.documentElement.scrollHeight <= innerHeight + 1; }, 6000);
     const cards = visibleCards();
     ok(cards.length > 0 && cards.every(q => inside(q, s, 2) && q.w >= 60), `hub cards fit and are big enough (${label})`, { n: cards.length, w: cards.map(q => Math.round(q.w)).slice(0, 3) });

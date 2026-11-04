@@ -1081,6 +1081,9 @@
     running?.inst?.resize?.();
     // turning the phone changes how many fit on a page: rebuild the pages and stay on the same games
     if (perPage() !== hubPer && $('hub-games').firstChild) { hubPage = Math.floor(hubFirst / perPage()); renderCards(); }
+    // the same number per page but a different width (the safe area changed, the iPhone Duo's side bar): back onto the same page,
+    // since WebKit can leave the strip scrolled by the old page width
+    else { const st = $('hub-games').querySelector('.pages'); if (st && st._restore) st._restore(); }
     drawCards();
     setTimeout(() => { hubFrozen = false; }, 150);
   }, 60); };

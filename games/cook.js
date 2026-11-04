@@ -179,12 +179,18 @@
     slots(n = this.pieces.length) {
       const U = this.U, tall = this.SH > this.w * .9;
       if (n <= 1) { const p = this.pieces[0]; if (p && !p.shape && FLAT.includes(p.type)) { const B = this.foodBase(); return [{ x: B.x, y: B.y - pieceHeight(p, this.R1) / 2, r: this.R1 }]; } return [{ ...this.P(0, 0), r: U * .26 }]; }
-      if (n === 2) return [this.P(-.27, 0), this.P(.27, 0)].map(p => ({ ...p, r: U * .24 }));
-      if (n === 3) return (tall ? [this.P(-.2, -.2), this.P(.2, -.2), this.P(0, .2)] : [this.P(-.32, 0), this.P(0, 0), this.P(.32, 0)]).map(p => ({ ...p, r: U * (tall ? .2 : .17) }));
-      if (n === 4) return [this.P(-.22, -.18), this.P(.22, -.18), this.P(-.22, .2), this.P(.22, .2)].map(p => ({ ...p, r: U * .17 }));
-      // five or six: a neat grid, three across (two across on a tall screen)
-      const cols = tall ? 2 : 3, rows = Math.ceil(n / cols), dx = tall ? .25 : .31, dy = tall ? .25 : .29, out = [];
-      for (let i = 0; i < n; i++) { const row = Math.floor(i / cols), inRow = row === rows - 1 ? n - cols * (rows - 1) : cols, col = i % cols; out.push({ ...this.P((col - (inRow - 1) / 2) * dx, (row - (rows - 1) / 2) * dy), r: U * (tall ? .115 : .13) }); }
+      let out;
+      if (n === 2) out = [this.P(-.27, 0), this.P(.27, 0)].map(p => ({ ...p, r: U * .24 }));
+      else if (n === 3) out = (tall ? [this.P(-.2, -.2), this.P(.2, -.2), this.P(0, .2)] : [this.P(-.32, 0), this.P(0, 0), this.P(.32, 0)]).map(p => ({ ...p, r: U * (tall ? .2 : .17) }));
+      else if (n === 4) out = [this.P(-.22, -.18), this.P(.22, -.18), this.P(-.22, .2), this.P(.22, .2)].map(p => ({ ...p, r: U * .17 }));
+      else {   // five or six: a neat grid, three across (two across on a tall screen)
+        const cols = tall ? 2 : 3, rows = Math.ceil(n / cols), dx = tall ? .25 : .31, dy = tall ? .25 : .29; out = [];
+        for (let i = 0; i < n; i++) { const row = Math.floor(i / cols), inRow = row === rows - 1 ? n - cols * (rows - 1) : cols, col = i % cols; out.push({ ...this.P((col - (inRow - 1) / 2) * dx, (row - (rows - 1) / 2) * dy), r: U * (tall ? .115 : .13) }); }
+      }
+      // Several foods never go under the camera and undo buttons on the left (they come out for the last steps): on a narrow screen
+      // the group is drawn a little smaller, the same in every step so nothing jumps, and centred, so both sides keep the same margin.
+      const gut = this.uiR * 1.2 + 22, room = this.w / 2 - gut, ext = Math.max(...out.map(q => Math.abs(q.x - this.bx) + q.r * 1.06));
+      if (ext > room && room > 0) { const f = room / ext; out = out.map(q => ({ x: this.bx + (q.x - this.bx) * f, y: this.by + (q.y - this.by) * f, r: q.r * f })); }
       return out;
     }
     // the plate or platter every step draws the food on, so nothing jumps around between steps

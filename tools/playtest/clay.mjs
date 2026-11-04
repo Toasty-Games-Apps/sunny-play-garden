@@ -10,7 +10,11 @@ const pr = await P(); let fails = 0; const ok = (c, m) => { if (!c) { fails++; c
 const bx = pr.board.x, by = pr.board.y, bs = pr.board.s, it = (k, id) => pr.items.find(i => i.kind === k && i.id === id);
 const click = async (k, id) => { const i = it(k, id); ok(i, 'button ' + k + ':' + id); if (i) { await page.mouse.click(i.x, i.y); await page.waitForTimeout(90); } };
 const drag = async (pts, steps = 8) => { await page.mouse.move(bx + pts[0][0] * bs, by + pts[0][1] * bs); await page.mouse.down(); for (const p of pts.slice(1)) { await page.mouse.move(bx + p[0] * bs, by + p[1] * bs, { steps }); await page.waitForTimeout(30); } await page.mouse.up(); await page.waitForTimeout(80); };
-const hold = async (x, y, ms) => { await page.mouse.move(bx + x * bs, by + y * bs); await page.mouse.down(); await page.waitForTimeout(ms); await page.mouse.up(); await page.waitForTimeout(80); };
+// press and hold for ms of GAME time: the game clock runs slower than the wall clock when frames are slow (an iOS simulator on a
+// build server), and squishing works per frame, so hold on until the game has seen the whole time (at most four times as long)
+const gameT = () => page.evaluate(() => SPG.clayGame.t);
+const hold = async (x, y, ms) => { await page.mouse.move(bx + x * bs, by + y * bs); await page.mouse.down(); const g0 = await gameT(), t0 = Date.now(); await page.waitForTimeout(ms);
+  while ((await gameT()) - g0 < ms / 1000 && Date.now() - t0 < ms * 4) await page.waitForTimeout(50); await page.mouse.up(); await page.waitForTimeout(80); };
 const tap = async (x, y) => { await page.mouse.click(bx + x * bs, by + y * bs); await page.waitForTimeout(100); };
 const setSize = n => page.evaluate(n => { SPG.clayGame.size = n; }, n);
 const pick = async (tool, idx) => { await click('tool', tool); const L = await page.evaluate(() => SPG.clayGame.menuLayout()); await page.mouse.click(L.x + L.pad + (idx % L.cols + .5) * L.os, L.y + L.pad + (Math.floor(idx / L.cols) + .5) * L.os); await page.waitForTimeout(80); };

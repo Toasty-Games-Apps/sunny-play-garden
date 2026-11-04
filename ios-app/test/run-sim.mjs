@@ -21,7 +21,8 @@ const backup = arg('backup', 'true') !== 'false';
 if (!udid) { console.error('--udid is required'); process.exit(2); }
 mkdirSync(out, { recursive: true });
 const sleep = ms => new Promise(r => setTimeout(r, ms));
-const x = (...a) => execFileSync('xcrun', ['simctl', ...a], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim();
+// every simctl call has a time limit: on a busy Mac switching apps can take minutes, and one stuck call must not stop the whole run
+const x = (...a) => execFileSync('xcrun', ['simctl', ...a], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], timeout: 240000 }).trim();
 const xq = (...a) => { try { return x(...a); } catch (e) { return null; } };
 const container = () => x('get_app_container', udid, bundle, 'data');
 const dir = () => join(container(), 'Documents', 'selftest');
@@ -45,11 +46,12 @@ async function screenshot(file, want) {
 async function runOne(t) {
   const name = t.name, run = `${label}-${name}-${Date.now()}`;
   const fresh = !(name === 'after' && t.args[0] === 'keep');
-  const plan = { test: name, run, fresh, args: t.args.slice(), shots, prefix: `${label}-${t.spec.replace(/[:+]/g, '-')}`, timeout: name === 'auto' || name === 'kitchen-look' ? 2400 : 900, env: { BACKUP: backup ? '1' : '0' } };
+  const plan = { test: name, run, fresh, args: t.args.slice(), shots, prefix: `${label}-${t.spec.replace(/[:+]/g, '-')}`, timeout: name === 'auto' || name === 'kitchen-look' ? 3000 : name === 'ios' ? 1800 : 900, env: { BACKUP: backup ? '1' : '0' } };
   // the play-tests take the window size first (node test.mjs W H ...), except the monkey test: seconds per game, then W H
   if (name === 'monkey') plan.lead = ['14', 'W', 'H'];
   // the simulator on a build server draws more slowly than Chromium (a recipe takes up to twice as long), so the kitchen test gets more time
-  if (name === 'auto') Object.assign(plan.env, { RECIPE_SECS: '300', STEP_SECS: '100' });
+  // (the big iPad draws the most pixels: the fruit salad took 301 s there)
+  if (name === 'auto') Object.assign(plan.env, { RECIPE_SECS: '480', STEP_SECS: '120' });
   if (name === 'lang') { plan.lang = t.args[0] || 'en'; plan.test = 'lang'; }
   if (!['ios', 'lang', 'after', 'store-shots'].includes(name)) plan.flat = true;   // a play-test from tools/playtest (see selftest.js)
   if (name === 'after' && t.args[0] === 'restore') { if (!code) { results.push({ test: t.spec, ok: false, error: 'no family code from the ios test (was the build made with SPG_TEST_API?)' }); return; } plan.args = ['restore', code]; }

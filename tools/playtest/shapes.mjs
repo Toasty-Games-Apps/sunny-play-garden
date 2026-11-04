@@ -70,7 +70,9 @@ for (const tier of tiers) {
       ok(C.btns.length === 3 && C.btns.some(b => b.v === C.n) && C.btns.every(b => b.x - C.r > 0 && b.x + C.r < p.w && b.y + C.r < p.h), `${tag}: three number buttons on screen`);
       if (id === 'house') await shot(`count-${W}x${Hh}`);
       const bad = C.btns.find(b => b.v !== C.n); await page.mouse.click(bad.x, bad.y); await page.waitForTimeout(200); ok((await P()).state === 'count', `${tag}: a wrong number does not move on`);
-      const good = C.btns.find(b => b.v === C.n); await page.mouse.click(good.x, good.y); await page.waitForTimeout(1400); p = await P();
+      // the celebration follows the right number after a short pause in game time, which runs slower on a slow simulator: wait for it
+      const good = C.btns.find(b => b.v === C.n); await page.mouse.click(good.x, good.y); await page.waitForTimeout(1400);
+      for (const t0 = Date.now(); (p = await P()).state === 'count' && Date.now() - t0 < 8000;) await page.waitForTimeout(200);
     }
     ok(p.open === 0 && p.state === 'cheer', `${tag}: finished, celebrating (${p.state}, ${p.open} open)`);
     if (p.state === 'cheer') { const built = p.built; await page.waitForTimeout(1200); if (['rocket', 'house', 'car', 'castle'].includes(id) && tier === 2) await shot(`${id}-cheer-${W}x${Hh}`); }
