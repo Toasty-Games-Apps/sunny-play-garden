@@ -124,5 +124,27 @@ await openGame(page, 'Letter Garden'); await page.waitForTimeout(500);
   ok(f > .1 && f < .4, 'letters: a missed letter comes back more often ' + f);
 }
 await home();
+// The hub: the strip also scrolls by itself while the screen turns (late and in steps on a slow phone); that never changes the page
+// the child comes back to, while a page turned by a swipe is kept
+{
+  // the cards fully on screen once the strip has stopped on a page (a page turn is a smooth scroll)
+  const seen = () => page.evaluate(() => { const st = document.querySelector('#hub-games .pages'), r = st.getBoundingClientRect(); const v = [...document.querySelectorAll('#hub-games .card')].filter(c => { const q = c.getBoundingClientRect(); return q.left >= r.left - 2 && q.right <= r.right + 2; }).map(c => c.getAttribute('aria-label')); v.x = st.scrollLeft; v.on = Math.abs(st.scrollLeft / st.clientWidth - Math.round(st.scrollLeft / st.clientWidth)) < .02; return { v, x: v.x, on: v.on }; });
+  const settle = async want => { let v = [], x = -1; for (let i = 0; i < 60; i++) { await page.waitForTimeout(150); const s = await seen(); if (s.on && s.x === x && want(s.v)) return s.v; v = s.v; x = s.x; } return v; };
+  const pages = await page.evaluate(() => document.querySelectorAll('#hub-games .pg-dot').length);
+  if (pages > 2) {
+    const last = await page.evaluate(() => { const c = document.querySelectorAll('#hub-games .card'); const d = document.querySelectorAll('#hub-games .pg-dot'); d[d.length - 1].dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, pointerId: 1, pointerType: 'touch' })); return c[c.length - 1].getAttribute('aria-label'); });
+    const before = await settle(v => v.includes(last));
+    await page.setViewportSize({ width: 844, height: 390 }); await settle(v => v.includes(before[0]));
+    await page.evaluate(() => { const st = document.querySelector('#hub-games .pages'); st.scrollLeft = st.clientWidth; }); await page.waitForTimeout(600);
+    await page.setViewportSize({ width: 390, height: 844 }); const after = await settle(v => v.includes(before[0]));
+    ok(after.includes(before[0]), 'hub: a scroll the screen made by itself does not change the page ' + JSON.stringify([before.slice(0, 2), after.slice(0, 2)]));
+    await page.evaluate(() => { const st = document.querySelector('#hub-games .pages'); st.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, pointerId: 2, pointerType: 'touch' })); st.scrollLeft = st.clientWidth; });
+    const b2 = await settle(v => v.length && !v.includes(last)); await page.waitForTimeout(400);
+    await page.setViewportSize({ width: 844, height: 390 }); const m2 = await settle(v => v.includes(b2[0]));
+    await page.setViewportSize({ width: 390, height: 844 }); const a2 = await settle(v => v.includes(b2[0]));
+    ok(b2.length && m2.includes(b2[0]) && a2.includes(b2[0]), 'hub: a page turned by a swipe is kept when turning ' + JSON.stringify([b2.slice(0, 2), m2.slice(0, 2), a2.slice(0, 2)]));
+    await page.evaluate(() => document.querySelectorAll('#hub-games .pg-dot')[0].dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, pointerId: 3, pointerType: 'touch' }))); await page.waitForTimeout(800);
+  }
+}
 ok(!page.errs.length, 'errors: ' + page.errs.join(' | '));
 stop(b); console.log(fails ? `FAILS: ${fails}` : 'FIXES OK');

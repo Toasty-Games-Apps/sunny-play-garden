@@ -201,11 +201,12 @@
     const prev = h('button', { class: 'pg-arrow', type: 'button', 'aria-label': t('Previous page') }, icon('left'));
     const next = h('button', { class: 'pg-arrow', type: 'button', 'aria-label': t('Next page') }, icon('right'));
     const dots = h('div', { class: 'pg-dots' }, ...pages.map((_, i) => h('button', { class: 'pg-dot', type: 'button', 'aria-label': t('Page {n}', { n: i + 1 }) })));
-    const go = i => { const n = Math.max(0, Math.min(pages.length - 1, i)); strip.scrollTo({ left: n * strip.clientWidth, behavior: 'smooth' }); };
+    const go = i => { strip._mine = true; const n = Math.max(0, Math.min(pages.length - 1, i)); strip.scrollTo({ left: n * strip.clientWidth, behavior: 'smooth' }); };
     const where = () => Math.max(0, Math.min(pages.length - 1, Math.round(strip.scrollLeft / Math.max(1, strip.clientWidth))));
     const mark = () => {
-      // only a real page change moves hubFirst: settling on the same page after the screen turns keeps it, so turning back returns to the same games
-      const i = where(); if (!hubFrozen && i !== hubPage) { hubPage = i; hubFirst = i * hubPer; }
+      // only a page change the child made moves hubFirst (a swipe, the arrows, the dots): the strip also scrolls when the screen turns
+      // or the safe area changes, sometimes late and in steps on a slow phone, and none of that may change the games they come back to
+      const i = where(); if (strip._mine && !hubFrozen && i !== hubPage) { hubPage = i; hubFirst = i * hubPer; }
       prev.classList.toggle('off', i === 0); next.classList.toggle('off', i === pages.length - 1);
       [...dots.children].forEach((d, k) => d.classList.toggle('on', k === i));
     };
@@ -216,7 +217,8 @@
     strip.addEventListener('scroll', () => { clearTimeout(strip._t); strip._t = setTimeout(mark, 60); }, { passive: true });
     // Touch swipes scroll natively; with a mouse (computer versions) dragging turns the page too.
     let md = null;
-    strip.addEventListener('pointerdown', e => { strip._dragged = false; if (e.pointerType === 'mouse' && e.button === 0) md = { x: e.clientX, left: strip.scrollLeft, page: where(), moved: false }; });
+    for (const n of ['touchstart', 'wheel']) strip.addEventListener(n, () => { strip._mine = true; }, { passive: true });
+    strip.addEventListener('pointerdown', e => { strip._dragged = false; strip._mine = true; if (e.pointerType === 'mouse' && e.button === 0) md = { x: e.clientX, left: strip.scrollLeft, page: where(), moved: false }; });
     strip.addEventListener('pointermove', e => {
       if (!md) return; const dx = e.clientX - md.x;
       if (!md.moved && Math.abs(dx) > 8) { md.moved = true; strip._dragged = true; strip.style.scrollSnapType = 'none'; try { strip.setPointerCapture(e.pointerId); } catch (_) { /* ignore */ } }
@@ -1077,7 +1079,11 @@
 
   document.addEventListener('visibilitychange', syncPause);
   let resizeTimer = 0;
-  const onResize = () => { hubFrozen = true; clearTimeout(resizeTimer); resizeTimer = setTimeout(() => {
+  let resizeN = 0;
+  const onResize = () => {
+    // from here on the strip's scrolling is the screen's doing, not the child's, until the strip is touched again
+    hubFrozen = true; const my = ++resizeN, st0 = $('hub-games').querySelector('.pages'); if (st0) st0._mine = false;
+    clearTimeout(resizeTimer); resizeTimer = setTimeout(() => {
     running?.inst?.resize?.();
     // turning the phone changes how many fit on a page: rebuild the pages and stay on the same games
     if (perPage() !== hubPer && $('hub-games').firstChild) { hubPage = Math.floor(hubFirst / perPage()); renderCards(); }
@@ -1085,7 +1091,7 @@
     // since WebKit can leave the strip scrolled by the old page width
     else { const st = $('hub-games').querySelector('.pages'); if (st && st._restore) st._restore(); }
     drawCards();
-    setTimeout(() => { hubFrozen = false; }, 150);
+    setTimeout(() => { if (my === resizeN) hubFrozen = false; }, 150);   // an earlier turn's timer never unfreezes a later one
   }, 60); };
   addEventListener('resize', onResize);
   addEventListener('orientationchange', onResize);

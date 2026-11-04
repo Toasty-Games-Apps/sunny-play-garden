@@ -47,8 +47,10 @@ for (const age of [2, 4, 7]) {
         await page.mouse.click(wrong.x, wrong.y); await page.waitForTimeout(300);
         ok((await P()).hint, `age ${age}: the right ball glows after two wrong tries`); p = await waitPick();
       }
-      await page.mouse.click(right.x, right.y); await page.waitForTimeout(700);
-      ok((await P()).filled === g + 1 || (await P()).done === done + 1, `age ${age}: the right ball hops on`);
+      // the hop takes .45 s of game time, which a slow simulator stretches: wait for it to land
+      await page.mouse.click(right.x, right.y);
+      { const t1 = Date.now(); let q = await P(); while (Date.now() - t1 < 10000 && !(q.filled === g + 1 || q.done === done + 1)) { await page.waitForTimeout(150); q = await P(); }
+        ok(q.filled === g + 1 || q.done === done + 1, `age ${age}: the right ball hops on ` + JSON.stringify({ filled: q.filled, g, phase: q.phase, right })); }
     }
     const t0 = Date.now(); while (Date.now() - t0 < 12000 && (await P()).done === done) await page.waitForTimeout(150);
     ok((await P()).done === done + 1, `age ${age}: the caterpillar sings, leaves and a butterfly comes`);
@@ -61,7 +63,8 @@ for (const age of [2, 4, 7]) {
   ok(pr.head.x > 0 && pr.picks.every(q => q.x - q.r > 0 && q.x + q.r < pr.w && q.y + q.r < pr.h), 'everything fits on the screen');
   await page.evaluate(() => SPG.app.closeGame()); await page.waitForTimeout(300);
   await openGame(page, 'Caterpillars'); await page.waitForTimeout(300);
-  await page.waitForTimeout(2500); { const q = await P(); ok(q.flies >= 4 && q.fliesOn === q.flies, `the butterflies are still there next time and in the sky (${q.fliesOn} of ${q.flies}) ` + await page.evaluate(() => JSON.stringify(SPG.app.running().inst.flies.map(f => [f.x | 0, f.y | 0, f.tx | 0, f.ty | 0])))); }
+  { const t1 = Date.now(); let q = await P(); while (Date.now() - t1 < 12000 && !(q && q.flies >= 4 && q.fliesOn === q.flies)) { await page.waitForTimeout(250); q = await P(); }
+    ok(q.flies >= 4 && q.fliesOn === q.flies, `the butterflies are still there next time and in the sky (${q.fliesOn} of ${q.flies}) ` + await page.evaluate(() => JSON.stringify(SPG.app.running().inst.flies.map(f => [f.x | 0, f.y | 0, f.tx | 0, f.ty | 0])))); }
   ok(!page.errs.length, 'errors: ' + page.errs.join(' | '));
   await page.context().close();
 }
