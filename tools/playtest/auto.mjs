@@ -6,6 +6,8 @@ async function drag(page, pts, steps = 6) { await page.mouse.move(pts[0][0], pts
 // SPAM=1: at the start of every step a toddler mashes the screen first (fast taps everywhere, scribbles, a second finger,
 // the helper's bubble tapped over and over), then the step is played as usual. Never the home button or the grid button.
 const SPAM = !!process.env.SPAM;
+// time allowed for a whole recipe and for one step (a slow machine, such as an iOS simulator on a build server, sets more)
+const RECIPE_MS = (+process.env.RECIPE_SECS || 140) * 1000, STEP_MS = (+process.env.STEP_SECS || 50) * 1000;
 async function spam(page, p, log, id) {
   const g = await page.evaluate(() => { const g = SPG.cookGame, m = g.menuBtn(); return { m, y0: g.y0, w: g.w, h: g.h }; });
   const ok = (x, y) => !(x < 110 && y < 110) && Math.hypot(x - g.m.x, y - g.m.y) > g.m.r * 1.8;
@@ -29,7 +31,7 @@ async function playRecipe(page, id, log) {
   let m = (await P(page)).menu.find(x => x.tab === cat); await page.mouse.click(m.x, m.y); await wait(300);
   m = (await P(page)).menu.find(x => x.id === id); await page.mouse.click(m.x, m.y); await wait(500);
   const t0 = Date.now(); let lastStep = '', stuck = 0, shot = {};
-  while (Date.now() - t0 < 140000) {
+  while (Date.now() - t0 < RECIPE_MS) {
     p = await P(page);
     if (process.env.DBG) { const sig = `${p.screen} ${p.step} trans=${p.trans} fin=${p.st && p.st.fin} busy=${p.busy} auto=${JSON.stringify(p.auto)} check=${!!p.check}`; if (sig !== shot.sig) { shot.sig = sig; log.push(((Date.now() - t0) / 1000).toFixed(1) + ' ' + sig); } }
     if (p.screen === 'menu') break;
@@ -81,9 +83,12 @@ async function playRecipe(page, id, log) {
     else if (k === 'serve') {
       if (shots.includes('serve') && !shot.s) { shot.s = 1; await wait(900); await page.screenshot({ path: `${SP}/serve_${id}_${W}x${H}.png` }); } for (let n = 0; n < 12; n++) { const q = await P(page); const i = q.eat.findIndex(Boolean); if (i < 0) break; const s0 = q.slots[i], e = q.eat[i]; await page.mouse.click(s0.x + e[0] * s0.r, s0.y + e[1] * s0.r); await wait(70); } if (shots.includes('serve') && !shot.s2) { shot.s2 = 1; await page.screenshot({ path: `${SP}/bitten_${id}_${W}x${H}.png` }); } }
     else await wait(200);
-    if (Date.now() - stuck > 50000) { log.push(`${id}: STUCK in ${k}`); fails.push(`${id}: stuck in ${k}`); await page.screenshot({ path: `${SP}/stuck_${id}_${k}_${W}x${H}.png` }); log.push(JSON.stringify(await page.evaluate(() => { const g = SPG.cookGame, s = g.st; return { k: s.k, spec: s.spec, fin: s.fin, canDone: s.canDone, cells: s.cells && s.cells.size, acts: s.acts, tool: g.tool, idle: g.idle, free: g.free, trans: !!g.trans, busy: g.busy() }; }))); break; }
+    if (Date.now() - stuck > STEP_MS) { log.push(`${id}: STUCK in ${k}`); fails.push(`${id}: stuck in ${k}`); await page.screenshot({ path: `${SP}/stuck_${id}_${k}_${W}x${H}.png` }); log.push(JSON.stringify(await page.evaluate(() => { const g = SPG.cookGame, s = g.st; return { k: s.k, spec: s.spec, fin: s.fin, canDone: s.canDone, cells: s.cells && s.cells.size, acts: s.acts, tool: g.tool, idle: g.idle, free: g.free, trans: !!g.trans, busy: g.busy() }; }))); break; }
   }
-  const final = await P(page); return { id, ok: final.screen === 'menu' };
+  const final = await P(page);
+  // out of time or stuck: say where, and go back to the kitchen menu so the next recipe still gets its turn
+  if (final.screen !== 'menu') { log.push(`${id}: not finished after ${Math.round((Date.now() - t0) / 1000)} s (${final.screen} ${final.step || ''})`); if (!fails.some(f => f.startsWith(id + ':'))) fails.push(`${id}: not finished`); await page.evaluate(() => SPG.cookGame.enterMenu()); await wait(500); }
+  return { id, ok: final.screen === 'menu' };
 }
 const b = await start();
 const page = await newPage(b, W, H); await login(page); await openGame(page, 'Sprout Kitchen');

@@ -48,6 +48,8 @@ async function runOne(t) {
   const plan = { test: name, run, fresh, args: t.args.slice(), shots, prefix: `${label}-${t.spec.replace(/[:+]/g, '-')}`, timeout: name === 'auto' || name === 'kitchen-look' ? 2400 : 900, env: { BACKUP: backup ? '1' : '0' } };
   // the play-tests take the window size first (node test.mjs W H ...), except the monkey test: seconds per game, then W H
   if (name === 'monkey') plan.lead = ['14', 'W', 'H'];
+  // the simulator on a build server draws more slowly than Chromium (a recipe takes up to twice as long), so the kitchen test gets more time
+  if (name === 'auto') Object.assign(plan.env, { RECIPE_SECS: '300', STEP_SECS: '100' });
   if (name === 'lang') { plan.lang = t.args[0] || 'en'; plan.test = 'lang'; }
   if (!['ios', 'lang', 'after', 'store-shots'].includes(name)) plan.flat = true;   // a play-test from tools/playtest (see selftest.js)
   if (name === 'after' && t.args[0] === 'restore') { if (!code) { results.push({ test: t.spec, ok: false, error: 'no family code from the ios test (was the build made with SPG_TEST_API?)' }); return; } plan.args = ['restore', code]; }

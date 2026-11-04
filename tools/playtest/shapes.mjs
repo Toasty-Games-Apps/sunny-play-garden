@@ -15,7 +15,10 @@ const drag = async (it, x, y) => {   // grab the piece in the tray and carry it 
   const tgt = await page.evaluate(([hx, hy, tx, ty, key]) => { const g = SPG.shapesGame, it = g.items.find(i => Math.abs(i.hx - hx) < 1 && Math.abs(i.hy - hy) < 1); return g.pointerFor(it, tx, ty); }, [it.hx, it.hy, x, y, it.key]);
   await page.mouse.move(it.hx, it.hy); await page.mouse.down(); await page.mouse.move((it.hx + tgt.x) / 2, (it.hy + tgt.y) / 2, { steps: 4 }); await page.mouse.move(tgt.x, tgt.y, { steps: 5 }); await page.waitForTimeout(60); return tgt;
 };
-const ptrUp = async () => { await page.mouse.up(); await page.waitForTimeout(470); };
+// after letting go, wait until no piece is still sliding home or flying into its hole (a slow machine, such as an iOS simulator
+// on a build server, draws fewer frames, so the animations take longer than the 470 ms that is enough on a desktop)
+const settle = async (ms = 4000) => { const t0 = Date.now(); for (;;) { const busy = await page.evaluate(() => SPG.shapesGame.items.some(i => i.state === 'back' || i.state === 'fly' || i.state === 'drag')); if (!busy || Date.now() - t0 > ms) return; await page.waitForTimeout(100); } };
+const ptrUp = async () => { await page.mouse.up(); await page.waitForTimeout(470); await settle(); };
 const RANGE = { 1: [3, 4], 2: [5, 7], 3: [8, 11] };
 let played = 0;
 for (const tier of tiers) {

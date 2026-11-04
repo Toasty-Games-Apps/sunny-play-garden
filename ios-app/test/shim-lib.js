@@ -124,7 +124,12 @@ export async function newPage(browser, w, h) {
   const S = SPG.store.settings;
   if (!pages++) settings0 = JSON.stringify(S);
   else { for (const k of Object.keys(S)) delete S[k]; Object.assign(S, JSON.parse(settings0)); SPG.store.saveSettings(); SPG.night.apply(); reset = true; }
-  if (!document.querySelector('#setup:not(.hidden)') && !document.querySelector('#who:not(.hidden)')) { SPG.app.show('who'); await wait(300); }
+  // back to "Who is playing?" the way the hub's own button does it (it fills in the player tiles; SPG.app.show alone only reveals the screen)
+  if (!document.querySelector('#setup:not(.hidden)') && !document.querySelector('#who:not(.hidden) .who-tile')) {
+    if (SPG.app.running && SPG.app.running()) SPG.app.closeGame();
+    if (document.querySelector('#who:not(.hidden)')) SPG.app.show('hub');
+    document.getElementById('hub-who').dispatchEvent(new MouseEvent('click', { detail: 0, bubbles: true })); await wait(300);
+  }
   return page;
 }
 // as in lib.mjs; a player who already exists gets the asked age and gender first (a fresh Playwright page would have made one)
