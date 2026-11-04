@@ -204,7 +204,8 @@
     const go = i => { const n = Math.max(0, Math.min(pages.length - 1, i)); strip.scrollTo({ left: n * strip.clientWidth, behavior: 'smooth' }); };
     const where = () => Math.max(0, Math.min(pages.length - 1, Math.round(strip.scrollLeft / Math.max(1, strip.clientWidth))));
     const mark = () => {
-      const i = where(); if (!hubFrozen) { hubPage = i; hubFirst = i * hubPer; }
+      // only a real page change moves hubFirst: settling on the same page after the screen turns keeps it, so turning back returns to the same games
+      const i = where(); if (!hubFrozen && i !== hubPage) { hubPage = i; hubFirst = i * hubPer; }
       prev.classList.toggle('off', i === 0); next.classList.toggle('off', i === pages.length - 1);
       [...dots.children].forEach((d, k) => d.classList.toggle('on', k === i));
     };
