@@ -30,11 +30,13 @@
   // WebKit's error.stack has no message in it: always report both
   T.err = e => !e ? String(e) : e.stack ? `${e.name || 'Error'}: ${e.message}\n${e.stack}` : String(e.message || e);
   // console output goes to the Mac as it happens (log-<test>.txt), and errors count as page errors (like Playwright's)
-  let pending = '', flushing = false;
+  // a flush waits for the one already writing, so the last lines are on disk before the result (a slow simulator once lost them)
+  let pending = '', inflight = null;
   const flush = async () => {
-    if (flushing || !pending || !T.plan) return; flushing = true; const chunk = pending; pending = '';
-    try { await FS.appendFile({ path: base + 'log-' + T.plan.test + '.txt', directory: D, encoding: 'utf8', data: chunk }); } catch (_) { await write('log-' + T.plan.test + '.txt', chunk).catch(() => {}); }
-    flushing = false;
+    while (inflight) await inflight;
+    if (!pending || !T.plan) return; const chunk = pending; pending = '';
+    inflight = (async () => { try { await FS.appendFile({ path: base + 'log-' + T.plan.test + '.txt', directory: D, encoding: 'utf8', data: chunk }); } catch (_) { await write('log-' + T.plan.test + '.txt', chunk).catch(() => {}); } })();
+    try { await inflight; } finally { inflight = null; }
   };
   setInterval(flush, 700);
   const fmt = a => a.map(x => typeof x === 'string' ? x : (() => { try { return JSON.stringify(x); } catch (_) { return String(x); } })()).join(' ');

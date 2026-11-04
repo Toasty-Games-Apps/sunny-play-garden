@@ -94,6 +94,8 @@ async function runOne(t) {
     }
     if (existsSync(join(dd, `done-${plan.test}.json`))) { done = true; break; }
   }
+  // whatever the page wrote to its log after the last read
+  { await sleep(500); const lf = join(dir(), `log-${plan.test}.txt`); if (existsSync(lf)) { const all = readFileSync(lf, 'utf8'); if (all.length > logLen) { const chunk = all.slice(logLen); logLen = all.length; process.stdout.write(chunk); appendFileSync(logFile, chunk); } } }
   let res = null;
   try { res = JSON.parse(readFileSync(join(dir(), `result-${plan.test}.json`), 'utf8')); } catch (_) { /* none */ }
   if (!done || !res) { await screenshot(join(out, `${plan.prefix}-TIMEOUT.png`)); res = { test: t.spec, ok: false, error: done ? 'no result file' : 'timed out' }; }

@@ -324,7 +324,11 @@ await step('recording', async () => {
   ok(T.gum === 0, 'opening the voices page does not ask for the microphone', T.gum);
   // a grown-up records one line (a soft tone stands in for the microphone)
   T.fakeMic = true;
-  const id = V.addVoice('Grandma'), rec = await V.startRecording(); await wait(1600); const blob = await rec.stop();
+  // 1.6 s of the stand-in microphone's own sound (its audio clock): a busy simulator can stall for seconds, and a recorder stopped
+  // before any sound reached it holds only a header
+  const id = V.addVoice('Grandma'), rec = await V.startRecording(); const ac0 = T.fakeCtx ? T.fakeCtx.currentTime : 0, tr = Date.now(); await wait(1600);
+  while (T.fakeCtx && T.fakeCtx.currentTime - ac0 < 1.6 && Date.now() - tr < 15000) await wait(200);
+  const blob = await rec.stop();
   ok(T.gum === 1, 'the microphone is asked for once, when recording starts', T.gum);
   ok(blob && blob.size > 500, 'a recording was made', { size: blob && blob.size, type: blob && blob.type });
   note('recording format', blob && blob.type);
