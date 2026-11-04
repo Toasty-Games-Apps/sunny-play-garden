@@ -80,8 +80,11 @@ each one has JPEGs without alpha.
 | iPad 13" (required) | `sim-ipad-13` | 2064 × 2752 |
 | iPhone Duo, outer display | `sim-iphone-duo` | 1398 × 2034 |
 
-The sizes are what the simulators produce; check them against the run. The iPhone Duo simulator on GitHub's Macs shows only the
-outer display and has no fold control, so there are no inner-display (2007 × 2853) screenshots yet. Take those on a real iPhone Duo
+The sizes are what the simulators produce; check them against the run. The Mac cannot capture the iPhone Duo simulator's screen
+(`simctl io screenshot` answers "Timeout waiting for screen surfaces"), so on that simulator the app takes the picture of its own
+window (the Debug-only `SproutTest.snapshot`: WebKit draws the page, canvases included, at the display's scale, so the PNG has the
+display's pixel size; the status bar and home indicator are hidden in this app anyway). The iPhone Duo simulator on GitHub's Macs
+shows only the outer display and has no fold control, so there are no inner-display (2007 × 2853) screenshots yet. Take those on a real iPhone Duo
 from TestFlight if App Store Connect asks for them. The scenes are hub, kitchen, coloring, feelings, fishing,
 Pet Shop, rain, tracing, shapes and pet care. They are the same as the Play screenshots, but without captions. Upload up to 10 per
 slot.
@@ -176,7 +179,11 @@ Things the simulators showed about themselves (not about the app):
   folder once, the test page reloads by itself when a new test plan arrives, an app that says nothing for 5 minutes is
   started again, and a simulator that refuses two launches in a row is shut down and booted again (the app, its data and its
   permissions stay). Turning or resizing waits until the window has kept the same size for a second. The big iPad, the slowest
-  simulator, runs its checks and its play-tests as two jobs.
+  simulator, runs its checks and its play-tests as two jobs. A screenshot may take the Mac up to 4 minutes, and the page waits
+  for it, so a late one never pictures a later moment.
+- `simctl io screenshot` cannot capture the iPhone Duo simulator (two built-in displays; "Timeout waiting for screen surfaces"),
+  and earlier runs had passed without saving any iPhone Duo picture. Now the app sends a picture of its own window when the Mac
+  cannot take one, and a store screenshot only counts once its picture is saved.
 
 Bugs the simulator runs found in the game, fixed for every platform:
 

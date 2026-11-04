@@ -2,6 +2,7 @@ import UIKit
 import Capacitor
 import Photos
 import AVFoundation
+import WebKit
 
 // The one screen of the app: Capacitor's web view with the game in it, set up for small children.
 //  - no status bar, and the home indicator fades away (both through Capacitor's own SystemBars plugin, `hidden` in capacitor.config.json,
@@ -141,7 +142,8 @@ public class SproutTestPlugin: CAPPlugin, CAPBridgedPlugin {
         CAPPluginMethod(name: "rotate", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "info", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "interrupt", returnType: CAPPluginReturnPromise),
-        CAPPluginMethod(name: "resize", returnType: CAPPluginReturnPromise)
+        CAPPluginMethod(name: "resize", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "snapshot", returnType: CAPPluginReturnPromise)
     ]
 
     @objc func rotate(_ call: CAPPluginCall) {
@@ -186,6 +188,29 @@ public class SproutTestPlugin: CAPPlugin, CAPBridgedPlugin {
             win.frame = w > 0 && h > 0 ? CGRect(x: 0, y: 0, width: min(CGFloat(w), full.width), height: min(CGFloat(h), full.height)) : full
             win.layoutIfNeeded()
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) { call.resolve(self.describe()) }
+        }
+    }
+
+    // A picture of the app's own window, for a simulator whose screen the Mac cannot capture (the iPhone Duo simulator answers
+    // `simctl io screenshot` with "Timeout waiting for screen surfaces"). WebKit draws the page (canvases included) at the window's
+    // size and the screen's scale, so the PNG has the real pixel size; the status bar and home indicator are hidden in this app
+    // anyway. Written to Documents/selftest/<name>, where the Mac picks it up.
+    @objc func snapshot(_ call: CAPPluginCall) {
+        let name = (call.getString("name") ?? "snapshot.png").replacingOccurrences(of: "/", with: "-")
+        DispatchQueue.main.async {
+            guard let web = self.bridge?.webView, let win = web.window else { call.reject("no web view"); return }
+            let cfg = WKSnapshotConfiguration(); cfg.afterScreenUpdates = true
+            web.takeSnapshot(with: cfg) { image, err in
+                guard let image = image else { call.reject(err?.localizedDescription ?? "no picture"); return }
+                let fmt = UIGraphicsImageRendererFormat(); fmt.scale = win.traitCollection.displayScale; fmt.opaque = true
+                let png = UIGraphicsImageRenderer(size: web.bounds.size, format: fmt).pngData { _ in image.draw(in: CGRect(origin: .zero, size: web.bounds.size)) }
+                do {
+                    let dir = try FileManager.default.url(for: .documentDirectory, in: .userDomainMask, appropriateFor: nil, create: true).appendingPathComponent("selftest", isDirectory: true)
+                    try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+                    try png.write(to: dir.appendingPathComponent(name))
+                    call.resolve(["file": name, "w": web.bounds.width * fmt.scale, "h": web.bounds.height * fmt.scale])
+                } catch { call.reject(error.localizedDescription) }
+            }
         }
     }
 

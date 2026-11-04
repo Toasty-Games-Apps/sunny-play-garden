@@ -9,7 +9,7 @@
 // store-shots, and the play-tests auto, shapes, sort, ...: see ios-app/build-web.mjs PLAYTESTS). <name>:<arg>+<arg> passes arguments.
 // Everything goes to --out: <label>-<test>.log, result json, screenshots <label>-<test>-<name>.png, and summary.json / summary.md.
 import { execFileSync } from 'node:child_process';
-import { mkdirSync, writeFileSync, readFileSync, existsSync, rmSync, appendFileSync } from 'node:fs';
+import { mkdirSync, writeFileSync, readFileSync, existsSync, rmSync, appendFileSync, copyFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 const arg = (k, d) => { const i = process.argv.indexOf('--' + k); return i > 0 ? process.argv[i + 1] : d; };
@@ -58,9 +58,14 @@ const parse = spec => { const [name, rest] = spec.split(':'); return { spec, nam
 const results = [];
 let code = '';   // the family code ios made (for after:restore)
 
+// The iPhone Duo simulator's screen cannot be captured by the Mac ("Timeout waiting for screen surfaces"): after two failures and no
+// success the Mac stops trying, answers saved: false, and the page sends a picture of its own window instead ('collect' below).
+let shotFails = 0, shotOk = 0;
 async function screenshot(file, want) {
-  xq('io', udid, 'screenshot', '--type=png', file);
-  if (!existsSync(file)) return false;
+  if (shotFails >= 2 && !shotOk) return false;
+  try { x('io', udid, 'screenshot', '--type=png', file); } catch (e) { if (!shotFails) console.log(`  (simctl screenshot: ${why(e)})`); }
+  if (!existsSync(file)) { shotFails++; return false; }
+  shotOk++;
   // simulator screenshots come in the screen's own orientation; turn a landscape screen the right way round
   try {
     const dims = execFileSync('sips', ['-g', 'pixelWidth', '-g', 'pixelHeight', file], { encoding: 'utf8' });
@@ -110,7 +115,13 @@ async function runOne(t) {
       let r = null; try { r = JSON.parse(readFileSync(rq, 'utf8')); } catch (_) { /* half written */ }
       if (r && r.n > seen) {
         seen = r.n; let ack = { done: true };
-        if (r.action === 'shot') { const f = join(out, `${r.name}.png`); ack.saved = await screenshot(f, r); ack.file = f; console.log(`  [shot] ${r.name}`); }
+        if (r.action === 'shot') { const f = join(out, `${r.name}.png`); ack.saved = await screenshot(f, r); ack.file = f; console.log(`  [shot] ${r.name}${ack.saved ? '' : ' (the Mac could not capture the screen)'}`); }
+        // a picture the app took of its own window (SproutTest.snapshot) after the Mac could not: copied out like a screenshot
+        else if (r.action === 'collect') {
+          const from = join(dd, String(r.file || '').replace(/[\\/]/g, '')), f = join(out, `${r.name}.png`);
+          ack.saved = existsSync(from); if (ack.saved) { copyFileSync(from, f); rmSync(from, { force: true }); }
+          ack.file = f; console.log(`  [shot] ${r.name} (the app's own picture of its window${ack.saved ? '' : ': not found'})`);
+        }
         else if (r.action === 'background') {
           // the Settings app comes to the front (ours goes to the background), then ours is brought back; how long each took is reported
           // upAt / backAt (this Mac's clock, which the simulator shares) let the page count the frames it drew while Settings was meant to be

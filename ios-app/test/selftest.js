@@ -53,11 +53,23 @@
     const n = ++T.n; await flush();
     await write('req.json', JSON.stringify({ n, action, test: T.plan.test, w: innerWidth, h: innerHeight, angle: (screen.orientation && screen.orientation.angle) || 0, ...extra }));
     // by the clock, not by tries: sending the app away and back can take the simulator a long time on a busy Mac
-    const t0 = Date.now(), limit = action === 'background' ? 300000 : 120000;
+    // a screenshot gets as long as the Mac's own time limit for one simctl call (4 min): a late one would picture a later moment
+    const t0 = Date.now(), limit = action === 'background' || action === 'shot' ? 300000 : 120000;
     while (Date.now() - t0 < limit) { const a = await has('ack-' + n + '.json') ? await read('ack-' + n + '.json') : null; if (a) { try { return JSON.parse(a); } catch (_) { return {}; } } await wait(150); }
     console.log('(no answer from the Mac for ' + action + ')'); return null;
   };
-  T.shot = name => T.plan.shots === false ? Promise.resolve(null) : T.ask('shot', { name: T.plan.prefix ? T.plan.prefix + '-' + name : name });
+  // a real screenshot taken by the Mac; where the Mac cannot capture this simulator's screen (the iPhone Duo), the app's own picture of
+  // its window (SproutTest.snapshot: WebKit's drawing of the page at the screen's scale), handed to the Mac the same way
+  T.shot = async name => {
+    if (T.plan.shots === false) return null;
+    const full = T.plan.prefix ? T.plan.prefix + '-' + name : name;
+    const a = await T.ask('shot', { name: full });
+    if (!a || a.saved !== false) return a;
+    const P = C.Plugins.SproutTest; if (!P || !P.snapshot) return a;
+    try { const r = await P.snapshot({ name: 'snap-' + full + '.png' }); const b = await T.ask('collect', { name: full, file: r.file });
+      return b ? { ...b, via: 'app', px: [r.w, r.h] } : b; }
+    catch (e) { console.log('(the app could not take its own picture: ' + T.err(e) + ')'); return a; }
+  };
   // turn the device (the Debug-only SproutTest plugin), then wait for the page to have the new shape
   // On a very busy build server a window change arrives late and in steps (one Mac took two minutes to open Settings): wait until
   // the page has had the same size for a second, and then for the game's own resize, before a test goes on to touch it

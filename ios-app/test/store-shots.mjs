@@ -11,7 +11,11 @@ let n = 0, bad = 0;
 for (const id of picks) {
   if (!SCENES[id]) { console.log('FAIL no scene ' + id); bad++; continue; }
   n++; const name = `${n}-${id}`;
-  try { await SCENES[id](page, () => T.shot(name), { w: innerWidth, h: innerHeight }); console.log('ok   ' + name); }
+  // a scene only counts when its picture was really saved (by the Mac, or by the app where the Mac cannot capture this screen)
+  let got = null;
+  try { await SCENES[id](page, async () => { got = await T.shot(name); return got; }, { w: innerWidth, h: innerHeight });
+    if (T.plan.shots !== false && !(got && got.saved)) { console.log(`FAIL ${name}: the picture was not saved ${JSON.stringify(got)}`); bad++; }
+    else console.log('ok   ' + name + (got && got.via ? ` (${got.via}: ${got.px.join(' x ')} px)` : '')); }
   catch (e) { console.log(`FAIL ${name}: ${e && e.message}`); bad++; if (SPG.app.running()) SPG.app.closeGame(); await page.waitForTimeout(500); }
 }
 if (bad) process.exitCode = 1;
