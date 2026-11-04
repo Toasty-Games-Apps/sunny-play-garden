@@ -9,7 +9,7 @@
 // store-shots, and the play-tests auto, shapes, sort, ...: see ios-app/build-web.mjs PLAYTESTS). <name>:<arg>+<arg> passes arguments.
 // Everything goes to --out: <label>-<test>.log, result json, screenshots <label>-<test>-<name>.png, and summary.json / summary.md.
 import { execFileSync } from 'node:child_process';
-import { mkdirSync, writeFileSync, readFileSync, existsSync, rmSync, appendFileSync, copyFileSync } from 'node:fs';
+import { mkdirSync, writeFileSync, readFileSync, existsSync, rmSync, appendFileSync, copyFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 
 const arg = (k, d) => { const i = process.argv.indexOf('--' + k); return i > 0 ? process.argv[i + 1] : d; };
@@ -103,6 +103,9 @@ async function runOne(t) {
     // not a word from the page in five minutes: the app did not start the test (a launch lost on a busy Mac); close it and start it once more
     if (!logLen && !again && Date.now() - t0 > 300000) {
       again = true; console.log('  (no word from the app in 300 s: closing it and starting it again)');
+      // what was on screen and what the page had written by then: a launch that never came, or a page that stopped
+      try { console.log(`  (the test folder held: ${readdirSync(dir()).join(', ') || 'nothing'})`); } catch (_) { /* no folder */ }
+      await screenshot(join(out, `${plan.prefix}-NOWORD.png`));
       xq('terminate', udid, bundle); await sleep(1500); xq('launch', udid, bundle);
     }
     const dd = dir();
