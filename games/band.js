@@ -98,8 +98,9 @@
 
     /* ---------------------------------------------------------------- playing */
     play(i, byHand) {
-      const b = BAND[i], m = this.mem[i];
-      sfx.instrument(b.inst, b.note, .2);
+      const b = BAND[i], m = this.mem[i], now = performance.now();
+      // the same friend struck again within a blink (five fingers mashing) only hops: its notes would pile up into dozens of sounds at once
+      if (!(now - m.at < 110)) { m.at = now; sfx.instrument(b.inst, b.note, .2); }
       m.hit = 1; m.hop = 1;
       const p = this.pos[i];
       this.notes.push({ x: p.x + (Math.random() - .5) * this.s * .4, y: p.y - this.s * 1.05, vy: -this.s * .55, life: 1, col: b.col, ch: Math.random() < .5 ? '♪' : '♫' });

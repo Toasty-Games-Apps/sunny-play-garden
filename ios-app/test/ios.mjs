@@ -326,10 +326,16 @@ await step('recording', async () => {
   T.fakeMic = true;
   // 1.6 s of the stand-in microphone's own sound (its audio clock): a busy simulator can stall for seconds, and a recorder stopped
   // before any sound reached it holds only a header
-  const id = V.addVoice('Grandma'), rec = await V.startRecording(); const ac0 = T.fakeCtx ? T.fakeCtx.currentTime : 0, tr = Date.now(); await wait(1600);
-  while (T.fakeCtx && T.fakeCtx.currentTime - ac0 < 1.6 && Date.now() - tr < 15000) await wait(200);
-  const blob = await rec.stop();
-  ok(T.gum === 1, 'the microphone is asked for once, when recording starts', T.gum);
+  const id = V.addVoice('Grandma');
+  const take = async secs => { const rec = await V.startRecording(); const ac0 = T.fakeCtx ? T.fakeCtx.currentTime : 0, tr = Date.now(); await wait(secs * 1000);
+    while (T.fakeCtx && T.fakeCtx.currentTime - ac0 < secs && Date.now() - tr < 15000) await wait(200);
+    return rec.stop(); };
+  let blob = await take(1.6);
+  // a build server that is very busy (screenshots taking minutes) once left the stand-in microphone's recording empty: one more take,
+  // longer, says whether it was the moment or the recorder (the real microphone is checked separately below)
+  let takes = 1;
+  if (!(blob && blob.size > 500)) { note('first take was empty (a busy simulator?)', { size: blob && blob.size, type: blob && blob.type }); takes = 2; blob = await take(3); }
+  ok(T.gum === takes, 'the microphone is asked for once, when recording starts', { asked: T.gum, recordings: takes });
   ok(blob && blob.size > 500, 'a recording was made', { size: blob && blob.size, type: blob && blob.type });
   note('recording format', blob && blob.type);
   let saved = null; try { saved = await V.saveClip(id, 'letter/a', blob); } catch (e) { note('save error', String(e)); }

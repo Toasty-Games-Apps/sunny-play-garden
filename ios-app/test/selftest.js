@@ -76,8 +76,15 @@
   T.info = async () => { try { return await C.Plugins.SproutTest.info(); } catch (_) { return null; } };
   T.testDone = () => {};
 
+  // A page that has nothing to do (no plan yet, or its test is over) keeps looking at the plan: when the Mac could not close the app
+  // between two tests (one slow simctl call on a busy build server), the next launch only brings this page to the front, and the
+  // next plan would never be read. A plan with another run starts it here.
+  const watchPlan = run => { const iv = setInterval(async () => {
+    let p = null; try { p = JSON.parse(await read('plan.json') || 'null'); } catch (_) { return; }
+    if (p && p.run && p.run !== run) { clearInterval(iv); console.log('(a new test plan: ' + p.test + ')'); location.reload(); }
+  }, 2000); };
   async function main() {
-    const txt = await read('plan.json'); if (!txt) return;
+    const txt = await read('plan.json'); if (!txt) { watchPlan(null); return; }
     const plan = T.plan = JSON.parse(txt);
     // a fresh start for every test (like a new Playwright context): saved games and pictures are wiped once, then the page reloads
     if (plan.fresh && sessionStorage.getItem('spg-selftest-run') !== plan.run) {
@@ -117,6 +124,7 @@
     await flush(); await wait(200); await flush();
     await write('result-' + plan.test + '.json', JSON.stringify(result));
     await write('done-' + plan.test + '.json', '1');
+    watchPlan(plan.run);
   }
   if (document.readyState === 'complete') main(); else addEventListener('load', main);
 })();

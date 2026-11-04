@@ -474,7 +474,10 @@
     const chunks = [];
     rec.ondataavailable = e => { if (e.data && e.data.size) chunks.push(e.data); };
     const done = new Promise(res => { rec.onstop = () => { stream.getTracks().forEach(t => t.stop()); nat(false); res(new Blob(chunks, { type: rec.mimeType || mime || 'audio/webm' })); }; });
+    // WebKit starts a recorder a moment later: wait for it (at most 1.5 s on a busy phone), so the first words are not lost
+    const started = new Promise(r => { rec.onstart = r; });
     rec.start();
+    await Promise.race([started, new Promise(r => setTimeout(r, 1500))]);
     return { stop: () => { if (rec.state !== 'inactive') rec.stop(); return done; }, cancel: () => { chunks.length = 0; if (rec.state !== 'inactive') rec.stop(); } };
   }
 

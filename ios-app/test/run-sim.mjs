@@ -74,9 +74,14 @@ async function runOne(t) {
   writeFileSync(join(d, 'plan.json'), JSON.stringify(plan));
   try { x('launch', udid, bundle); } catch (e) { console.log(`  (simctl launch: ${e.code || String(e.message || e).split('\n')[0]}; trying again)`); await sleep(5000); x('launch', udid, bundle); }
   const logFile = join(out, `${plan.prefix}.log`); writeFileSync(logFile, '');
-  const t0 = Date.now(), limit = (plan.timeout + 120) * 1000; let seen = 0, logLen = 0, done = false;
+  const t0 = Date.now(), limit = (plan.timeout + 120) * 1000; let seen = 0, logLen = 0, done = false, again = false;
   while (Date.now() - t0 < limit) {
     await sleep(400);
+    // not a word from the page in five minutes: the app did not start the test (a launch lost on a busy Mac); close it and start it once more
+    if (!logLen && !again && Date.now() - t0 > 300000) {
+      again = true; console.log('  (no word from the app in 300 s: closing it and starting it again)');
+      xq('terminate', udid, bundle); await sleep(1500); xq('launch', udid, bundle);
+    }
     const dd = dir();
     // the page's log, as it comes
     const lf = join(dd, `log-${plan.test}.txt`);
