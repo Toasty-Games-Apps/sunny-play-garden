@@ -50,7 +50,9 @@
   T.ask = async (action, extra = {}) => {
     const n = ++T.n; await flush();
     await write('req.json', JSON.stringify({ n, action, test: T.plan.test, w: innerWidth, h: innerHeight, angle: (screen.orientation && screen.orientation.angle) || 0, ...extra }));
-    for (let i = 0; i < 600; i++) { const a = await has('ack-' + n + '.json') ? await read('ack-' + n + '.json') : null; if (a) { try { return JSON.parse(a); } catch (_) { return {}; } } await wait(150); }
+    // by the clock, not by tries: sending the app away and back can take the simulator a long time on a busy Mac
+    const t0 = Date.now(), limit = action === 'background' ? 300000 : 120000;
+    while (Date.now() - t0 < limit) { const a = await has('ack-' + n + '.json') ? await read('ack-' + n + '.json') : null; if (a) { try { return JSON.parse(a); } catch (_) { return {}; } } await wait(150); }
     console.log('(no answer from the Mac for ' + action + ')'); return null;
   };
   T.shot = name => T.plan.shots === false ? Promise.resolve(null) : T.ask('shot', { name: T.plan.prefix ? T.plan.prefix + '-' + name : name });

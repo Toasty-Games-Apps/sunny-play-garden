@@ -208,7 +208,10 @@ await step('window sizes', async () => {
   // the hub at each size, and a finger in Fruit Splash landing on the fruit under it
   for (const [w, h, label] of sizes) {
     await T.resize(w, h); if (Math.abs(innerWidth - w) > 1) continue;
-    const s = cssSafe(), cards = [...document.querySelectorAll('#hub-games .card')].map(rectOf).filter(q => q.x > -2 && q.r < innerWidth + 2);
+    // the hub rebuilds its pages after the resize settles; a slow simulator can take a few seconds, so wait for it (up to 6 s)
+    const s = cssSafe(), visibleCards = () => [...document.querySelectorAll('#hub-games .card')].map(rectOf).filter(q => q.x > -2 && q.r < innerWidth + 2);
+    await until(() => { const c = visibleCards(); return c.length && c.every(q => inside(q, s, 2)) && document.documentElement.scrollWidth <= innerWidth + 1 && document.documentElement.scrollHeight <= innerHeight + 1; }, 6000);
+    const cards = visibleCards();
     ok(cards.length > 0 && cards.every(q => inside(q, s, 2) && q.w >= 60), `hub cards fit and are big enough (${label})`, { n: cards.length, w: cards.map(q => Math.round(q.w)).slice(0, 3) });
     note(`hub cards on a page (${label})`, cards.length);
     ok(document.documentElement.scrollWidth <= innerWidth + 1 && document.documentElement.scrollHeight <= innerHeight + 1, `the hub does not scroll the page (${label})`);

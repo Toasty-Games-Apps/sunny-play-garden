@@ -67,8 +67,9 @@ for (const age of [2, 4, 7]) {
     ok(p.items.some(i => i.state === 'floor' && Math.hypot(i.x - to.x, i.y - to.y) < it.r + 30), `age ${age} ${mode}: let go on the floor, it stays there`);
     // tap a thing, then tap its basket
     { p = await P(); const i = p.items.find(i => i.state === 'floor'), bin = p.bins.find(q => q.key === i.key), n0 = bin.n;
-      await page.mouse.click(i.x, i.y); await page.waitForTimeout(500); ok((await P()).sel === i.id, `age ${age} ${mode}: a tap picks a thing`);
-      await page.mouse.click(bin.x, bin.y); await page.waitForTimeout(500); p = await P(); ok(p.bins.find(q => q.key === i.key).n === n0 + 1, `age ${age} ${mode}: then a tap on its basket puts it in`); }
+      await page.mouse.click(i.x, i.y); ok(await waitFor(p => p.sel === i.id, 3000), `age ${age} ${mode}: a tap picks a thing`);
+      // the thing flies into the basket before it counts: wait for it (slow on a simulator)
+      await page.mouse.click(bin.x, bin.y); p = (await waitFor(p => p.bins.find(q => q.key === i.key).n === n0 + 1, 5000)) || await P(); ok(p.bins.find(q => q.key === i.key).n === n0 + 1, `age ${age} ${mode}: then a tap on its basket puts it in`); }
     if (mi === 1) { await page.setViewportSize({ width: Hh, height: W }); await page.waitForTimeout(400); p = await P(); ok(p.items.every(i => i.state !== 'floor' || (i.x > 0 && i.x < p.w && i.y > 0 && i.y < p.h)), 'after turning, every thing is on screen'); }
     if (mi === 2) await page.evaluate(() => SPG.night.set('on'));
     // everything into its basket

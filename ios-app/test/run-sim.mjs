@@ -78,8 +78,12 @@ async function runOne(t) {
         seen = r.n; let ack = { done: true };
         if (r.action === 'shot') { const f = join(out, `${r.name}.png`); ack.saved = await screenshot(f, r); ack.file = f; console.log(`  [shot] ${r.name}`); }
         else if (r.action === 'background') {
-          xq('launch', udid, 'com.apple.Preferences'); await sleep((r.seconds || 3) * 1000);
-          x('launch', udid, bundle); await sleep(800); console.log('  [background and back]');
+          // the Settings app comes to the front (ours goes to the background), then ours is brought back; how long each took is reported
+          const t1 = Date.now(); xq('launch', udid, 'com.apple.Preferences'); const away = Date.now() - t1;
+          await sleep((r.seconds || 3) * 1000);
+          const t2 = Date.now(); let err = null; try { x('launch', udid, bundle); } catch (e) { err = String(e.message || e).split('\n')[0]; }
+          ack = { done: !err, error: err, away, back: Date.now() - t2 };
+          await sleep(800); console.log(`  [background and back: Settings came up in ${away} ms, the app came back in ${ack.back} ms${err ? ', ' + err : ''}]`);
         } else ack = { done: false, error: 'unknown action ' + r.action };
         writeFileSync(join(dd, `ack-${r.n}.json`), JSON.stringify(ack));
       }
