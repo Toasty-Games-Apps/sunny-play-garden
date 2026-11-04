@@ -75,11 +75,17 @@ for (const age of [2, 4, 7]) {
     if (mi === 1) { await page.setViewportSize({ width: Hh, height: W }); await page.waitForTimeout(400); p = await P(); ok(p.items.every(i => i.state !== 'floor' || (i.x > 0 && i.x < p.w && i.y > 0 && i.y < p.h)), 'after turning, every thing is on screen'); }
     if (mi === 2) await page.evaluate(() => SPG.night.set('on'));
     // everything into its basket
-    for (let guard = 0; guard < 30; guard++) {
-      p = await P(); const left = p.items.filter(i => i.state === 'floor'); if (!left.length) break;
-      const i = left[0], bin = p.bins.find(q => q.key === i.key); await drag(page, i, bin); await page.waitForTimeout(420);
+    // (a thing still flying into a basket or sliding home is not on the floor yet: wait for it rather than stop; a slow simulator
+    // draws the flight seconds apart, and the room is tidy only when the last one has landed)
+    for (let guard = 0; guard < 80; guard++) {
+      p = await P(); if (!p || p.phase !== 'play') break;
+      const left = p.items.filter(i => i.state === 'floor');
+      if (!left.length) { if (p.items.every(i => i.state === 'in')) break; await page.waitForTimeout(250); continue; }
+      const i = left[0], bin = p.bins.find(q => q.key === i.key); await drag(page, i, bin);
+      await waitFor(q => q.phase !== 'play' || (q.items.find(z => z.id === i.id) || {}).state !== 'floor', 4000);
     }
-    p = await waitFor(p => p.phase === 'done' || p.phase === 'out', 3000); ok(p, `age ${age} ${mode}: the room is tidy`); rounds++;
+    p = await waitFor(p => p.phase === 'done' || p.phase === 'out', 15000);
+    ok(p, `age ${age} ${mode}: the room is tidy ` + (p ? '' : JSON.stringify(await page.evaluate(() => { const q = SPG.sortGame.probe(); return q && { phase: q.phase, states: q.items.map(i => i.state) }; })))); rounds++;
     if (p) ok(p.bins.reduce((a, q) => a + q.n, 0) === p.items.length, 'every thing is in a basket');
     if (mi === 1) { await page.setViewportSize({ width: W, height: Hh }); await page.waitForTimeout(200); }
     await page.waitForTimeout(600);

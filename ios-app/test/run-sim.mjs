@@ -24,7 +24,16 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
 // every simctl call has a time limit: on a busy Mac switching apps can take minutes, and one stuck call must not stop the whole run
 const x = (...a) => execFileSync('xcrun', ['simctl', ...a], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], timeout: 240000 }).trim();
 const xq = (...a) => { try { return x(...a); } catch (e) { return null; } };
-const container = () => x('get_app_container', udid, bundle, 'data');
+// the app's data folder does not move while it stays installed: ask once (a slow Mac can take minutes over one simctl call, and asking
+// on every poll only made it slower), and try a slow answer again before giving up
+let box = '';
+const container = () => {
+  for (let k = 1; !box; k++) {
+    try { box = x('get_app_container', udid, bundle, 'data'); }
+    catch (e) { if (k >= 3) throw e; console.log(`  (simctl get_app_container: ${e.code || String(e.message || e).split('\n')[0]}; asking again)`); }
+  }
+  return box;
+};
 const dir = () => join(container(), 'Documents', 'selftest');
 // a test spec "after:restore" -> { name: 'after', args: ['restore'] }; lang:es is the lang test in Spanish
 const parse = spec => { const [name, rest] = spec.split(':'); return { spec, name, args: rest ? rest.split('+') : [] }; };
@@ -63,7 +72,7 @@ async function runOne(t) {
   await sleep(800);
   const d = dir(); rmSync(d, { recursive: true, force: true }); mkdirSync(d, { recursive: true });
   writeFileSync(join(d, 'plan.json'), JSON.stringify(plan));
-  x('launch', udid, bundle);
+  try { x('launch', udid, bundle); } catch (e) { console.log(`  (simctl launch: ${e.code || String(e.message || e).split('\n')[0]}; trying again)`); await sleep(5000); x('launch', udid, bundle); }
   const logFile = join(out, `${plan.prefix}.log`); writeFileSync(logFile, '');
   const t0 = Date.now(), limit = (plan.timeout + 120) * 1000; let seen = 0, logLen = 0, done = false;
   while (Date.now() - t0 < limit) {
@@ -109,7 +118,14 @@ async function runOne(t) {
   console.log(`=== ${label}: ${t.spec} ${res.ok ? 'PASSED' : 'FAILED'}${res.error ? ' (' + String(res.error).split('\n')[0] + ')' : ''} in ${Math.round((Date.now() - t0) / 1000)} s`);
 }
 
-for (const spec of tests) await runOne(parse(spec));
+// a simctl call that fails for good fails that one test, not the whole run
+for (const spec of tests) {
+  try { await runOne(parse(spec)); }
+  catch (e) {
+    const msg = 'the test runner: ' + (e.code || String(e.message || e).split('\n')[0]);
+    console.log(`=== ${label}: ${spec} FAILED (${msg})`); results.push({ test: spec, label, ok: false, error: msg });
+  }
+}
 xq('terminate', udid, bundle);
 const sumFile = join(out, `summary-${label}.json`); writeFileSync(sumFile, JSON.stringify(results, null, 2));
 const md = [`### ${label}`, '', '| test | result | time | notes |', '|---|---|---|---|',
