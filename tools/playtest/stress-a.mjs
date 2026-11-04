@@ -235,6 +235,8 @@ if (PARTS.includes('hub')) {
   if (gateUp) {
     await gateAnswer(page); await sleep(400);
     if (!(await page.evaluate(() => document.body.classList.contains('hub-editing')))) fail('hub: the right answer did not start rearranging');
+    // the first page is full (the last one can hold a single app): go there with its dot, as a grown-up would
+    await page.evaluate(() => document.querySelectorAll('#hub-games .pg-dot')[0]?.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, pointerId: 9, pointerType: 'touch' }))); await sleep(900);
     const cs = await page.evaluate(() => [...document.querySelectorAll('#hub-games .card')].filter(c => { const r = c.getBoundingClientRect(); return r.left > 0 && r.right < innerWidth && r.width; }).slice(0, 4).map(c => { const r = c.getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2]; }));
     const A = [cs[0][0], cs[0][1], 1], B = [cs[3][0], cs[3][1], 2];
     await T(page, 'touchStart', [A]); await sleep(80); await T(page, 'touchMove', [[A[0] + 20, A[1] + 10, 1]]); await sleep(50);

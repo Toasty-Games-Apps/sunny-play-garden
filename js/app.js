@@ -206,7 +206,12 @@
     const mark = () => {
       // only a page change the child made moves hubFirst (a swipe, the arrows, the dots): the strip also scrolls when the screen turns
       // or the safe area changes, sometimes late and in steps on a slow phone, and none of that may change the games they come back to
-      const i = where(); if (strip._mine && !hubFrozen && i !== hubPage) { hubPage = i; hubFirst = i * hubPer; }
+      // a scroll nobody asked for (WebKit snapping the strip again after the safe area changed) goes back to the remembered page
+      let i = where();
+      if (!hubFrozen && i !== hubPage) {
+        if (strip._mine) { hubPage = i; hubFirst = i * hubPer; }
+        else if (hubPage < pages.length && strip.clientWidth) { strip.scrollLeft = hubPage * strip.clientWidth; i = where(); }
+      }
       prev.classList.toggle('off', i === 0); next.classList.toggle('off', i === pages.length - 1);
       [...dots.children].forEach((d, k) => d.classList.toggle('on', k === i));
     };
@@ -217,7 +222,8 @@
     strip.addEventListener('scroll', () => { clearTimeout(strip._t); strip._t = setTimeout(mark, 60); }, { passive: true });
     // Touch swipes scroll natively; with a mouse (computer versions) dragging turns the page too.
     let md = null;
-    for (const n of ['touchstart', 'wheel']) strip.addEventListener(n, () => { strip._mine = true; }, { passive: true });
+    // her own ways of turning a page: a finger, a trackpad, a keyboard or VoiceOver moving to a card
+    for (const n of ['touchstart', 'wheel', 'keydown', 'focusin']) strip.addEventListener(n, () => { strip._mine = true; }, { passive: true });
     strip.addEventListener('pointerdown', e => { strip._dragged = false; strip._mine = true; if (e.pointerType === 'mouse' && e.button === 0) md = { x: e.clientX, left: strip.scrollLeft, page: where(), moved: false }; });
     strip.addEventListener('pointermove', e => {
       if (!md) return; const dx = e.clientX - md.x;
@@ -1091,7 +1097,9 @@
     // since WebKit can leave the strip scrolled by the old page width
     else { const st = $('hub-games').querySelector('.pages'); if (st && st._restore) st._restore(); }
     drawCards();
-    setTimeout(() => { if (my === resizeN) hubFrozen = false; }, 150);   // an earlier turn's timer never unfreezes a later one
+    // an earlier turn's timer never unfreezes a later one; once the turn has settled the strip is put on the page once more, in case
+    // the layout changed again after the first restore
+    setTimeout(() => { if (my !== resizeN) return; const st = $('hub-games').querySelector('.pages'); if (st && st._restore) st._restore(); hubFrozen = false; }, 150);
   }, 60); };
   addEventListener('resize', onResize);
   addEventListener('orientationchange', onResize);

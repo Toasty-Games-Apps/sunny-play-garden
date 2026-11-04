@@ -143,6 +143,10 @@ await home();
     await page.setViewportSize({ width: 844, height: 390 }); const m2 = await settle(v => v.includes(b2[0]));
     await page.setViewportSize({ width: 390, height: 844 }); const a2 = await settle(v => v.includes(b2[0]));
     ok(b2.length && m2.includes(b2[0]) && a2.includes(b2[0]), 'hub: a page turned by a swipe is kept when turning ' + JSON.stringify([b2.slice(0, 2), m2.slice(0, 2), a2.slice(0, 2)]));
+    // a scroll nobody asked for (WebKit snapping the strip again after the safe area changed) goes back to the remembered page
+    await page.evaluate(() => { const st = document.querySelector('#hub-games .pages'); st.scrollLeft = 2 * st.clientWidth; });
+    const a3 = await settle(v => v.includes(b2[0]));
+    ok(a3.includes(b2[0]), 'hub: a scroll nobody asked for goes back to the page ' + JSON.stringify(a3.slice(0, 2)));
     await page.evaluate(() => document.querySelectorAll('#hub-games .pg-dot')[0].dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, pointerId: 3, pointerType: 'touch' }))); await page.waitForTimeout(800);
   }
 }
