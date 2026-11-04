@@ -55,6 +55,9 @@ async function playRecipe(page, id, log) {
         await page.mouse.click(cam.x, cam.y); await wait(200);
         const started = await page.evaluate(() => !!(SPG.cookGame.snapping || SPG.cookGame.snapAnim || SPG.cookGame.flash > 0));
         for (let i = 0; i < 130 && !got; i++) { got = (await P(page)).photos > before; if (!got) await wait(150); if (!started && i > 20) break; }
+        // no photo: say what the game saw (did the touch reach it, was the camera resting or still saving, what lies over the button)
+        if (!got) log.push(`${id}: photo try ${tries + 1} ${JSON.stringify(await page.evaluate(([cam, started]) => { const g = SPG.cookGame, r = g.canvas.getBoundingClientRect(), el = document.elementFromPoint(r.left + cam.x, r.top + cam.y);
+          return { started, snapping: !!g.snapping, flash: +(g.flash || 0).toFixed(2), anim: !!g.snapAnim, rest: +((g.camUntil || 0) - g.t).toFixed(1), lastDown: g.downAt && { x: Math.round(g.downAt.x), y: Math.round(g.downAt.y), ago: +(g.t - g.downAt.t).toFixed(1) }, cam: g.camBtn(), trans: !!g.trans, menu: !!g.menu, step: g.st && g.st.k, photos: g.photoCount, canvas: [Math.round(r.left), Math.round(r.top), Math.round(r.width), Math.round(r.height)], over: el && (el.id || String(el.className || el.tagName)) }; }, [cam, started]))}`);
       } log.push(`${id}: photo ${got ? 'OK' : 'FAILED'}`); if (!got) fails.push(`${id}: photo`); continue; }
     // a kind of step that says how to play itself (SPG.cookKit H[kind].auto)
     if (p.auto) { const a = p.auto; if (a.tap) await page.mouse.click(a.tap[0], a.tap[1]); else if (a.drag) await drag(page, a.drag, a.steps || 4); await wait(a.wait || 250); continue; }

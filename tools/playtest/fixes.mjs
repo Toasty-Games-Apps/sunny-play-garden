@@ -94,6 +94,30 @@ await openGame(page, 'Clay Corner'); await page.waitForTimeout(1000);
 }
 await home();
 
+// Sprout Kitchen camera: a photo that cannot be made or kept never leaves the camera dead or resting, and the count stays true
+await openGame(page, 'Sprout Kitchen'); await page.waitForTimeout(800);
+{
+  const r = await page.evaluate(async () => {
+    const g = SPG.cookGame, R = SPG.cookKit.RECIPES.find(x => x.id === 'pancake'), w = ms => new Promise(r => setTimeout(r, ms)), out = {};
+    g.startRecipe(R); g.endIntro(); g.trans = null; g.stIdx = R.steps.findIndex(s => s.k === 'serve'); g.beginStep(); g.trans = null; out.cam = !!g.camBtn();
+    const add = SPG.photos.add, n0 = g.photoCount || 0; g.snapWait = 400;
+    SPG.photos.add = () => new Promise(() => {});   // a save that never finishes
+    g.snap(); out.stuck = g.snapping; await w(700); out.freed = !g.snapping;
+    SPG.photos.add = async () => null; g.camUntil = 0;   // a save that fails
+    g.snap(); await w(500); out.failed = { snapping: g.snapping, rest: +((g.camUntil || 0) - g.t).toFixed(1), n: (g.photoCount || 0) - n0 };
+    const gc = HTMLCanvasElement.prototype.getContext; let once = true; HTMLCanvasElement.prototype.getContext = function (...a) { if (once) { once = false; return null; } return gc.apply(this, a); };
+    g.camUntil = 0; g.snap(); HTMLCanvasElement.prototype.getContext = gc;   // a canvas WebKit could not make
+    out.noCanvas = { snapping: g.snapping, rest: +((g.camUntil || 0) - g.t).toFixed(1) };
+    SPG.photos.add = add; g.camUntil = 0; g.snap(); for (let i = 0; i < 40 && g.snapping; i++) await w(100); out.n = (g.photoCount || 0) - n0;
+    g.snapWait = 0; g.enterMenu(); return out;
+  });
+  ok(r.cam && r.stuck && r.freed, 'kitchen: a photo save that never ends frees the camera ' + JSON.stringify(r));
+  ok(!r.failed.snapping && r.failed.rest <= 0 && r.failed.n === 0, 'kitchen: a failed save leaves the camera ready and the count as it was ' + JSON.stringify(r.failed));
+  ok(!r.noCanvas.snapping && r.noCanvas.rest <= 0, 'kitchen: no canvas for the photo leaves the camera ready ' + JSON.stringify(r.noCanvas));
+  ok(r.n === 1, 'kitchen: then a photo is kept ' + JSON.stringify(r));
+}
+await home();
+
 // Fish Tank: coins kept between visits and moved with the screen
 await openGame(page, 'Fish Tank'); await page.waitForTimeout(800);
 {
@@ -178,4 +202,4 @@ await home();
   await home();
 }
 ok(!page.errs.length, 'errors: ' + page.errs.join(' | '));
-stop(b); console.log(fails ? `FAILS: ${fails}` : 'FIXES OK');
+stop(b); console.log(fails ? `FAILS: ${fails}` : 'FIXES OK'); if (fails) process.exitCode = 1;

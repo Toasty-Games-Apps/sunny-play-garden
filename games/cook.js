@@ -1314,24 +1314,28 @@
       if (this.snapping || !this.R || !this.camBtn()) return;
       if (this.t < (this.camUntil || 0)) { sfx.oops(); this.camShake = 1; return; }   // the camera is recharging: no photo spam
       this.camUntil = this.t + CAM_COOL; this.snapping = true; this.flash = 1; sfx.snap(); setTimeout(() => sfx.chime(), 140);
+      // a save that never finishes (a stuck photo store) must not leave the camera dead for the rest of the recipe
+      const my = this.snapN = (this.snapN || 0) + 1; setTimeout(() => { if (this.snapN === my) this.snapping = false; }, this.snapWait || 20000);   // (snapWait: tests)
       let out = null;
       try {
-        const S = 1.5, w = this.w, h = this.h, oc = document.createElement('canvas'); oc.width = Math.round(w * S); oc.height = Math.round(h * S);
-        const o = oc.getContext('2d'); o.setTransform(S, 0, 0, S, 0, 0); drawTable(o, w, h, this.t);
-        F.hush = true; try { const s = this.st; if (s) H[s.k].draw(this, s, o); } finally { F.hush = false; }
-        const bw = Math.min(w * .94, this.SH * 1.7), bh = this.SH * .98, sx = (this.bx - bw / 2) * S, sy = (this.by - bh / 2) * S, sw = bw * S, sh = bh * S;
-        const K = CAT_COL[this.R.cat], M = 1100 / Math.max(sw, sh), cw = Math.round(sw * M), ch = Math.round(sh * M), pad = 34, band = 130;
+        // The food is drawn straight into the photo at its final size. (It used to be drawn on a full-screen copy at 1.5x first: about
+        // 13 MB more canvas on a big iPad, where WebKit's canvas memory is limited and a canvas it cannot make silently draws nothing.)
+        const w = this.w, h = this.h, bw = Math.min(w * .94, this.SH * 1.7), bh = this.SH * .98, x0 = this.bx - bw / 2, y0 = this.by - bh / 2;
+        const K = CAT_COL[this.R.cat], M = 1100 / Math.max(bw, bh), cw = Math.round(bw * M), ch = Math.round(bh * M), pad = 34, band = 130;
         out = document.createElement('canvas'); out.width = cw + pad * 2; out.height = ch + pad * 2 + band; const q = out.getContext('2d');
         gingham(q, 0, 0, out.width, out.height, 0, K.main, 28);
-        q.save(); q.fillStyle = 'rgba(70,30,20,.25)'; rr(q, pad + 4, pad + 10, cw, ch, 28); q.fill(); q.beginPath(); rr(q, pad, pad, cw, ch, 28); q.clip(); q.drawImage(oc, sx, sy, sw, sh, pad, pad, cw, ch); q.restore();
+        q.save(); q.fillStyle = 'rgba(70,30,20,.25)'; rr(q, pad + 4, pad + 10, cw, ch, 28); q.fill(); q.beginPath(); rr(q, pad, pad, cw, ch, 28); q.clip();
+        q.translate(pad, pad); q.scale(M, M); q.translate(-x0, -y0); drawTable(q, w, h, this.t);
+        F.hush = true; try { const s = this.st; if (s) H[s.k].draw(this, s, q); } finally { F.hush = false; }
+        q.restore();
         q.strokeStyle = '#fff'; q.lineWidth = 10; rr(q, pad, pad, cw, ch, 28); q.stroke();
         const rw = Math.min(out.width * .8, 760); ribbon(q, out.width / 2, pad + ch + band * .52, rw, 78, K.main, K.dark); fitLabel(q, SPG.t(this.R.name), out.width / 2, pad + ch + band * .5, rw * .86, 44, { stroke: K.dark });
         art.star(q, out.width / 2 - rw / 2 - 30, pad + ch + band * .5, 24, '#ffd54a', .2); art.star(q, out.width / 2 + rw / 2 + 30, pad + ch + band * .5, 24, '#ffd54a', -.2);
       } catch (_) { out = null; }
-      if (!out) { this.snapping = false; return; }
+      if (!out) { this.snapping = false; this.camUntil = 0; return; }   // no photo was made: the camera is ready again at once
       this.snapAnim = { t: 0, img: out };
-      const pid = store.active ? store.active.id : 'nobody', name = this.R.name, id = this.R.id;
-      out.toBlob(blob => { if (!blob || !SPG.photos) { this.snapping = false; return; } SPG.photos.add(pid, blob, { recipe: id, name }).then(() => { this.photoCount = (this.photoCount || 0) + 1; this.snapping = false; }, () => { this.snapping = false; }); }, 'image/jpeg', .9);
+      const pid = store.active ? store.active.id : 'nobody', name = this.R.name, id = this.R.id, end = ok => { if (this.snapN === my) this.snapping = false; if (!ok) this.camUntil = 0; };
+      out.toBlob(blob => { if (!blob || !SPG.photos) { end(false); return; } SPG.photos.add(pid, blob, { recipe: id, name }).then(r => { if (r != null) this.photoCount = (this.photoCount || 0) + 1; end(r != null); }, () => end(false)); }, 'image/jpeg', .9);
     },
     drawSnap(c, dt) {
       const A = this.snapAnim; if (A) {

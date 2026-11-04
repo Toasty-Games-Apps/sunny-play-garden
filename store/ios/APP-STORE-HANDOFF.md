@@ -208,6 +208,12 @@ Bugs the simulator runs found in the game, fixed for every platform:
   layout, and her touches landed in the wrong place: in Tidy Time on the iPad mini every drag missed after the window was
   resized. The app now lays the running game out again whenever its area really changes size (a ResizeObserver), and
   `fixes.mjs` checks it (the check fails on the old code).
+- Sprout Kitchen's camera on the big iPad (run 23): one pancake photo was not kept, though the other 14 recipes' were. The photo
+  used to be drawn on a full-screen copy at 1.5x first (about 13 MB more canvas on that iPad, where WebKit's canvas memory is
+  limited), and a photo that could not be made or kept left the camera resting or, if the save never finished, dead for the
+  rest of the recipe. The food is now drawn straight into the photo at its final size (the same picture), a failed photo leaves
+  the camera ready at once, a save that never finishes frees it after 20 s, and the photo count only goes up for a photo really
+  kept. `fixes.mjs` checks all three (they fail on the old code); the kitchen test now says what the game saw when a photo is missing.
 
 ## Simulator results (latest full run)
 
