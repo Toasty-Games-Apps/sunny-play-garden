@@ -59,19 +59,22 @@
   };
   T.shot = name => T.plan.shots === false ? Promise.resolve(null) : T.ask('shot', { name: T.plan.prefix ? T.plan.prefix + '-' + name : name });
   // turn the device (the Debug-only SproutTest plugin), then wait for the page to have the new shape
+  // On a very busy build server a window change arrives late and in steps (one Mac took two minutes to open Settings): wait until
+  // the page has had the same size for a second, and then for the game's own resize, before a test goes on to touch it
+  const settled = async () => { let k = '', same = 0; for (let i = 0; i < 150 && same < 5; i++) { await wait(200); const n = innerWidth + 'x' + innerHeight; if (n === k) same++; else { k = n; same = 0; } } await wait(700); };
   T.turn = async to => {
     const land = innerWidth > innerHeight; if ((to === 'landscape') === land) return { same: true };
     const P = C.Plugins.SproutTest; if (!P) return { error: 'no SproutTest plugin' };
     const r = await P.rotate({ to });
-    for (let i = 0; i < 30 && (innerWidth > innerHeight) !== (to === 'landscape'); i++) await wait(100);
-    await wait(700); return r;
+    for (let i = 0; i < 300 && !(r && r.error) && (innerWidth > innerHeight) !== (to === 'landscape'); i++) await wait(100);
+    await settled(); return r;
   };
   // give the app's window another size (the Debug-only SproutTest plugin; 0 x 0 = the whole screen again), then wait for the page
   T.resize = async (w, h) => {
     const P = C.Plugins.SproutTest; if (!P || !P.resize) return { error: 'no resize in SproutTest' };
     const r = await P.resize({ w, h }), want = w > 0 && r && r.window ? r.window : null;
-    for (let i = 0; i < 30 && want && (Math.abs(innerWidth - want[0]) > 1 || Math.abs(innerHeight - want[1]) > 1); i++) await wait(100);
-    await wait(700); return r;
+    for (let i = 0; i < 300 && want && (Math.abs(innerWidth - want[0]) > 1 || Math.abs(innerHeight - want[1]) > 1); i++) await wait(100);
+    await settled(); return r;
   };
   T.info = async () => { try { return await C.Plugins.SproutTest.info(); } catch (_) { return null; } };
   T.testDone = () => {};

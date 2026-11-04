@@ -102,8 +102,10 @@ for (const age of [2, 4, 7]) {
 // the idle hint: a thing wiggles and its basket glows
 {
   const page = await newPage(b, W, Hh); await login(page, { age: 4 });
-  await openGame(page, 'Tidy Time'); await page.waitForTimeout(10500);
-  const p = await page.evaluate(() => SPG.sortGame.probe()); ok(p.bins.some(q => q.glow), 'after a while a basket glows');
+  // (9 s of game time: a slow simulator draws it in more)
+  await openGame(page, 'Tidy Time'); await page.waitForTimeout(9500);
+  let p = null; for (let k = 0; k < 60; k++) { p = await page.evaluate(() => SPG.sortGame.probe()); if (p && p.bins.some(q => q.glow)) break; await page.waitForTimeout(500); }
+  ok(p && p.bins.some(q => q.glow), 'after a while a basket glows');
   ok(!page.errs.length, 'errors: ' + page.errs.join(' | '));
   await page.context().close();
 }

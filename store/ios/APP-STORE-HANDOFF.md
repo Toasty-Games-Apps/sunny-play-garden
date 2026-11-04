@@ -153,7 +153,8 @@ real app on these simulators (iOS 27, Xcode 27):
 | `iphone-max` | iPhone Pro Max (440 × 956 pt) | iOS checks, cloud backup against the real worker code on the Mac, data kept after closing the app, restore on a new phone, all four languages, screenshots |
 | `iphone-games` | iPhone Pro (402 × 874 pt) | the games' play-tests (all 15 kitchen recipes, Shape Builder, Tidy Time, Caterpillars, Feeling Friends, Fishing Pond, Clay Corner, Pet Care, Hair Salon, Hide and Seek, numbers, age tiers, fixes, monkey), screenshots |
 | `iphone-small` | iPhone SE (3rd generation), 375 × 667 pt: the smallest iPhone Xcode 27 offers | iOS checks, the monkey test (every game mashed like a toddler), kitchen, Tidy Time |
-| `ipad-13` | iPad Pro 13" | iOS checks, kitchen, Shape Builder, Clay Corner, fixes, monkey, screenshots |
+| `ipad-13` | iPad Pro 13" | iOS checks, Clay Corner, fixes, screenshots |
+| `ipad-13-games` | iPad Pro 13" (a second simulator) | kitchen (all 15 recipes), Shape Builder, monkey |
 | `ipad-mini` | iPad mini (744 × 1133 pt) | iOS checks (including the window resized to the iPhone Duo's outer 466 × 678 and inner 669 × 951 pt displays, a 375 pt phone and a short wide window), monkey, Tidy Time |
 | `iphone-duo` | iPhone Duo, outer display (466 × 678 pt, safe area 84 pt on the camera side and 34 pt at the bottom) | iOS checks, kitchen, monkey, Tidy Time, Shape Builder, screenshots |
 
@@ -172,8 +173,10 @@ Things the simulators showed about themselves (not about the app):
   what they expect (a celebration, a piece landing) instead of a fixed time. `SLOW=6` runs any play-test with a throttled CPU in
   Chromium to find such waits before they reach the Mac.
 - On a busy build server one `simctl` call (closing the app, finding its folder) can take minutes. The runner asks for the app's
-  folder once, the test page reloads by itself when a new test plan arrives, and an app that says nothing for 5 minutes is
-  started again.
+  folder once, the test page reloads by itself when a new test plan arrives, an app that says nothing for 5 minutes is
+  started again, and a simulator that refuses two launches in a row is shut down and booted again (the app, its data and its
+  permissions stay). Turning or resizing waits until the window has kept the same size for a second. The big iPad, the slowest
+  simulator, runs its checks and its play-tests as two jobs.
 
 Bugs the simulator runs found in the game, fixed for every platform:
 

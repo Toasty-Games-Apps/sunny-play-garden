@@ -24,13 +24,31 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
 // every simctl call has a time limit: on a busy Mac switching apps can take minutes, and one stuck call must not stop the whole run
 const x = (...a) => execFileSync('xcrun', ['simctl', ...a], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], timeout: 240000 }).trim();
 const xq = (...a) => { try { return x(...a); } catch (e) { return null; } };
+// what a failed simctl call said (its own last line of output, not only "Command failed")
+const why = e => { const out = String(e && (e.stderr || e.stdout) || '').trim().split('\n').filter(Boolean).pop(); return (e && e.code ? e.code + ': ' : '') + (out || String(e && e.message || e).split('\n')[0]); };
+// The simulator itself can get stuck on a busy Mac: once, every launch after the first test was refused at once. A launch that
+// fails twice restarts the simulator (the app, its data and the permissions stay) and tries again; at most twice a run.
+let restarts = 0;
+async function launch() {
+  for (let k = 1; ; k++) {
+    try { x('launch', udid, bundle); return; }
+    catch (e) {
+      if (k === 1) { console.log(`  (simctl launch: ${why(e)}; trying again)`); await sleep(5000); continue; }
+      if (k > 2 || restarts >= 2) throw e;
+      restarts++; console.log(`  (simctl launch: ${why(e)}; restarting the simulator)`);
+      const t = Date.now(); xq('shutdown', udid); await sleep(3000); xq('boot', udid);
+      try { execFileSync('xcrun', ['simctl', 'bootstatus', udid, '-b'], { stdio: 'ignore', timeout: 600000 }); } catch (e2) { console.log(`  (the simulator did not report booted: ${why(e2)})`); }
+      console.log(`  (the simulator is back after ${Math.round((Date.now() - t) / 1000)} s)`); await sleep(3000);
+    }
+  }
+}
 // the app's data folder does not move while it stays installed: ask once (a slow Mac can take minutes over one simctl call, and asking
 // on every poll only made it slower), and try a slow answer again before giving up
 let box = '';
 const container = () => {
   for (let k = 1; !box; k++) {
     try { box = x('get_app_container', udid, bundle, 'data'); }
-    catch (e) { if (k >= 3) throw e; console.log(`  (simctl get_app_container: ${e.code || String(e.message || e).split('\n')[0]}; asking again)`); }
+    catch (e) { if (k >= 3) throw e; console.log(`  (simctl get_app_container: ${why(e)}; asking again)`); }
   }
   return box;
 };
@@ -72,7 +90,7 @@ async function runOne(t) {
   await sleep(800);
   const d = dir(); rmSync(d, { recursive: true, force: true }); mkdirSync(d, { recursive: true });
   writeFileSync(join(d, 'plan.json'), JSON.stringify(plan));
-  try { x('launch', udid, bundle); } catch (e) { console.log(`  (simctl launch: ${e.code || String(e.message || e).split('\n')[0]}; trying again)`); await sleep(5000); x('launch', udid, bundle); }
+  await launch();
   const logFile = join(out, `${plan.prefix}.log`); writeFileSync(logFile, '');
   const t0 = Date.now(), limit = (plan.timeout + 120) * 1000; let seen = 0, logLen = 0, done = false, again = false;
   while (Date.now() - t0 < limit) {
@@ -127,7 +145,7 @@ async function runOne(t) {
 for (const spec of tests) {
   try { await runOne(parse(spec)); }
   catch (e) {
-    const msg = 'the test runner: ' + (e.code || String(e.message || e).split('\n')[0]);
+    const msg = 'the test runner: ' + why(e);
     console.log(`=== ${label}: ${spec} FAILED (${msg})`); results.push({ test: spec, label, ok: false, error: msg });
   }
 }

@@ -97,7 +97,9 @@ jobs:
           - { label: iphone-games, pick: 'iPhone [0-9]+ Pro$', backup: false, full: 'auto,shapes,sort,pattern,feelings,fishing,clay,care,salon,fixes,monkey,hide,num,tiers,store-shots', quick: 'auto,fixes,monkey,store-shots' }
           # the smallest iPhone screen this Xcode still offers for the newest iOS
           - { label: iphone-small, pick: 'iPhone (?!Duo)', prefer: smallest, backup: false, full: 'ios,monkey,auto,sort', quick: 'ios,monkey' }
-          - { label: ipad-13, pick: 'iPad Pro 13', backup: false, full: 'ios,auto,shapes,clay,fixes,monkey,store-shots', quick: 'ios,store-shots' }
+          # the big iPad draws the most pixels and its simulator is the slowest on a build server: its checks and its play-tests are two jobs
+          - { label: ipad-13, pick: 'iPad Pro 13', backup: false, full: 'ios,clay,fixes,store-shots', quick: 'ios,store-shots' }
+          - { label: ipad-13-games, pick: 'iPad Pro 13', backup: false, full: 'auto,shapes,monkey', quick: 'auto' }
           - { label: ipad-mini, pick: 'iPad mini', backup: false, full: 'ios,monkey,sort', quick: 'ios' }
           - { label: iphone-duo, pick: 'iPhone Duo', backup: false, full: 'ios,auto,monkey,sort,shapes,store-shots', quick: 'ios,store-shots' }
     steps:
