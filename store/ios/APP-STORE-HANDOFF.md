@@ -179,6 +179,8 @@ Bugs the simulator runs found in the game, fixed for every platform:
 - On narrow screens (the iPhone Duo's outer display, the iPhone SE) the kitchen's camera and undo buttons covered the left-hand food
   when there were several cookies, cupcakes or sandwich pieces, so the last bites there could not be taken. Several foods now keep
   that column free.
+- In the Hair Salon a quick swipe that started and ended between two frames (a slow phone, a busy moment) cut nothing; lifting the
+  finger now cuts along the rest of the path.
 
 ## Not tested yet (needs real devices)
 

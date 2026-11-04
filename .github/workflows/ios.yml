@@ -40,7 +40,7 @@ on:
     branches: [ccr-812ba91c-62t8en]
     paths: ['ios-app/**', 'js/**', 'games/**', 'index.html', 'styles.css', 'privacy.html', 'fonts/**', 'audio/**', 'icons/**', 'tools/app-web.mjs', 'tools/store-scenes.mjs', 'tools/playtest/**', 'worker/**', '.github/workflows/ios.yml']
 concurrency:
-  group: ios-${{ github.sha }}
+  group: ios-${{ github.ref }}
   cancel-in-progress: true
 env:
   BUNDLE: com.toastygames.littlesproutpark

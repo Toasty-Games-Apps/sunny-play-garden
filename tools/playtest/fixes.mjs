@@ -36,16 +36,24 @@ await home();
 await openGame(page, 'Style Studio'); await page.waitForTimeout(800);
 {
   await page.evaluate(() => SPG.app.running().inst.openSalon()); await page.waitForTimeout(500);
-  const pr = await page.evaluate(() => SPG.salon.cur.probe()); const c0 = pr.cards[0];
+  // a long style (eight of the ten are dealt, so one always is): the cuts below go across the shoulders, which short styles do not reach
+  const pr = await page.evaluate(() => SPG.salon.cur.probe()); const c0 = pr.cards.find(c => /^(longTangle|longWavy|messyPony|unevenPigs|wildCurls|shaggyBob)$/.test(c.kind)) || pr.cards[0];
   await page.mouse.click(c0.x + c0.s / 2, c0.y + c0.s / 2); await page.waitForTimeout(300);
   const e = await page.evaluate(() => SPG.salon.cur.probe());
   for (const row of [.25, .6]) { const y = e.hc.y + e.R * row; await page.mouse.move(e.hc.x - e.R * 1.6, y); await page.mouse.down(); for (let i = 0; i <= 24; i++) { await page.mouse.move(e.hc.x - e.R * 1.6 + e.R * 3.2 * i / 24, y, { steps: 2 }); await page.waitForTimeout(25); } await page.mouse.up(); }
   await page.waitForTimeout(200); const cut = await page.evaluate(() => SPG.salon.cur.probe()); ok(cut.undo > 0 && (cut.cuts > 0 || cut.pieces > 0), 'salon: the scissors cut ' + JSON.stringify([cut.cuts, cut.pieces, cut.undo]));
-  await page.evaluate(() => { window.__hair = SPG.salon.cur.hair; });
+  // a quick swipe that starts and ends between two frames (a slow phone) still cuts along its path when the finger lifts
+  // (the two cuts above are undone first, so it crosses uncut hair)
+  const fast = await page.evaluate(() => { const g = SPG.salon.cur; while (g.undo.length) g.button('undo'); const cv = g.cv, b = cv.getBoundingClientRect(), c = g.headC(), R = g.headR(), n0 = g.hair.cuts;
+    const ev = (t, x, y) => cv.dispatchEvent(new PointerEvent(t, { pointerId: 3, isPrimary: true, clientX: b.left + x, clientY: b.top + y, bubbles: true, cancelable: true, pointerType: 'touch' }));
+    for (const row of [.25, .6]) { const y = c.y + R * row; ev('pointerdown', c.x - R * 1.6, y); for (let i = 1; i <= 24; i++) ev('pointermove', c.x - R * 1.6 + R * 3.2 * i / 24, y); ev('pointerup', c.x + R * 1.6, y); }
+    return [n0, g.hair.cuts]; });
+  ok(fast[1] > fast[0], 'salon: a swipe between two frames still cuts ' + JSON.stringify(fast));
+  await page.evaluate(() => { const g = SPG.salon.cur; window.__hair = g.hair; window.__card = g.cards.indexOf(g.card); });
   await page.evaluate(() => { SPG.app.running().inst.pause(); }); ok(!(await page.evaluate(() => SPG.salon.cur.running)), 'salon: rests when Style Studio pauses');
   await page.evaluate(() => { SPG.app.running().inst.resume(); }); ok(await page.evaluate(() => SPG.salon.cur.running), 'salon: wakes with Style Studio');
   await page.evaluate(() => SPG.salon.cur.button('close')); await page.waitForTimeout(200);
-  ok(await page.evaluate(() => SPG.salon.cur.mode === 'pick' && SPG.salon.cur.cards[0].hair === window.__hair), 'salon: back keeps her work on its card');
+  ok(await page.evaluate(() => SPG.salon.cur.mode === 'pick' && SPG.salon.cur.cards[window.__card].hair === window.__hair), 'salon: back keeps her work on its card');
   await page.evaluate(() => SPG.salon.cur.close());
 }
 await home();

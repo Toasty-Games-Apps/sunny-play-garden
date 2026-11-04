@@ -105,7 +105,15 @@
       if (this.tool === 'scissors') { this.snipNow(this.local(x, y), this.local(x, y), true); }
       if (this.tool === 'spray') sfx.spray();
     }
-    release() { this.hold = null; }
+    // a quick swipe can start and end between two frames (a slow phone, a busy moment): the scissors still cut the rest of her path
+    release() {
+      const h = this.hold;
+      if (h && this.tool === 'scissors' && this.mode === 'edit' && this.hair) {
+        const A = this.snipFrom || this.local(h.lx, h.ly), B = this.local(h.x, h.y);
+        if (Math.hypot(B[0] - A[0], B[1] - A[1]) > .02) this.snipNow(A, B);
+      }
+      this.hold = null; this.snipFrom = null;
+    }
     button(id) {
       if (TOOLS.includes(id)) { this.tool = id; sfx.tap(); const k = { brush: 'comb', scissors: null, spray: 'spray', dryer: 'dryer' }[id]; if (k && voice.LINES['style/tool-' + k]) voice.say('style/tool-' + k); return; }
       if (id === 'undo') { if (this.undo.length) { this.hair = H.unpack(this.undo.pop()); P.cuts.live = this.hair; sfx.undo(); } else sfx.tap(); return; }
