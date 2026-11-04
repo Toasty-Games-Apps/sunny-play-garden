@@ -4,14 +4,14 @@ import Photos
 import AVFoundation
 
 // The one screen of the app: Capacitor's web view with the game in it, set up for small children.
-//  - no status bar, and the home indicator fades away;
+//  - no status bar, and the home indicator fades away (both through Capacitor's own SystemBars plugin, `hidden` in capacitor.config.json,
+//    because Capacitor 8 owns prefersHomeIndicatorAutoHidden);
 //  - a swipe from any edge first only shows the system handle, so a toddler sliding a finger off the edge of a game does not leave the
 //    app (a second swipe still works, so a grown-up is never locked in; Guided Access is the real lock);
 //  - the screen stays on while the app is open, like the website's wake lock;
 //  - the web view always fills the window, so any window size (iPad windows, iPhone Duo outer and inner displays, rotation) just
 //    resizes the page and the game lays itself out again. Nothing here looks at the device model or the screen size.
 class SproutViewController: CAPBridgeViewController {
-    override var prefersHomeIndicatorAutoHidden: Bool { true }
     override var preferredScreenEdgesDeferringSystemGestures: UIRectEdge { .all }
 
     override func capacitorDidLoad() {

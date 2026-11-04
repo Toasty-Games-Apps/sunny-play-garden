@@ -62,6 +62,8 @@ jobs:
           xcrun simctl list runtimes
           xcrun simctl list devicetypes
           xcrun simctl help | sed -n '1,140p'
+          xcrun simctl help ui || true
+          xcrun simctl help io || true
       - name: Pack the game with the self-test
         working-directory: ios-app
         env: { SPG_SELFTEST: '1', SPG_TEST_API: 'http://127.0.0.1:8787' }
@@ -93,7 +95,8 @@ jobs:
           - { label: iphone-max, pick: 'iPhone [0-9]+ Pro Max', backup: true, full: 'ios,after:keep,after:restore,lang:en,lang:es,lang:hi,lang:zh,store-shots', quick: 'ios,after:keep,after:restore,store-shots' }
           # every game's play-test (all 15 recipes, every shape picture, sorting, patterns, feelings, fishing, clay, pet care, salon, rapid tapping...)
           - { label: iphone-games, pick: 'iPhone [0-9]+ Pro$', backup: false, full: 'auto,shapes,sort,pattern,feelings,fishing,clay,care,salon,fixes,monkey,hide,num,tiers', quick: 'auto,fixes,monkey' }
-          - { label: iphone-small, pick: 'iPhone ([0-9]+e|SE|[0-9]+ mini)', backup: false, full: 'ios,monkey,auto,sort', quick: 'ios,monkey' }
+          # the smallest iPhone screen this Xcode still offers for the newest iOS
+          - { label: iphone-small, pick: 'iPhone', prefer: smallest, backup: false, full: 'ios,monkey,auto,sort', quick: 'ios,monkey' }
           - { label: ipad-13, pick: 'iPad Pro 13', backup: false, full: 'ios,auto,shapes,clay,fixes,monkey,store-shots', quick: 'ios,store-shots' }
           - { label: ipad-mini, pick: 'iPad mini', backup: false, full: 'ios,monkey,sort', quick: 'ios' }
           - { label: iphone-duo, pick: 'iPhone Duo', backup: false, full: 'ios,auto,monkey,sort,shapes,store-shots', quick: 'ios,store-shots' }
@@ -117,7 +120,7 @@ jobs:
       - name: Make the simulator and install the app
         id: sim
         run: |
-          UDID=$(node ios-app/test/make-sim.mjs --pick '${{ matrix.pick }}' --name 'sprout-${{ matrix.label }}')
+          UDID=$(node ios-app/test/make-sim.mjs --pick '${{ matrix.pick }}' --prefer '${{ matrix.prefer || 'newest' }}' --name 'sprout-${{ matrix.label }}')
           echo "udid=$UDID" >> "$GITHUB_OUTPUT"
           unzip -q SproutPark-sim.zip
           xcrun simctl install "$UDID" App.app
@@ -125,6 +128,16 @@ jobs:
           xcrun simctl privacy "$UDID" grant microphone "$BUNDLE" || true
           xcrun simctl privacy "$UDID" grant photos-add "$BUNDLE" || true
           xcrun simctl io "$UDID" enumerate || true
+      - name: iPhone Duo, what the simulator offers for folding and its two displays
+        if: matrix.label == 'iphone-duo'
+        env: { UDID: '${{ steps.sim.outputs.udid }}' }
+        run: |
+          xcrun simctl ui "$UDID" 2>&1 | head -20 || true
+          for o in posture fold display; do echo "== simctl ui $o"; xcrun simctl ui "$UDID" "$o" 2>&1 | head -8 || true; done
+          for d in internal external; do xcrun simctl io "$UDID" screenshot --type=png --display="$d" "$RUNNER_TEMP/duo-$d.png" 2>&1 | tail -2 || true; [ -f "$RUNNER_TEMP/duo-$d.png" ] && sips -g pixelWidth -g pixelHeight "$RUNNER_TEMP/duo-$d.png" | tail -2 | tr '\n' ' ' && echo " ($d)"; done || true
+          # the Simulator app's own menus (the fold control may only be there)
+          open -a Simulator --args -CurrentDeviceUDID "$UDID" || true; sleep 8
+          for m in Device Features Hardware; do echo "== menu $m"; perl -e 'alarm 20; exec @ARGV' osascript -e "tell application \"System Events\" to tell process \"Simulator\" to get name of every menu item of menu \"$m\" of menu bar 1" 2>&1 || true; done
       - name: Run the tests inside the app
         env:
           TESTS: ${{ github.event.inputs.tests == 'quick' && matrix.quick || matrix.full }}
