@@ -171,6 +171,9 @@ Things the simulators showed about themselves (not about the app):
 - The simulators on a build server draw far fewer frames than a phone. Game timers count in game time, so the play-tests wait for
   what they expect (a celebration, a piece landing) instead of a fixed time. `SLOW=6` runs any play-test with a throttled CPU in
   Chromium to find such waits before they reach the Mac.
+- On a busy build server one `simctl` call (closing the app, finding its folder) can take minutes. The runner asks for the app's
+  folder once, the test page reloads by itself when a new test plan arrives, and an app that says nothing for 5 minutes is
+  started again.
 
 Bugs the simulator runs found in the game, fixed for every platform:
 
@@ -183,6 +186,10 @@ Bugs the simulator runs found in the game, fixed for every platform:
   that column free.
 - In the Hair Salon a quick swipe that started and ended between two frames (a slow phone, a busy moment) cut nothing; lifting the
   finger now cuts along the rest of the path.
+- WebKit starts a voice recording a moment after it is asked to; on a busy iPad the first take could come back empty. The recorder
+  now waits for it to really start (at most 1.5 s) before the guided recorder's bar begins.
+- Bunny Band: five fingers mashing the same friends could start about 67 sounds at once. The same friend struck again within
+  0.11 s now only hops (about 34 at most).
 
 ## Not tested yet (needs real devices)
 
