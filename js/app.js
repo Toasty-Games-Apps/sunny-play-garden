@@ -328,6 +328,9 @@
   }
 
   /* ------------------------------------------------------------ games */
+  // the size of the game area the running game last laid itself out for (see the ResizeObserver by onResize)
+  let laidOut = '';
+  const hostKey = () => { const r = $('game-host').getBoundingClientRect(); return Math.round(r.width) + 'x' + Math.round(r.height); };
   function openGame(g) {
     if (current === 'stage') return;   // a second finger lifting off another (now hidden) app
     voice.stop(); SPG.sfx.tap();
@@ -340,6 +343,7 @@
     running = { game: g, inst: null, paused: false };
     try { running.inst = g.create(host); running.inst.start?.(); }
     catch (e) { console.error(e); closeGame(); return; }   // never leave her on a blank screen
+    laidOut = hostKey();
     syncPause();
   }
   function stopGame() {
@@ -1093,7 +1097,7 @@
     // from here on the strip's scrolling is the screen's doing, not the child's, until the strip is touched again
     hubFrozen = true; const my = ++resizeN, st0 = $('hub-games').querySelector('.pages'); if (st0) st0._mine = false;
     clearTimeout(resizeTimer); resizeTimer = setTimeout(() => {
-    running?.inst?.resize?.();
+    running?.inst?.resize?.(); if (running?.inst) laidOut = hostKey();
     // turning the phone changes how many fit on a page: rebuild the pages and stay on the same games
     if (perPage() !== hubPer && $('hub-games').firstChild) { hubPage = Math.floor(hubFirst / perPage()); renderCards(); }
     // the same number per page but a different width (the safe area changed, the iPhone Duo's side bar): back onto the same page,
@@ -1107,6 +1111,17 @@
   addEventListener('resize', onResize);
   addEventListener('orientationchange', onResize);
   window.visualViewport?.addEventListener('resize', onResize);
+  // The game area can also change size with no resize event for the window (an iPad window or the safe area settling a moment later,
+  // a slow WebKit handing the new size over in steps). A game laid out for the old size would put her touches in the wrong place, so
+  // the running game lays itself out again whenever its area really differs from the size it last laid itself out for.
+  if (window.ResizeObserver) {
+    let rz = 0;
+    new ResizeObserver(() => { clearTimeout(rz); rz = setTimeout(() => {
+      if (!running?.inst) return; const k = hostKey();
+      if (k === laidOut || /^0x|x0$/.test(k)) return;
+      laidOut = k; running.inst.resize?.();
+    }, 60); }).observe($('game-host'));
+  }
 
   /* ------------------------------------------------------------ boot */
   safe.init();

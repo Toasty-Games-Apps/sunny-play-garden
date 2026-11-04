@@ -121,16 +121,13 @@ jobs:
           curl -s -o /dev/null -w 'from https://evil.example: %{http_code}\n' -H 'Origin: https://evil.example' http://127.0.0.1:8787/api/backup
       - name: Make the simulator and install the app
         id: sim
-        timeout-minutes: 15
+        timeout-minutes: 45
         run: |
-          UDID=$(node ios-app/test/make-sim.mjs --pick '${{ matrix.pick }}' --prefer '${{ matrix.prefer || 'newest' }}' --name 'sprout-${{ matrix.label }}')
-          echo "udid=$UDID" >> "$GITHUB_OUTPUT"
           unzip -q SproutPark-sim.zip
-          xcrun simctl install "$UDID" App.app
-          # what a grown-up would allow: the microphone (for recording voices) and adding pictures to Photos
-          xcrun simctl privacy "$UDID" grant microphone "$BUNDLE" || true
-          xcrun simctl privacy "$UDID" grant photos-add "$BUNDLE" || true
-          xcrun simctl io "$UDID" enumerate || true
+          # boots, installs, and allows what a grown-up would allow (the microphone for recording voices, adding pictures to Photos);
+          # a simulator that fails to boot or hangs while installing is made again (make-sim.mjs)
+          UDID=$(node ios-app/test/make-sim.mjs --pick '${{ matrix.pick }}' --prefer '${{ matrix.prefer || 'newest' }}' --name 'sprout-${{ matrix.label }}' --app App.app --bundle "$BUNDLE")
+          echo "udid=$UDID" >> "$GITHUB_OUTPUT"
       - name: iPhone Duo, what the simulator offers for folding and its two displays
         if: matrix.label == 'iphone-duo'
         env: { UDID: '${{ steps.sim.outputs.udid }}' }

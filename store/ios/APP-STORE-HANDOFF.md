@@ -181,6 +181,8 @@ Things the simulators showed about themselves (not about the app):
   permissions stay). Turning or resizing waits until the window has kept the same size for a second. The big iPad, the slowest
   simulator, runs its checks and its play-tests as two jobs. A screenshot may take the Mac up to 4 minutes, and the page waits
   for it, so a late one never pictures a later moment.
+- A simulator on a busy build server can fail to boot (`simctl bootstatus` gave up after 136 s) or hang while the app is
+  installed (more than 9 minutes). The setup gives each step a time limit and makes a new simulator, at most three times.
 - `simctl io screenshot` cannot capture the iPhone Duo simulator (two built-in displays; "Timeout waiting for screen surfaces"),
   and earlier runs had passed without saving any iPhone Duo picture. Now the app sends a picture of its own window when the Mac
   cannot take one, and a store screenshot only counts once its picture is saved.
@@ -202,6 +204,10 @@ Bugs the simulator runs found in the game, fixed for every platform:
   now waits for it to really start (at most 1.5 s) before the guided recorder's bar begins.
 - Bunny Band: five fingers mashing the same friends could start about 67 sounds at once. The same friend struck again within
   0.11 s now only hops (about 34 at most).
+- A game whose area changed size with no resize event for the window (an iPad window settling a moment later) kept its old
+  layout, and her touches landed in the wrong place: in Tidy Time on the iPad mini every drag missed after the window was
+  resized. The app now lays the running game out again whenever its area really changes size (a ResizeObserver), and
+  `fixes.mjs` checks it (the check fails on the old code).
 
 ## Simulator results (latest full run)
 

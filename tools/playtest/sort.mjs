@@ -77,12 +77,20 @@ for (const age of [2, 4, 7]) {
     // everything into its basket
     // (a thing still flying into a basket or sliding home is not on the floor yet: wait for it rather than stop; a slow simulator
     // draws the flight seconds apart, and the room is tidy only when the last one has landed)
+    // (three drags in a row that change nothing print once what the page looks like: the game's size against its canvas, the
+    // window, the zoom, and what is under the first thing)
+    let still = 0, told = false;
     for (let guard = 0; guard < 80; guard++) {
       p = await P(); if (!p || p.phase !== 'play') break;
       const left = p.items.filter(i => i.state === 'floor');
       if (!left.length) { if (p.items.every(i => i.state === 'in')) break; await page.waitForTimeout(250); continue; }
       const i = left[0], bin = p.bins.find(q => q.key === i.key); await drag(page, i, bin);
-      await waitFor(q => q.phase !== 'play' || (q.items.find(z => z.id === i.id) || {}).state !== 'floor', 4000);
+      const moved = await waitFor(q => q.phase !== 'play' || (q.items.find(z => z.id === i.id) || {}).state !== 'floor', 4000);
+      still = moved ? 0 : still + 1;
+      if (still >= 3 && !told) { told = true; console.log(`age ${age} ${mode}: three drags changed nothing ` + JSON.stringify(await page.evaluate(() => {
+        const cv = document.querySelector('#game-host canvas'), r = cv && cv.getBoundingClientRect(), q = SPG.sortGame.probe(), f = q && q.items.find(i => i.state === 'floor'), el = f && document.elementFromPoint(f.x, f.y), vv = window.visualViewport;
+        return { game: q && [Math.round(q.w), Math.round(q.h)], canvas: r && [r.left, r.top, r.width, r.height].map(Math.round), inner: [innerWidth, innerHeight], zoom: vv && [vv.scale, vv.offsetLeft, vv.offsetTop, vv.width, vv.height].map(v => Math.round(v * 100) / 100), scroll: [scrollX, scrollY], under: el ? el.tagName + '.' + el.className : null, thing: f && [Math.round(f.x), Math.round(f.y)], bin: q && q.bins.map(b => [Math.round(b.x), Math.round(b.y)]), sel: q && q.sel };
+      }))); }
     }
     p = await waitFor(p => p.phase === 'done' || p.phase === 'out', 15000);
     ok(p, `age ${age} ${mode}: the room is tidy ` + (p ? '' : JSON.stringify(await page.evaluate(() => { const q = SPG.sortGame.probe(); return q && { phase: q.phase, states: q.items.map(i => i.state) }; })))); rounds++;

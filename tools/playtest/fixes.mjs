@@ -157,5 +157,25 @@ await home();
     await page.evaluate(() => document.querySelectorAll('#hub-games .pg-dot')[0].dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, pointerId: 3, pointerType: 'touch' }))); await page.waitForTimeout(800);
   }
 }
+// The game area changes size with no resize event for the window (an iPad window or the safe area settling a moment later): the running
+// game lays itself out again, so a drag still lands where the things are (Tidy Time kept its old size and every drag missed)
+{
+  await page.evaluate(() => { SPG.sortGame.next = 'size'; }); await openGame(page, 'Tidy Time');
+  const P = () => page.evaluate(() => SPG.sortGame.probe());
+  const until = async (want, ms) => { const t0 = Date.now(); for (;;) { const p = await P(); if (p && want(p)) return p; if (Date.now() - t0 > ms) return null; await page.waitForTimeout(100); } };
+  await until(p => p.phase === 'play', 15000);
+  await page.evaluate(() => { document.getElementById('game-host').style.bottom = '300px'; });
+  const ch = () => page.evaluate(() => Math.round(document.querySelector('#game-host canvas').getBoundingClientRect().height));
+  const want = await ch(); let p = await until(q => Math.abs(q.h - want) < 2, 10000);
+  ok(p, 'game area smaller with no resize event: the game lays itself out again ' + JSON.stringify({ canvas: want, game: (await P()).h }));
+  if (p) {
+    const it = p.items.find(i => i.state === 'floor'), bin = p.bins.find(q => q.key === it.key);
+    await page.mouse.move(it.x, it.y); await page.mouse.down(); await page.mouse.move((it.x + bin.x) / 2, (it.y + bin.y) / 2, { steps: 4 });
+    await page.mouse.move(bin.x, bin.y, { steps: 5 }); await page.waitForTimeout(60); await page.mouse.up();
+    ok(await until(q => (q.items.find(i => i.id === it.id) || {}).state === 'in', 5000), 'game area smaller with no resize event: a drag still puts a thing in its basket');
+  }
+  await page.evaluate(() => { document.getElementById('game-host').style.bottom = ''; }); await page.waitForTimeout(300);
+  await home();
+}
 ok(!page.errs.length, 'errors: ' + page.errs.join(' | '));
 stop(b); console.log(fails ? `FAILS: ${fails}` : 'FIXES OK');
