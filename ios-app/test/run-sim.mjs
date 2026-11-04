@@ -16,6 +16,8 @@ const arg = (k, d) => { const i = process.argv.indexOf('--' + k); return i > 0 ?
 const udid = arg('udid'), out = arg('out', 'sim-results'), bundle = arg('bundle', 'com.toastygames.littlesproutpark'), label = arg('label', 'sim');
 const tests = arg('tests', 'ios,after:keep').split(/[\s,;]+/).filter(Boolean);
 const shots = arg('shots', '1') !== '0';
+// --backup false: this Mac runs no local backup service, so the ios test leaves the cloud backup out instead of failing on it
+const backup = arg('backup', 'true') !== 'false';
 if (!udid) { console.error('--udid is required'); process.exit(2); }
 mkdirSync(out, { recursive: true });
 const sleep = ms => new Promise(r => setTimeout(r, ms));
@@ -43,7 +45,7 @@ async function screenshot(file, want) {
 async function runOne(t) {
   const name = t.name, run = `${label}-${name}-${Date.now()}`;
   const fresh = !(name === 'after' && t.args[0] === 'keep');
-  const plan = { test: name, run, fresh, args: t.args.slice(), shots, prefix: `${label}-${t.spec.replace(/[:+]/g, '-')}`, timeout: name === 'auto' || name === 'kitchen-look' ? 2400 : 900 };
+  const plan = { test: name, run, fresh, args: t.args.slice(), shots, prefix: `${label}-${t.spec.replace(/[:+]/g, '-')}`, timeout: name === 'auto' || name === 'kitchen-look' ? 2400 : 900, env: { BACKUP: backup ? '1' : '0' } };
   if (name === 'lang') { plan.lang = t.args[0] || 'en'; plan.test = 'lang'; }
   if (!['ios', 'lang', 'after', 'store-shots'].includes(name)) plan.flat = true;   // a play-test from tools/playtest (see selftest.js)
   if (name === 'after' && t.args[0] === 'restore') { if (!code) { results.push({ test: t.spec, ok: false, error: 'no family code from the ios test (was the build made with SPG_TEST_API?)' }); return; } plan.args = ['restore', code]; }
@@ -83,6 +85,10 @@ async function runOne(t) {
   let res = null;
   try { res = JSON.parse(readFileSync(join(dir(), `result-${plan.test}.json`), 'utf8')); } catch (_) { /* none */ }
   if (!done || !res) { await screenshot(join(out, `${plan.prefix}-TIMEOUT.png`)); res = { test: t.spec, ok: false, error: done ? 'no result file' : 'timed out' }; }
+  // most play-tests print FAIL lines and a total (FAILS: n, n FAILED) without setting an exit code: those lines fail the test too
+  const failLines = readFileSync(logFile, 'utf8').split('\n').filter(l => /^(FAIL\b|FAILS:|\d+ FAILED\b|PROBLEMS:)/.test(l.trim()));
+  if (res.ok && failLines.length) { res.ok = false; res.error = res.error || `${failLines.length} FAIL line(s): ${failLines[0].trim().slice(0, 100)}`; }
+  res.fails = failLines.length;
   res.test = t.spec; res.label = label; results.push(res);
   if (name === 'ios' && res.extra && res.extra.code) code = res.extra.code;
   writeFileSync(join(out, `${plan.prefix}.json`), JSON.stringify(res, null, 2));

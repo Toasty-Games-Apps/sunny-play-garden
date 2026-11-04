@@ -7,6 +7,8 @@
 const T = window.SPG_TEST;   // the runner (js/selftest.js)
 export const SP = 'shots';
 const wait = ms => new Promise(r => setTimeout(r, ms));
+// what the test asked for last (the runner prints it when a test stalls, see selftest.js)
+const did = what => { T.last = { what, t: Date.now() }; };
 const copy = v => v === undefined ? undefined : JSON.parse(JSON.stringify(v, (k, x) => (typeof x === 'number' && !isFinite(x)) ? null : x));
 
 // ---- a mouse that behaves like Playwright's: move / down / up / click at viewport (client) coordinates
@@ -28,7 +30,7 @@ function fire(type, x, y, { id = 901, buttons = 0, button = 0, kind = 'mouse', p
 }
 export const mouse = {
   async move(x, y, { steps = 1 } = {}) {
-    const x0 = mx, y0 = my;
+    did(`mouse.move ${Math.round(x)},${Math.round(y)}${down ? ' (down)' : ''}`); const x0 = mx, y0 = my;
     for (let i = 1; i <= steps; i++) {
       const px = x0 + (x - x0) * i / steps, py = y0 + (y - y0) * i / steps;
       fire('pointermove', px, py, { buttons: down ? 1 : 0 }); fire('mousemove', px, py, { buttons: down ? 1 : 0 });
@@ -47,6 +49,7 @@ export const mouse = {
 };
 // several fingers at once (pointerType touch): fingers = [[x0, y0, x1, y1], ...], all moving together in `steps`
 export async function touches(fingers, steps = 8) {
+  did(`touches x${fingers.length}`);
   fingers.forEach(([x, y], i) => fire('pointerdown', x, y, { id: 910 + i, kind: 'touch', buttons: 1, primary: i === 0 }));
   for (let s = 1; s <= steps; s++) { fingers.forEach(([x0, y0, x1, y1], i) => fire('pointermove', x0 + (x1 - x0) * s / steps, y0 + (y1 - y0) * s / steps, { id: 910 + i, kind: 'touch', buttons: 1, primary: i === 0 })); await wait(16); }
   fingers.forEach(([, , x1, y1], i) => { fire('pointerup', x1, y1, { id: 910 + i, kind: 'touch', primary: i === 0 }); capture.delete(910 + i); });
@@ -74,6 +77,7 @@ function query(sel, all) {
 }
 const visible = e => { const r = e.getBoundingClientRect(), s = getComputedStyle(e); return r.width > 0 && r.height > 0 && s.visibility !== 'hidden' && s.display !== 'none'; };
 async function clickEl(sel) {
+  did('click ' + sel);
   let el = null; for (let i = 0; i < 50; i++) { el = query(sel); if (el && visible(el)) break; await wait(100); }
   if (!el) throw new Error('page.click: nothing matches ' + sel);
   el.scrollIntoView && el.scrollIntoView({ block: 'center', inline: 'center' });
@@ -87,14 +91,14 @@ addEventListener('unhandledrejection', e => errs.push('pageerror: ' + (e.reason 
 const handlers = { pageerror: [], console: [] };
 const page = {
   errs, mouse,
-  async evaluate(fn, arg) { if (typeof fn !== 'function') throw new Error('page.evaluate needs a function here (no eval under the CSP)'); return copy(await fn(copy(arg))); },
+  async evaluate(fn, arg) { did('evaluate ' + String(fn).replace(/\s+/g, ' ').slice(0, 90)); if (typeof fn !== 'function') throw new Error('page.evaluate needs a function here (no eval under the CSP)'); return copy(await fn(copy(arg))); },
   waitForTimeout: wait,
-  async waitForFunction(fn, arg, { timeout = 30000 } = {}) { const t0 = Date.now(); for (;;) { const v = await fn(arg); if (v) return v; if (Date.now() - t0 > timeout) throw new Error('waitForFunction timed out'); await wait(100); } },
+  async waitForFunction(fn, arg, { timeout = 30000 } = {}) { did('waitForFunction ' + String(fn).replace(/\s+/g, ' ').slice(0, 90)); const t0 = Date.now(); for (;;) { const v = await fn(arg); if (v) return v; if (Date.now() - t0 > timeout) throw new Error('waitForFunction timed out'); await wait(100); } },
   click: clickEl,
   async $(sel) { return query(sel) ? { sel } : null; },
   async $$(sel) { return query(sel, true).map((e, i) => ({ sel: sel + ' >> nth=' + i })); },
   async screenshot({ path } = {}) { if (path) await T.shot(String(path).split('/').pop().replace(/\.png$/, '')); return new Uint8Array(0); },
-  async setViewportSize({ width, height }) { await T.turn(width > height ? 'landscape' : 'portrait'); },
+  async setViewportSize({ width, height }) { did(`setViewportSize ${width}x${height}`); await T.turn(width > height ? 'landscape' : 'portrait'); },
   viewportSize: () => ({ width: innerWidth, height: innerHeight }),
   on(ev, cb) { (handlers[ev] = handlers[ev] || []).push(cb); },
   context: () => ({ async close() { await home(); } }),
@@ -111,9 +115,15 @@ async function home() {
 // ---- lib.mjs's own functions
 export async function start() { return { close() {} }; }
 export function stop() { T.testDone(); }
+// Playwright gives every newPage a fresh browser context (nothing saved). Here it is the same app, so a later page puts the
+// device settings back as they were when the test started and starts the player again from nothing (stars, games opened...).
+let pages = 0, settings0 = null, reset = false;
 export async function newPage(browser, w, h) {
   if (w && h) await T.turn(w > h ? 'landscape' : 'portrait');
   await home(); errs.length = 0;
+  const S = SPG.store.settings;
+  if (!pages++) settings0 = JSON.stringify(S);
+  else { for (const k of Object.keys(S)) delete S[k]; Object.assign(S, JSON.parse(settings0)); SPG.store.saveSettings(); SPG.night.apply(); reset = true; }
   if (!document.querySelector('#setup:not(.hidden)') && !document.querySelector('#who:not(.hidden)')) { SPG.app.show('who'); await wait(300); }
   return page;
 }
@@ -127,12 +137,14 @@ export async function login(page, { gender = 'girl', age = 4 } = {}) {
     if (await page.$('#vintro:not(.hidden)')) await page.click('#vintro .btn.quiet');
   } else {
     const p = SPG.store.profiles[0];
+    if (p && reset) { SPG.store.resetProfile(p.id); reset = false; }
     if (p) { if (age) SPG.level.set(p, { mode: 'age', age }); if (gender) { p.gender = gender; SPG.store.save(); } }
     await page.click('.who-tile >> nth=0');
   }
   await page.waitForTimeout(400);
 }
 export async function openGame(page, name) {
+  did('openGame ' + name);
   await page.evaluate(n => document.querySelector(`.card[aria-label="${n}"], .shopfront[aria-label="${n}"]`).dispatchEvent(new MouseEvent('click', { detail: 0, bubbles: true })), name);
   await page.waitForTimeout(600);
 }

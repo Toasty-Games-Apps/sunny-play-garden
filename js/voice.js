@@ -292,6 +292,9 @@
     return buf;
   }
   const decode = async ab => analyse(await A.ctx.decodeAudioData(ab));
+  // Capacitor's iPhone/iPad file server answers media files (.mp3) with a plain, non-HTTP response, which fetch reports as status 0
+  // with the file in the body; accept that (never an opaque reply from another site), and let decoding judge the bytes
+  const fileOk = res => res.ok || (res.status === 0 && res.type !== 'opaque' && res.type !== 'error');
 
   async function loadBuffer(set, key) {
     const id = set + '/' + key;
@@ -299,7 +302,7 @@
     let buf = null;
     try {
       if (deviceKeys[set] && deviceKeys[set].has(key)) { const blob = await idb('readonly', st => st.get(id)); if (blob) buf = await decode(await blob.arrayBuffer()); }
-      if (!buf && fileAvail(set, key)) { const res = await fetch(fileFor(set, key)); if (res.ok) buf = await decode(await res.arrayBuffer()); }
+      if (!buf && fileAvail(set, key)) { const res = await fetch(fileFor(set, key)); if (fileOk(res)) buf = await decode(await res.arrayBuffer()); }
     } catch (_) { /* unreadable clip: fall back to speech */ }
     buffers.set(id, buf);
     return buf;

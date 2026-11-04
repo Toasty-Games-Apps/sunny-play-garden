@@ -53,7 +53,11 @@ for (const age of [2, 4, 7]) {
     await page.waitForTimeout(400); await page.screenshot({ path: `${SP}/sort-${mode}-${age}-${W}x${Hh}.png` });
     // the wrong basket twice: it slides home and its basket glows
     let it = p.items.find(i => i.state === 'floor'), wrongBin = p.bins.find(q => q.key !== it.key);
-    for (let k = 0; k < 2; k++) { const cur = (await P()).items.find(i => i.id === it.id); await drag(page, cur, wrongBin); await page.waitForTimeout(500); }
+    // (each time it waits until the thing has slid all the way home: on a slow simulator the slide takes longer than 0.5 s)
+    for (let k = 0; k < 2; k++) {
+      const cur = (await P()).items.find(i => i.id === it.id); await drag(page, cur, wrongBin); await page.waitForTimeout(500);
+      await page.waitForFunction(id => SPG.sortGame.probe().items.find(i => i.id === id).state === 'floor', it.id, { timeout: 5000 }).catch(() => {});
+    }
     p = await P(); const back = p.items.find(i => i.id === it.id);
     ok(back && back.state === 'floor' && back.glow, `age ${age} ${mode}: a wrong basket sends it back, and after two it glows`);
     ok(p.bins.every(q => q.n === 0), 'nothing went in a wrong basket');

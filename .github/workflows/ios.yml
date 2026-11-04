@@ -142,7 +142,7 @@ jobs:
       - name: Run the tests inside the app
         env:
           TESTS: ${{ github.event.inputs.tests == 'quick' && matrix.quick || matrix.full }}
-        run: node ios-app/test/run-sim.mjs --udid '${{ steps.sim.outputs.udid }}' --label '${{ matrix.label }}' --out sim-results --tests "$TESTS"
+        run: node ios-app/test/run-sim.mjs --udid '${{ steps.sim.outputs.udid }}' --label '${{ matrix.label }}' --out sim-results --tests "$TESTS" --backup '${{ matrix.backup }}'
       - name: App Store screenshots (no alpha) and a summary
         if: always()
         run: |

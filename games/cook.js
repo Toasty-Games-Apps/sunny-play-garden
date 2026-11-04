@@ -1416,10 +1416,14 @@
       this.titleBox = titleH && tw > 150 ? { x: w / 2, y: y + titleH / 2, w: tw, h: titleH } : null;
       if (titleH) y += titleH + 12;
       if (this.narrow) y = Math.max(y, 118);   // below the stars and the counter in the corner
-      const nc = CATS.length, tabH = compact ? 58 : clamp(short * .15, 62, 92), tabW = clamp((w - 36 - 10 * (nc - 1)) / nc, 80, 210);
+      const nc = CATS.length, tabH = compact ? 58 : clamp(short * .15, 62, 92);
+      // on a short screen (a phone on its side) the tabs share the top row with the album button and the star counters, so they sit
+      // between the two: a tap on the first tab must never open the album
+      const tx0 = compact ? ab.x + ab.r + 12 : 18, tx1 = compact ? w - 112 : w - 18, tcx = (tx0 + tx1) / 2;
+      const tabW = clamp((tx1 - tx0 - 10 * (nc - 1)) / nc, compact ? 66 : 80, 210);
       if (!compact && (w / 2 - nc / 2 * (tabW + 10) < ab.x + ab.r + 10 || w / 2 + nc / 2 * (tabW + 10) > w - 112)) y = Math.max(y, 152);   // the tabs would run into the camera album or the star counters in the corners
       this.tabBox = { h: tabH, w: tabW, y: y + tabH / 2 };
-      CATS.forEach((cat, i) => this.menuHit.push({ x: w / 2 + (i - (nc - 1) / 2) * (tabW + 10), y: y + tabH / 2, w: tabW, h: tabH, tab: i }));
+      CATS.forEach((cat, i) => this.menuHit.push({ x: tcx + (i - (nc - 1) / 2) * (tabW + 10), y: y + tabH / 2, w: tabW, h: tabH, tab: i }));
       y += tabH + 14;
       const list0 = RECIPES.filter(r => r.cat === this.tab), n = list0.length, bot = h - 14, rw = w - 28, rh = bot - y, gap = clamp(short * .025, 8, 18);
       let cols = 1, best = 0;   // as many columns as make the cards biggest (cards stay between a little wide and a little tall)

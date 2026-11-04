@@ -18,7 +18,7 @@ let bad = 0; const out = T.extra = { checks: {}, notes: {} };
 const say = (tag, what, detail) => console.log(`${tag} ${what}${detail === undefined ? '' : ': ' + (typeof detail === 'string' ? detail : JSON.stringify(detail))}`);
 const ok = (cond, what, detail) => { say(cond ? 'ok  ' : 'FAIL', what, cond ? undefined : detail); out.checks[what] = !!cond; if (!cond) bad++; return !!cond; };
 const note = (what, v) => { say('note', what, v); out.notes[what] = v; };
-const step = async (name, fn) => { try { await fn(); } catch (e) { ok(false, name + ' (threw)', String(e && (e.stack || e.message) || e)); } };
+const step = async (name, fn) => { try { await fn(); } catch (e) { ok(false, name + ' (threw)', T.err(e)); } };
 const r4 = v => Math.round(v * 4) / 4;
 const rectOf = el => { const r = el.getBoundingClientRect(); return { x: r.left, y: r.top, w: r.width, h: r.height, r: r.right, b: r.bottom }; };
 // the CSS safe area, as the page sees it
@@ -117,7 +117,10 @@ await step('rotation', async () => {
   // the hub: the page being looked at stays the page shown
   const dots = [...document.querySelectorAll('#hub-games .pg-dot')];
   if (dots.length > 1) {
-    dots[dots.length - 1].dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, pointerId: 1, pointerType: 'touch' })); await wait(1200);
+    dots[dots.length - 1].dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, pointerId: 1, pointerType: 'touch' })); await wait(600);
+    // the page turn is a smooth scroll, slow on a simulator: wait until the last dot is lit and the strip has stopped moving
+    const strip = document.querySelector('#hub-games .pages');
+    for (let i = 0, last = -1; i < 40; i++) { const x = strip.scrollLeft; if (dots[dots.length - 1].classList.contains('on') && x === last) break; last = x; await wait(150); }
     const seen = () => [...document.querySelectorAll('#hub-games .card')].filter(c => { const r = c.getBoundingClientRect(); return r.left >= -2 && r.right <= innerWidth + 2 && r.width > 0; }).map(c => c.getAttribute('aria-label'));
     const before = seen(); const r = await turnTo(otherWay()); if (r && r.error) note('rotation error', r.error);
     const after = seen();
@@ -247,7 +250,9 @@ await step('voices', async () => {
   const V = SPG.voice, S = SPG.store.settings;
   ok(V.sproutReady(), 'the Sprout voice clips are listed');
   for (const k of ['letter.a', 'letter.v', 'sound.v', 'sound.th', 'num.7']) {
-    try { const res = await fetch(`audio/voice/sprout/${k}.mp3`); if (!res.ok) { if (k !== 'sound.th') ok(false, 'Sprout clip ' + k, res.status); continue; }
+    // (Capacitor's iOS file server answers .mp3 files with a non-HTTP response: fetch says status 0 and the file is in the body)
+    try { const res = await fetch(`audio/voice/sprout/${k}.mp3`).catch(e => ({ fail: e }));
+      if (res.fail || !(res.ok || res.status === 0)) { if (k !== 'sound.th') ok(false, 'Sprout clip ' + k, res.fail ? T.err(res.fail) : res.status); continue; }
       const buf = await SPG.audio.ctx.decodeAudioData(await res.arrayBuffer()); ok(buf.duration > .15, 'Sprout clip ' + k + ' decodes', buf.duration);
     } catch (e) { ok(false, 'Sprout clip ' + k + ' decodes', String(e)); }
   }
@@ -292,7 +297,7 @@ await step('recording', async () => {
   if (vintro) { await T.shot('voices-welcome'); vintro.querySelector('.btn.quiet').click(); await wait(300); }
   SPG.grownups.open('sound'); await wait(500); await T.shot('grownups-voices');
   ok(T.gum === 0, 'opening the voices page does not ask for the microphone', T.gum);
-  // a grown-up records one line (the simulator on a build server has no microphone: a soft tone stands in for it)
+  // a grown-up records one line (a soft tone stands in for the microphone)
   T.fakeMic = true;
   const id = V.addVoice('Grandma'), rec = await V.startRecording(); await wait(1600); const blob = await rec.stop();
   ok(T.gum === 1, 'the microphone is asked for once, when recording starts', T.gum);
@@ -305,7 +310,7 @@ await step('recording', async () => {
   out.voice = id; T.fakeMic = false;
   // the real microphone, as far as the simulator allows (no failure: a build server may have no input at all)
   try { const s = await Promise.race([navigator.mediaDevices.getUserMedia({ audio: true }), wait(5000).then(() => 'timeout')]); note('real microphone on this simulator', s === 'timeout' ? 'no answer in 5 s' : 'opened (' + s.getAudioTracks().length + ' track)'); if (s !== 'timeout') s.getTracks().forEach(t => t.stop()); }
-  catch (e) { note('real microphone on this simulator', String(e.name || e)); }
+  catch (e) { note('real microphone on this simulator', `${e.name}: ${e.message}`); }
 });
 
 /* ------------------------------------------------------------ 9. photos, files, the gate, privacy */
@@ -347,6 +352,7 @@ await step('photos', async () => {
 /* ------------------------------------------------------------ 10. the cloud backup (only with a local test worker) */
 await step('backup', async () => {
   if (!SPG.native.apiBase) { note('cloud backup', 'not tested: this build has no backup address (SPG_TEST_API)'); return; }
+  if (process.env.BACKUP === '0') { note('cloud backup', 'tested in the iphone-max job (this Mac runs no local backup service)'); return; }
   note('backup address', SPG.native.apiBase);
   SPG.store.active.stars = 42; SPG.store.save();
   const r = await SPG.sync.create();
