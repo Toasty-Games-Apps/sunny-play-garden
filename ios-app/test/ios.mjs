@@ -236,12 +236,17 @@ await step('background', async () => {
   // WebKit can freeze the page before it hears "hidden" and hand the event over only on coming back, so every change is kept with its state
   window.__notReloaded = 1; const inst = SPG.app.running().inst, seen = []; const onVis = e => seen.push(e.type === 'visibilitychange' ? document.visibilityState : e.type);
   document.addEventListener('visibilitychange', onVis); addEventListener('blur', onVis); addEventListener('pagehide', onVis); document.addEventListener('freeze', onVis);
-  const r = await T.ask('background', { seconds: 4 });
+  // frames drawn while the Mac has Settings up: a page that was really sent away draws none; an iPad in windowed mode keeps the
+  // app on screen beside Settings (it is never sent away there), and its page keeps drawing
+  let frames = 0, live = true; const tick = () => { frames++; if (live) requestAnimationFrame(tick); }; requestAnimationFrame(tick);
+  const tA = Date.now(), r = await T.ask('background', { seconds: 4 }); live = false; const awaySecs = (Date.now() - tA) / 1000;
   await until(() => document.visibilityState === 'visible', 10000); await wait(1500);
   ok(r && r.done, 'the Mac sent the app away and back', r);
   ok(window.__notReloaded === 1 && SPG.app.running() && SPG.app.running().inst === inst, 'the same game is still open after coming back');
   note('page visibility changes seen', seen);
-  ok(seen.length >= 1, 'the game was told the app went away (visibility, blur or pagehide)', seen);
+  const stayed = !seen.length && info0 && info0.idiom === 1 && frames > awaySecs * 10;
+  if (stayed) note('sending the app away', `this iPad kept the app on screen beside Settings (windowed mode: ${frames} frames in ${Math.round(awaySecs)} s), so it was not sent away; the iPhone jobs check that`);
+  else ok(seen.length >= 1, 'the game was told the app went away (visibility, blur or pagehide)', { seen, frames, secs: Math.round(awaySecs) });
   await mouse.click(innerWidth / 2, innerHeight / 2); await wait(400);
   ok(SPG.audio.ctx && SPG.audio.ctx.state === 'running', 'sound runs again after coming back', SPG.audio.ctx && SPG.audio.ctx.state);
   document.removeEventListener('visibilitychange', onVis); removeEventListener('blur', onVis); removeEventListener('pagehide', onVis); document.removeEventListener('freeze', onVis);
