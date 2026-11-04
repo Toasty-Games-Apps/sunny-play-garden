@@ -93,7 +93,8 @@
     await wait(plan.settle || 800);
     // process.exit(code) in a test ends it here (the module stops at the throw and the code is kept)
     const EXIT = { exit: true };
-    window.process = { argv: ['node', plan.test, String(innerWidth), String(innerHeight), ...(plan.args || [])], env: Object.assign({}, plan.env || {}), exitCode: 0, exit(code) { window.process.exitCode = code || 0; throw EXIT; } };
+    const lead = (plan.lead || ['W', 'H']).map(a => a === 'W' ? String(innerWidth) : a === 'H' ? String(innerHeight) : String(a));
+    window.process = { argv: ['node', plan.test, ...lead, ...(plan.args || [])], env: Object.assign({}, plan.env || {}), exitCode: 0, exit(code) { window.process.exitCode = code || 0; throw EXIT; } };
     const t0 = Date.now(); let error = null;
     console.log(`== ${plan.test} on ${navigator.userAgent} at ${innerWidth}x${innerHeight} (dpr ${devicePixelRatio})`);
     const timeout = new Promise(r => setTimeout(() => r('timeout'), (plan.timeout || 900) * 1000));
