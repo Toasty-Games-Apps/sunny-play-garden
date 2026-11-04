@@ -28,6 +28,15 @@ else {
   ok('no held-back features, no camera, no service worker');
 }
 
+// the privacy policy the App Store links to is served by the worker from a copy of privacy.html; it must be the current one
+{
+  const root = join(here, '..'), pol = read(join(root, 'privacy.html')), cp = join(root, 'worker', 'privacy-html.js');
+  const live = existsSync(cp) ? (read(cp).match(/PRIVACY_HTML = (".*");\s*$/s) || [])[1] : null;
+  if (!live || JSON.parse(live) !== pol) fail('worker/privacy-html.js is not the same as privacy.html: run node tools/sync-privacy.mjs');
+  else if (!/iPhone/.test(pol)) fail('the privacy policy does not cover the iPhone and iPad app');
+  else ok('privacy policy covers iPhone and iPad, and the worker serves the current one');
+}
+
 // Info.plist
 const plist = read(join(app, 'Info.plist'));
 const has = k => plist.includes(`<key>${k}</key>`);
