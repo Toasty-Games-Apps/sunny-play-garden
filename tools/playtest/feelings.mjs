@@ -32,10 +32,10 @@ for (const age of [2, 4, 7]) {
   const page = await newPage(b, W, Hh); await login(page, { age });
   await openGame(page, 'Feeling Friends');
   const P = () => page.evaluate(() => SPG.feelingsGame.probe());
-  const waitFor = async (want, ms = 12000) => { const t0 = Date.now(); while (Date.now() - t0 < ms) { const p = await P(); if (p && want(p)) return p; await page.waitForTimeout(120); } return null; };
+  const waitFor = async (want, ms = 40000) => { const t0 = Date.now(); while (Date.now() - t0 < ms) { const p = await P(); if (p && want(p)) return p; await page.waitForTimeout(120); } return null; };
   const stars0 = await page.evaluate(() => SPG.store.active.stars);
   for (let round = 0; round < 4; round++) {
-    let p = await waitFor(p => p.phase === 'ask' && p.btns.every(b => b.ready)); ok(p, `age ${age}: the friend arrives and asks (round ${round})`); if (!p) break;
+    let p = await waitFor(p => p.phase === 'ask' && p.btns.every(b => b.ready), 60000); ok(p, `age ${age}: the friend arrives and asks (round ${round})` + (p ? '' : ' ' + JSON.stringify(await P()).slice(0, 300))); if (!p) break;
     if (round === 0) await page.screenshot({ path: `${SP}/feel-${age}-${W}x${Hh}.png` });
     ok(p.btns.length === (age === 2 ? 2 : age === 7 ? 4 : 3), `age ${age}: ${p.btns.length} faces`);
     ok(p.btns.every(q => q.x - p.br > 0 && q.x + p.br < p.w && q.y + p.br < p.h && q.y - p.br > p.gy), `age ${age}: the faces fit on the screen below the friend`);

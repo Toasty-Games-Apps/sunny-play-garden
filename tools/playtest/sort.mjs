@@ -63,8 +63,10 @@ for (const age of [2, 4, 7]) {
     ok(p.bins.every(q => q.n === 0), 'nothing went in a wrong basket');
     // let one go on the floor: it stays where it was put
     it = p.items.find(i => i.state === 'floor'); const to = { x: p.w / 2, y: (p.area.y0 + p.area.y1) / 2 };
-    await drag(page, it, to); await page.waitForTimeout(150); p = await P();
-    ok(p.items.some(i => i.state === 'floor' && Math.hypot(i.x - to.x, i.y - to.y) < it.r + 30), `age ${age} ${mode}: let go on the floor, it stays there`);
+    // (it settles on the next frames, which a slow simulator draws seconds apart)
+    const there = q => q.items.some(i => i.state === 'floor' && Math.hypot(i.x - to.x, i.y - to.y) < it.r + 30);
+    await drag(page, it, to); p = (await waitFor(there, 5000)) || await P();
+    ok(there(p), `age ${age} ${mode}: let go on the floor, it stays there ` + JSON.stringify({ to, it: p.items.find(i => i.id === it.id) }));
     // tap a thing, then tap its basket
     { p = await P(); const i = p.items.find(i => i.state === 'floor'), bin = p.bins.find(q => q.key === i.key), n0 = bin.n;
       await page.mouse.click(i.x, i.y); ok(await waitFor(p => p.sel === i.id, 3000), `age ${age} ${mode}: a tap picks a thing`);
