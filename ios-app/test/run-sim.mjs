@@ -81,10 +81,12 @@ async function runOne(t) {
         if (r.action === 'shot') { const f = join(out, `${r.name}.png`); ack.saved = await screenshot(f, r); ack.file = f; console.log(`  [shot] ${r.name}`); }
         else if (r.action === 'background') {
           // the Settings app comes to the front (ours goes to the background), then ours is brought back; how long each took is reported
+          // upAt / backAt (this Mac's clock, which the simulator shares) let the page count the frames it drew while Settings was meant to be
+          // in front: a slow simulator can leave our app on screen; a slow Settings launch gets a little longer in front
           const t1 = Date.now(); xq('launch', udid, 'com.apple.Preferences'); const away = Date.now() - t1;
-          await sleep((r.seconds || 3) * 1000);
+          await sleep((r.seconds || 3) * 1000 + Math.min(away, 8000) / 2);
           const t2 = Date.now(); let err = null; try { x('launch', udid, bundle); } catch (e) { err = String(e.message || e).split('\n')[0]; }
-          ack = { done: !err, error: err, away, back: Date.now() - t2 };
+          ack = { done: !err, error: err, away, back: Date.now() - t2, upAt: t1 + away, backAt: t2 };
           await sleep(800); console.log(`  [background and back: Settings came up in ${away} ms, the app came back in ${ack.back} ms${err ? ', ' + err : ''}]`);
         } else ack = { done: false, error: 'unknown action ' + r.action };
         writeFileSync(join(dd, `ack-${r.n}.json`), JSON.stringify(ack));
