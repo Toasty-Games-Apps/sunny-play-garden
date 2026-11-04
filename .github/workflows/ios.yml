@@ -40,7 +40,7 @@ on:
     branches: [ccr-812ba91c-62t8en]
     paths: ['ios-app/**', 'js/**', 'games/**', 'index.html', 'styles.css', 'privacy.html', 'fonts/**', 'audio/**', 'icons/**', 'tools/app-web.mjs', 'tools/store-scenes.mjs', 'tools/playtest/**', 'worker/**', '.github/workflows/ios.yml']
 concurrency:
-  group: ios-${{ github.ref }}
+  group: ios-${{ github.sha }}
   cancel-in-progress: true
 env:
   BUNDLE: com.toastygames.littlesproutpark
@@ -91,12 +91,12 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # the app's own checks, languages, the backup round trip, closing and opening, and App Store screenshots (6.9")
+          # the app's own checks, languages, the backup round trip, closing and opening, and the large iPhone App Store screenshots
           - { label: iphone-max, pick: 'iPhone [0-9]+ Pro Max', backup: true, full: 'ios,after:keep,after:restore,lang:en,lang:es,lang:hi,lang:zh,store-shots', quick: 'ios,after:keep,after:restore,store-shots' }
-          # every game's play-test (all 15 recipes, every shape picture, sorting, patterns, feelings, fishing, clay, pet care, salon, rapid tapping...)
-          - { label: iphone-games, pick: 'iPhone [0-9]+ Pro$', backup: false, full: 'auto,shapes,sort,pattern,feelings,fishing,clay,care,salon,fixes,monkey,hide,num,tiers', quick: 'auto,fixes,monkey' }
+          # the required iPhone App Store screenshots (Dynamic Island, medium display) and every game's play-test (all 15 recipes, every shape picture, sorting, patterns, feelings, fishing, clay, pet care, salon, rapid tapping...)
+          - { label: iphone-games, pick: 'iPhone [0-9]+ Pro$', backup: false, full: 'auto,shapes,sort,pattern,feelings,fishing,clay,care,salon,fixes,monkey,hide,num,tiers,store-shots', quick: 'auto,fixes,monkey,store-shots' }
           # the smallest iPhone screen this Xcode still offers for the newest iOS
-          - { label: iphone-small, pick: 'iPhone', prefer: smallest, backup: false, full: 'ios,monkey,auto,sort', quick: 'ios,monkey' }
+          - { label: iphone-small, pick: 'iPhone (?!Duo)', prefer: smallest, backup: false, full: 'ios,monkey,auto,sort', quick: 'ios,monkey' }
           - { label: ipad-13, pick: 'iPad Pro 13', backup: false, full: 'ios,auto,shapes,clay,fixes,monkey,store-shots', quick: 'ios,store-shots' }
           - { label: ipad-mini, pick: 'iPad mini', backup: false, full: 'ios,monkey,sort', quick: 'ios' }
           - { label: iphone-duo, pick: 'iPhone Duo', backup: false, full: 'ios,auto,monkey,sort,shapes,store-shots', quick: 'ios,store-shots' }
@@ -119,6 +119,7 @@ jobs:
           curl -s -o /dev/null -w 'from https://evil.example: %{http_code}\n' -H 'Origin: https://evil.example' http://127.0.0.1:8787/api/backup
       - name: Make the simulator and install the app
         id: sim
+        timeout-minutes: 15
         run: |
           UDID=$(node ios-app/test/make-sim.mjs --pick '${{ matrix.pick }}' --prefer '${{ matrix.prefer || 'newest' }}' --name 'sprout-${{ matrix.label }}')
           echo "udid=$UDID" >> "$GITHUB_OUTPUT"

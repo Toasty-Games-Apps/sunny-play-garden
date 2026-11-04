@@ -99,7 +99,8 @@ public class SproutTestPlugin: CAPPlugin, CAPBridgedPlugin {
     public let pluginMethods: [CAPPluginMethod] = [
         CAPPluginMethod(name: "rotate", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "info", returnType: CAPPluginReturnPromise),
-        CAPPluginMethod(name: "interrupt", returnType: CAPPluginReturnPromise)
+        CAPPluginMethod(name: "interrupt", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "resize", returnType: CAPPluginReturnPromise)
     ]
 
     @objc func rotate(_ call: CAPPluginCall) {
@@ -131,6 +132,19 @@ public class SproutTestPlugin: CAPPlugin, CAPBridgedPlugin {
                 NotificationCenter.default.post(name: AVAudioSession.interruptionNotification, object: s, userInfo: [key: AVAudioSession.InterruptionType.ended.rawValue])
                 call.resolve()
             }
+        }
+    }
+
+    // Gives the app's window another size inside the screen (w = 0 puts it back), the way an iPad window or the other display of an
+    // iPhone Duo hands the app a new size. Only the tests do this: the real app never sets its own window size.
+    @objc func resize(_ call: CAPPluginCall) {
+        let w = call.getDouble("w") ?? 0, h = call.getDouble("h") ?? 0
+        DispatchQueue.main.async {
+            guard let win = self.bridge?.viewController?.view.window, let scene = win.windowScene else { call.reject("no window"); return }
+            let full = scene.coordinateSpace.bounds
+            win.frame = w > 0 && h > 0 ? CGRect(x: 0, y: 0, width: min(CGFloat(w), full.width), height: min(CGFloat(h), full.height)) : full
+            win.layoutIfNeeded()
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) { call.resolve(self.describe()) }
         }
     }
 

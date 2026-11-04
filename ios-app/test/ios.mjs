@@ -149,7 +149,7 @@ await step('rotation', async () => {
   const K = () => SPG.cookGame.probe();
   const kr = SPG.cookGame.canvas.getBoundingClientRect(), at = (x, y) => mouse.click(kr.left + x, kr.top + y);
   let m = K().menu.find(x => x.tab === 'sweets') || K().menu.find(x => x.tab); await at(m.x, m.y); await wait(400);
-  m = K().menu.find(x => x.id === 'pancakes') || K().menu.find(x => x.id); await at(m.x, m.y); await wait(1200);
+  m = K().menu.find(x => x.id === 'pancake') || K().menu.find(x => x.id); await at(m.x, m.y); await wait(1200);
   if (K().screen === 'intro') { await at(kr.width / 2, kr.height / 2); await wait(1200); }
   await until(() => K().screen === 'cook' && !K().trans);
   const st0 = K(); await turnTo(otherWay()); await wait(600); const st1 = K();
@@ -158,6 +158,65 @@ await step('rotation', async () => {
   ok(st1.tray.every(t => t.x >= 0 && t.y >= 0 && t.x <= cvR.width && t.y <= cvR.height), 'kitchen tray inside the screen after turning', st1.tray.slice(0, 3));
   await T.shot('kitchen-turned');
   await turnTo(startShape); SPG.app.closeGame(); await wait(500);
+});
+
+/* ------------------------------------------------------------ 4b. other window sizes */
+// The window is resized by the test plugin (not by folding or Stage Manager): the iPhone Duo's two displays, a small iPhone, a short
+// wide window and the smallest phone, as far as they fit on this screen. At each size: the open game and its painting are kept, the
+// game area and its buttons sit inside the safe area, the canvases stay sharp, the hub page is kept, and a touch still lands on the
+// thing under the finger.
+await step('window sizes', async () => {
+  const full = [innerWidth, innerHeight];
+  const sizes = [[466, 678, 'duo-outer'], [669, 951, 'duo-inner'], [375, 667, 'small-iphone'], [667, 375, 'short-wide'], [320, 568, 'smallest']]
+    .filter(([w, h]) => w <= full[0] && h <= full[1] && !(Math.abs(w - full[0]) <= 1 && Math.abs(h - full[1]) <= 1));
+  note('window sizes tried', sizes.map(z => z[2]));
+  if (!sizes.length) return;
+  if (!PL.SproutTest.resize) { ok(false, 'the test plugin can resize the window'); return; }
+  await openGame(page, 'Coloring Book'); await wait(600);
+  let g = SPG.app.running().inst; g.open(SPG.pictures[6]); await wait(600);
+  let pc = g.paintCv.getBoundingClientRect(); await mouse.click(pc.left + pc.width * .5, pc.top + pc.height * .5); await wait(300);
+  const inst = g, ops = g.ops.length, pic = g.cur.id;
+  for (const [w, h, label] of sizes) {
+    const r = await T.resize(w, h);
+    if (!ok(Math.abs(innerWidth - w) <= 1 && Math.abs(innerHeight - h) <= 1, `the page takes the window size (${label})`, { want: [w, h], got: [innerWidth, innerHeight], native: r && (r.window || r.error) })) continue;
+    g = SPG.app.running() && SPG.app.running().inst;
+    ok(g === inst && g.cur && g.cur.id === pic && g.ops.length === ops, `the painting is kept (${label})`, { same: g === inst, ops: g && g.ops.length });
+    const s = cssSafe(), host = rectOf(document.getElementById('game-host'));
+    ok(inside(host, s, 1) && host.w > 0, `the game area is inside the safe area (${label})`, { host, s });
+    const btns = [...document.querySelectorAll('#game-host button')].filter(b => b.getBoundingClientRect().width > 0);
+    const tools = btns.map(rectOf), big = btns.filter(b => !b.classList.contains('cb-sw')).map(rectOf), sw = btns.filter(b => b.classList.contains('cb-sw')).map(rectOf);
+    ok(tools.length && tools.every(q => inside(q, s, 2)), `Coloring Book buttons are reachable (${label})`, tools.filter(q => !inside(q, s, 2)).slice(0, 3));
+    // tool buttons stay big; the 24 colour swatches share the width (8 to a row), so on a 320 pt window they are smaller
+    ok(big.every(q => q.w >= 40 && q.h >= 40), `Coloring Book tools are big enough (${label})`, big.filter(q => q.w < 40 || q.h < 40).slice(0, 3));
+    ok(sw.every(q => q.w >= 32 && q.h >= 32), `colour swatches are big enough (${label})`, sw.filter(q => q.w < 32).slice(0, 3));
+    note(`colour swatch size (${label})`, Math.round(Math.min(...sw.map(q => q.w))));
+    const sharp = canvasSharpness(); ok(sharp.length && sharp.every(c => Math.abs(c.k - c.want) <= .03), `the Coloring Book is sharp (${label})`, sharp);
+    // a tap paints where the finger is (one more operation)
+    pc = g.paintCv.getBoundingClientRect(); const n0 = g.ops.length; await mouse.click(pc.left + pc.width * .3, pc.top + pc.height * .3); await wait(300);
+    ok(g.ops.length === n0 + 1, `a tap still paints (${label})`, g.ops.length - n0);
+    if (g.ops.length > n0) g.undo ? g.undo() : g.ops.pop();
+    await T.shot('size-' + label);
+  }
+  await T.resize(0, 0);
+  ok(Math.abs(innerWidth - full[0]) <= 1 && Math.abs(innerHeight - full[1]) <= 1, 'the window is whole again', [innerWidth, innerHeight]);
+  g.saveNow && g.saveNow(true); SPG.app.closeGame(); await wait(500);
+  // the hub at each size, and a finger in Fruit Splash landing on the fruit under it
+  for (const [w, h, label] of sizes) {
+    await T.resize(w, h); if (Math.abs(innerWidth - w) > 1) continue;
+    const s = cssSafe(), cards = [...document.querySelectorAll('#hub-games .card')].map(rectOf).filter(q => q.x > -2 && q.r < innerWidth + 2);
+    ok(cards.length > 0 && cards.every(q => inside(q, s, 2) && q.w >= 60), `hub cards fit and are big enough (${label})`, { n: cards.length, w: cards.map(q => Math.round(q.w)).slice(0, 3) });
+    note(`hub cards on a page (${label})`, cards.length);
+    ok(document.documentElement.scrollWidth <= innerWidth + 1 && document.documentElement.scrollHeight <= innerHeight + 1, `the hub does not scroll the page (${label})`);
+    await T.shot('hub-' + label);
+    await openGame(page, 'Fruit Splash'); await wait(800);
+    const f = SPG.app.running().inst, before = f.bag.total; f.fruits.length = 0; f.spawnIn = 99; f.starIn = 999;
+    f.fruits.push({ x: f.w * .5, y: f.h * .5, vx: 0, vy: 0, r: Math.min(f.w, f.h) * .07, type: 1, rotation: 0, vr: 0, wow: 0, blink: 9 });
+    const cv = f.canvas.getBoundingClientRect(); await wait(60);
+    await touches([[cv.left + cv.width * .3, cv.top + cv.height * .5, cv.left + cv.width * .7, cv.top + cv.height * .5]], 10); await wait(400);
+    ok(f.bag.total - before >= 1, `a swipe slices the fruit under the finger (${label})`, f.bag.total - before);
+    SPG.app.closeGame(); await wait(500);
+  }
+  await T.resize(0, 0);
 });
 
 /* ------------------------------------------------------------ 5. background and back */

@@ -55,6 +55,13 @@
     for (let i = 0; i < 30 && (innerWidth > innerHeight) !== (to === 'landscape'); i++) await wait(100);
     await wait(700); return r;
   };
+  // give the app's window another size (the Debug-only SproutTest plugin; 0 x 0 = the whole screen again), then wait for the page
+  T.resize = async (w, h) => {
+    const P = C.Plugins.SproutTest; if (!P || !P.resize) return { error: 'no resize in SproutTest' };
+    const r = await P.resize({ w, h }), want = w > 0 && r && r.window ? r.window : null;
+    for (let i = 0; i < 30 && want && (Math.abs(innerWidth - want[0]) > 1 || Math.abs(innerHeight - want[1]) > 1); i++) await wait(100);
+    await wait(700); return r;
+  };
   T.info = async () => { try { return await C.Plugins.SproutTest.info(); } catch (_) { return null; } };
   T.testDone = () => {};
 

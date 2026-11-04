@@ -1,0 +1,162 @@
+# App Store Connect handoff: Little Sprout Park for iPhone and iPad
+
+This is for whoever finishes the App Store Connect side. The app itself is in `ios-app/`. `ios-app/README.md` explains how to build
+it. **Releasing stays manual:** keep "Manually release this version" selected, and never switch on automatic release.
+
+## The app record (already made by the owner)
+
+| | |
+|---|---|
+| Name | Little Sprout Park: Kids Games (30 characters, the maximum) |
+| Bundle ID | `com.toastygames.littlesproutpark` (the same as the Android app) |
+| Team ID | `6437343CNQ` |
+| Apple ID of the app | 6830382328 |
+| SKU | SPG-IOS-001 |
+| First version | 1.0.0 |
+| Price | $2.99 (US), paid up front. Every game and every update is included. No in-app purchases, no subscriptions, no ads. |
+| Release | Manual |
+
+**Paid apps need the Paid Apps Agreement.** It must be active in App Store Connect > Business, with banking and tax forms
+complete, before a paid app can go on sale. TestFlight works without it.
+
+## Getting a build into TestFlight
+
+1. **The owner makes an App Store Connect API key.** Go to Users and Access > Integrations > App Store Connect API > Team Keys, and
+   use the **Admin** role, so Xcode can create the distribution certificate and profile. Download the `.p8` file. It can be
+   downloaded only once.
+2. **Add three repository secrets** in GitHub, under Settings > Secrets and variables > Actions. Never paste the key into an issue,
+   a chat or a file in the repo.
+   - `ASC_KEY_ID`
+   - `ASC_ISSUER_ID`
+   - `ASC_KEY_P8_BASE64`, made with `base64 -i AuthKey_XXXX.p8`
+3. **Start the build.** Go to Actions > **Build iOS app** > Run workflow, set version `1.0.0`, and tick **upload**. The `archive` job
+   signs the app, exports `SproutPark-ipa` and sends it to App Store Connect. Each upload needs a higher build number: by default it
+   is the run number, or set `build_number`.
+4. **Wait for Apple to process the build** (usually 10 to 30 minutes). Then answer the export question if it is asked. It should
+   not be: `ITSAppUsesNonExemptEncryption` is `false`. The app uses only standard encryption built into iOS: HTTPS, and Web Crypto
+   AES-GCM to protect the family's own backup.
+5. **Add internal testers** in TestFlight. Test on a real iPhone, iPad and iPhone Duo. See "Not tested yet" below.
+
+## Cloud backup: deploy the worker before release
+
+In the iOS app the game runs from `capacitor://localhost`. The backup service only answers the website and allowed app origins.
+`worker/index.js` now allows exactly two app origins:
+
+- `https://localhost` (Android)
+- `capacitor://localhost` (iOS)
+
+Every other origin still gets 403. The change is 5 lines, and it is in git history for review. **It is not deployed.** Until
+someone runs `npx wrangler deploy`, backup, family-code restore, voice backup and recovery email will fail in the iOS app. Nothing
+else does. The release build already points at `https://sunny-play-garden.nicholasolsen22.workers.dev` (repository variable
+`SPG_API_BASE`).
+
+## Listing text
+
+The English draft is already saved. If it needs filling in, these follow the Play listing (`store/listing.md`), adapted for iOS.
+
+- **Subtitle** (30): `Calm learning games, ages 2-7`
+- **Promotional text** (170): `A calm park of gentle games for little ones: letters, shapes, colouring, cooking, pets and more. Buy once and every game and every update is included.`
+- **Keywords** (100): `toddler,preschool,kids,learning,alphabet,letters,abc,coloring,shapes,counting,puzzle,kindergarten`
+- **Description:** the Play description from `store/listing.md`, with two changes. "the same on every phone" becomes "on every
+  iPhone and iPad". The grown-ups line becomes "behind a grown-up check, your own PIN or Face ID".
+- **Spanish, Hindi and Chinese:** translate from `store/es`, `store/hi` and `store/zh/listing.md`, the same way. Use the App Store
+  locales Spanish (Mexico), Hindi (if App Store Connect offers it for this app) and Chinese (Simplified).
+- **Category:** Education. A second category could be Games > Family.
+- **Support URL:** an address with contact details is needed, for example `https://sunny-play-garden.nicholasolsen22.workers.dev/`.
+  Its page links to support by email.
+- **Privacy policy URL:** `https://sunny-play-garden.nicholasolsen22.workers.dev/privacy.html`. It covers the iOS app, including
+  Face ID, add-only Photos and no camera. Deploy the site so the updated page is live.
+- **Copyright:** `2026 Toasty Games`
+
+## Screenshots
+
+These come from the simulator test run. Download the artifacts from the latest **Build iOS app** run. The `appstore/` folder in
+each one has JPEGs without alpha.
+
+| App Store Connect slot | Artifact | Size |
+|---|---|---|
+| iPhone, Dynamic Island, medium (required) | `sim-iphone-games` | 1206 × 2622 |
+| iPhone, Dynamic Island, large (optional) | `sim-iphone-max` | 1320 × 2868 |
+| iPad 13" (required) | `sim-ipad-13` | 2064 × 2752 |
+| iPhone Duo, inner and outer displays | `sim-iphone-duo` | 2007 × 2853 and 1398 × 2034 |
+
+The sizes are what the simulators produce; check them against the run. The scenes are hub, kitchen, coloring, feelings, fishing,
+Pet Shop, rain, tracing, shapes and pet care. They are the same as the Play screenshots, but without captions. Upload up to 10 per
+slot.
+
+## Age rating, kids and privacy answers
+
+- **Age rating questionnaire:** None for every content item. No web access, no messaging, no user-generated content shared with
+  others, no ads, no gambling, no contests. Under parental controls, answer that settings are behind a grown-up gate. The rating
+  should come out as 4+.
+- **Made for Kids (Kids Category):** this is the owner's decision. Once an app is in the Kids Category it is hard to leave. The app
+  already does what the Kids Category asks for:
+  - no third-party analytics or ads;
+  - no links out of the app;
+  - every purchase-like or outside action is behind a grown-up gate.
+
+  One thing to weigh: the optional recovery email is sent through an email service (Resend) to send the message. Only a grown-up
+  can give it, behind the gate. If the Kids Category is chosen, the age band that fits best is "5 and Under". The game is for about
+  2 to 7, and its first player is 3½.
+- **App Privacy (the nutrition label):**
+  - Tracking: **No.**
+  - **Contact Info > Email Address:** collected only if a grown-up turns on the recovery email. Linked to the user, used for App
+    Functionality, not for tracking. This matches `PrivacyInfo.xcprivacy`.
+  - **User Content (Audio Data, Other User Content):** only in the optional cloud backup, which is end-to-end encrypted with the
+    family code (the server cannot read it). Apple has no exemption for encrypted data, so the careful answer is to declare it:
+    App Functionality, not linked to the user, not for tracking.
+  - Nothing else leaves the device: no analytics, no crash reporting, no device ids.
+
+## App Review notes (paste into "Notes")
+
+```
+Little Sprout Park is a calm games park for young children (about 2-7). There is no account, no login, no ads, no in-app
+purchases and no links out of the app. Everything works offline.
+
+Grown-ups area: tap the small lock button on the main menu, then answer the spelled-out sum (for example "seven plus five").
+In there are the play-time limit, night mode, players, languages (English, Spanish, Hindi, Chinese), photos, backup and
+family voice recording.
+
+Microphone: used only in Grown-ups > Sound and voices, when a grown-up chooses to record family members saying the game's lines.
+The system asks for permission only when recording starts. Recordings stay on the device unless the optional encrypted backup is
+on.
+Photos: add-only access, used only to save a child's finished picture. The system question is asked behind the grown-up gate.
+Face ID: an optional way to open the grown-ups area (Grown-ups > Locks and safety); the sum always works too.
+Cloud backup (optional): the family's data is encrypted on the device with a family code before it is uploaded; the server
+cannot read it.
+The app does not use the camera.
+```
+
+## Android features and their iOS status
+
+| Android | iOS |
+|---|---|
+| Home screen and Flip cover **widget** (four mini games) | **Not in this release.** An iOS widget would be a separate WidgetKit extension. The app reports nothing to a widget on iOS. |
+| Back button goes back inside the app | iOS has no back button. Swipes from the edges are deferred, so a stray swipe only shows the handle and a second swipe leaves. |
+| Screen pinning (lock the child in) | **Guided Access.** Grown-ups > Locks and safety explains how to turn it on. |
+| "Sprout Park" album in the gallery | **Photos with add-only access.** The app can add pictures but never sees the library. They appear in Recents, because add-only access cannot create an album. |
+| Fingerprint or phone lock for the gate | **Face ID, Touch ID or the device passcode.** It is optional, and the PIN or sum always works. |
+| Phone's text-to-speech | iOS voices, through the same plugin. Sprout voice clips play first, as on Android. |
+| Share sheet for backup files and pictures | The same, with the iOS share sheet. |
+| Microphone permission | Asked only when a grown-up starts recording. The tests check that nothing asks before then. |
+| Sign language and camera sign videos | Held back on both platforms (`backup/`). The release check refuses them, and the iOS app has no camera permission. |
+
+## Not tested yet (needs real devices)
+
+All iOS testing so far is in **simulators** on GitHub's macOS runners, with Xcode 27 and iOS 27. It was **not** done on a physical
+iPhone, iPad or iPhone Duo. These still need a person with a device and TestFlight:
+
+- the real microphone and the permission prompt, and how recordings sound;
+- the speaker with the ring/silent switch on;
+- Face ID, Touch ID and passcode;
+- saving to Photos and the share sheet;
+- a real phone call or alarm in the middle of play;
+- folding and unfolding a real iPhone Duo during play;
+- speed on older iPads;
+- the recovery email to a real inbox.
+
+## Changing things later
+
+- `ios-app/test/check-release-ios.mjs` runs before every archive. It refuses a build with the test harness, a local address,
+  held-back features, the camera, or a network exception.
+- Version and build numbers come from the workflow inputs (`MARKETING_VERSION`, `CURRENT_PROJECT_VERSION`).
