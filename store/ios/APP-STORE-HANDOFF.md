@@ -227,29 +227,34 @@ Bugs the simulator runs found in the game, fixed for every platform:
 
 ## Simulator results (latest full run)
 
-**Simulators only.** Run 21 of **Build iOS app**, 4 November 2026, commit `24ee999`, Xcode 27.2 (27B48) on GitHub's `xcode-27`
-Macs. All seven simulator jobs passed in the same run, and the Release archive built (unsigned: no signing secrets yet).
-The numbers are what the run printed. A check is one `ok(...)` line of the iOS tests; a play-test passes when it prints no FAIL
-line and no page error.
+**Simulators only.** Run 26 of **Build iOS app**, 5 November 2026, commit `d93abd2`, Xcode 27.2 (27B48) on GitHub's `xcode-27`
+Macs. All seven simulator jobs passed in the same run, and the Release archive built (unsigned: no signing secrets yet). Run 21
+(commit `24ee999`) was the first run where every job passed; run 26 is the first all-green run since the photo album version 2,
+the iPhone Duo pictures and the slow-save checks were added. The numbers are what the run printed. A check is one `ok(...)` line of the iOS tests; a
+play-test passes when it prints no FAIL line and no page error.
 
 | Job | Simulator, and what the app saw | Tests (all passed) |
 |---|---|---|
 | `iphone-max` | iPhone 18 Pro Max, iOS 27.0; 440 × 956 pt at 3x, safe area 62 pt top, 34 pt bottom | iOS checks (101), data kept after closing (6), restore on a new phone (8), English, Spanish, Hindi, Chinese (10 each, the phone has a voice for each), 10 store screenshots (1320 × 2868). Cloud backup: made, restored with the stars, voices sent, cloud copy deleted, against the real worker code on the Mac |
-| `iphone-games` | iPhone 18 Pro, iOS 27.0; 402 × 874 pt at 3x | kitchen: all 15 recipes, each with its photo and the undo after eating, no page errors; Shape Builder (60 pictures, tiers 1 to 3); Tidy Time; Caterpillars; Feeling Friends (every story); Fishing Pond; Clay Corner; Pet Care grooming; Hair Salon; Hide and Seek (ages 2, 4, 7, five places each); numbers at four sizes; age tiers 2, 4, 7; fixes; monkey (all 20 games mashed); 10 store screenshots (1206 × 2622) |
+| `iphone-games` | iPhone 18 Pro, iOS 27.0; 402 × 874 pt at 3x | kitchen: all 15 recipes, each with its photo and the undo after eating, no page errors; Shape Builder (60 pictures, tiers 1 to 3); Tidy Time; Caterpillars; Feeling Friends (every story); Fishing Pond; Clay Corner; Pet Care grooming; Hair Salon; Hide and Seek (ages 2, 4, 7, five places each); numbers at four sizes; age tiers 2, 4, 7; fixes (including the old photo album moved to version 2); monkey (all 20 games mashed); 10 store screenshots (1206 × 2622) |
 | `iphone-small` | iPhone SE (3rd generation), iOS 27.0; 375 × 667 pt at 2x, no safe area | iOS checks (88), monkey, kitchen (all 15 recipes, photo and undo), Tidy Time |
-| `ipad-13` | iPad Pro 13-inch (M5), iOS 27.0; 1032 × 1376 pt at 2x | iOS checks (131), Clay Corner, fixes, 10 store screenshots (2064 × 2752) |
+| `ipad-13` | iPad Pro 13-inch (M5), iOS 27.0; 1032 × 1376 pt at 2x | iOS checks (132), Clay Corner, fixes (including the album and a photo kept on a slow save), 10 store screenshots (2064 × 2752) |
 | `ipad-13-games` | iPad Pro 13-inch (M5), iOS 27.0, a second simulator | kitchen (all 15 recipes, photo and undo), Shape Builder (60 pictures, tiers 1 to 3), monkey |
-| `ipad-mini` | iPad mini (A17 Pro), iOS 27.0; 744 × 1133 pt at 2x | iOS checks (131, including the window resized to the iPhone Duo's two display sizes), monkey (all 20 games), Tidy Time |
-| `iphone-duo` | iPhone Duo, iOS 27.1; outer display 466 × 678 pt at 3x, safe area 84 pt on the camera side, 34 pt bottom (WebKit's own `env()` matched) | iOS checks (99, including turning), kitchen (all 15 recipes), monkey, Tidy Time, Shape Builder (60 pictures), store screenshot scenes |
+| `ipad-mini` | iPad mini (A17 Pro), iOS 27.0; 744 × 1133 pt at 2x | iOS checks (132, including the window resized to the iPhone Duo's two display sizes), monkey (all 20 games), Tidy Time |
+| `iphone-duo` | iPhone Duo, iOS 27.1; outer display 466 × 678 pt at 3x, safe area 84 pt on the camera side, 34 pt bottom (WebKit's own `env()` matched) | iOS checks (99, including turning), kitchen (all 15 recipes), monkey, Tidy Time, Shape Builder (60 pictures), 10 store screenshots (1398 × 2034, the app's own picture of its window) |
 
 What the run also showed:
 
-- In six of the seven jobs the runner's 5-minute relaunch was used once (the app was started but the test page said
-  nothing; usually the first test after installing). The test then ran and passed. No simulator had to be restarted. On a
-  phone, check that the first launch after installing from TestFlight opens promptly.
+- **Photo saving on the simulators is slow.** A kitchen photo was drawn in 0.1 to 0.4 s, but writing it to the album took 10 to
+  38 s on the iPad Pro 13" simulator and 12 s on the iPhone 18 Pro one. Every photo was kept, and the tests now wait for it. On a
+  real iPad, check that a kitchen photo shows in the album right away.
+- **The Mac's screenshot sometimes hangs.** `simctl io screenshot` timed out once on the iPhone 18 Pro Max, once on the iPad
+  Pro 13" and for the whole Shape Builder test on the second iPad. It never answers on the iPhone Duo. Each time the test used the
+  app's own picture of its window instead, at the same pixel size, so no picture was lost.
+- On the iPad mini the runner's 5-minute relaunch was used once (the app was started but the test page said nothing at the start
+  of the first test). The test then ran and passed. No simulator had to be restarted. On a phone, check that the first launch
+  after installing from TestFlight opens promptly.
 - The iPads stay in windowed mode: turning is checked by resizing the window there, and going to the background on the iPhones.
-- Run 21 saved no iPhone Duo pictures (the Mac cannot capture that simulator's screen; see Screenshots). The fix (the app's own
-  picture of its window) is in commit `85f0e55`, tested in the run after this one.
 
 ## Not tested yet (needs real devices)
 
