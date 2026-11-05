@@ -21,3 +21,6 @@ ios-app/ios/DerivedData/
 *.ipa
 *.xcarchive/
 AuthKey_*.p8
+
+# the iOS port kit (node tools/make-ios-kit.mjs)
+ios-port-kit.zip
