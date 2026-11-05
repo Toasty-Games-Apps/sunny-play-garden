@@ -108,8 +108,10 @@ await openGame(page, 'Sprout Kitchen'); await page.waitForTimeout(800);
     const gc = HTMLCanvasElement.prototype.getContext; let once = true; HTMLCanvasElement.prototype.getContext = function (...a) { if (once) { once = false; return null; } return gc.apply(this, a); };
     g.camUntil = 0; g.snap(); HTMLCanvasElement.prototype.getContext = gc;   // a canvas WebKit could not make
     out.noCanvas = { snapping: g.snapping, rest: +((g.camUntil || 0) - g.t).toFixed(1) };
-    SPG.photos.add = add; g.camUntil = 0; g.snap(); for (let i = 0; i < 40 && g.snapping; i++) await w(100); out.n = (g.photoCount || 0) - n0;
-    g.snapWait = 0; g.enterMenu(); return out;
+    // then a real save: a build server's iPad simulator can take 40 s to write one photo, so it is waited for by the clock
+    SPG.photos.add = add; g.snapWait = 0; g.camUntil = 0; g.snap();
+    for (const t0 = Date.now(); Date.now() - t0 < 60000 && (g.photoCount || 0) === n0; ) await w(150); out.n = (g.photoCount || 0) - n0;
+    out.times = g.snapTimes; g.enterMenu(); return out;
   });
   ok(r.cam && r.stuck && r.freed, 'kitchen: a photo save that never ends frees the camera ' + JSON.stringify(r));
   ok(!r.failed.snapping && r.failed.rest <= 0 && r.failed.n === 0, 'kitchen: a failed save leaves the camera ready and the count as it was ' + JSON.stringify(r.failed));
@@ -119,26 +121,32 @@ await openGame(page, 'Sprout Kitchen'); await page.waitForTimeout(800);
 await home();
 
 // Photo albums (js/photos.js version 2): an album from before (kitchen photos had no game) keeps every photo in its own album,
-// the newest 60 stay, and clearing one game's pictures leaves the other's
+// the newest 60 stay, and clearing one game's pictures leaves the other's.
+// In Chromium this is a fresh browser with no album yet; inside the iOS app (ios-app/test) it is the same app, whose album is open:
+// it is deleted first (photos.js closes its connection when asked) and an old version 1 album is built in its place.
+// 59 old kitchen photos + 3 new ones = 62, so the 2 oldest go; few writes, because a build server's iPad simulator writes slowly.
 {
   const p2 = await newPage(b, 390, 844);
   const r = await p2.evaluate(async () => {
-    const blob = new Blob(['x'], { type: 'image/jpeg' }), out = {}, P = SPG.photos;
+    const blob = new Blob(['x'], { type: 'image/jpeg' }), out = {}, P = SPG.photos, w = ms => new Promise(r => setTimeout(r, ms));
+    const fail = (what, rq) => new Error(what + ': ' + ((rq && rq.error && (rq.error.name + ' ' + rq.error.message)) || 'failed'));
+    await new Promise((res, rej) => { const rq = indexedDB.deleteDatabase('spg-photos'); rq.onsuccess = () => res(); rq.onerror = () => rej(fail('delete the album', rq)); });
     await new Promise((res, rej) => { const rq = indexedDB.open('spg-photos', 1); rq.onupgradeneeded = () => { const st = rq.result.createObjectStore('photos', { keyPath: 'id', autoIncrement: true }); st.createIndex('pid', 'pid'); };
       rq.onsuccess = () => { const db = rq.result, t = db.transaction('photos', 'readwrite'), st = t.objectStore('photos');
-        for (let i = 0; i < 3; i++) st.add({ pid: 'a', t: 1000 + i, blob, recipe: 'sugar', name: 'Sugar cookies' });
+        for (let i = 0; i < 59; i++) st.add({ pid: 'a', t: 1000 + i, blob, recipe: 'sugar', name: 'Sugar cookies' });
         st.add({ pid: 'a', t: 2000, blob, game: 'clay', recipe: 'clay', name: 'Clay' }); st.add({ pid: 'b', t: 3000, blob, recipe: 'pizza', name: 'Pizza' });
-        t.oncomplete = () => { db.close(); res(); }; t.onerror = rej; }; rq.onerror = rej; });
+        t.oncomplete = () => { db.close(); res(); }; t.onerror = () => rej(fail('write the old album', t)); }; rq.onerror = () => rej(fail('make the old album', rq)); rq.onblocked = () => rej(fail('make the old album (blocked)', rq)); });
     out.kitchenA = (await P.list('a')).length; out.clayA = (await P.list('a', 'clay')).length; out.sizeA = await P.size('a'); out.sizeB = await P.size('b');
     out.count = await P.count('kitchen'); out.countClay = await P.count('clay'); out.all = await P.count();
-    for (let i = 0; i < 62; i++) await P.add('a', blob, { recipe: 'cake', name: 'Birthday cake' });
-    await new Promise(r => setTimeout(r, 800));
-    const l = await P.list('a'); out.after = l.length; out.newest = l.every(p => p.recipe === 'cake' && p.game === 'kitchen'); out.clayKept = await P.size('a', 'clay'); out.bKept = await P.size('b');
+    for (let i = 0; i < 3; i++) await P.add('a', blob, { recipe: 'cake', name: 'Birthday cake' });
+    for (const t0 = Date.now(); Date.now() - t0 < 30000 && (await P.size('a')) > 60; ) await w(200);   // the tidying runs after each save
+    const l = await P.list('a'); out.after = l.length; out.cakes = l.filter(p => p.recipe === 'cake' && p.game === 'kitchen').length;
+    out.oldestGone = !l.some(p => p.t === 1000 || p.t === 1001) && l.some(p => p.t === 1002); out.clayKept = await P.size('a', 'clay'); out.bKept = await P.size('b');
     await P.clear('clay'); out.clayGone = await P.size('a', 'clay'); out.kitchenStays = await P.size('a');
     return out;
   });
-  ok(r.kitchenA === 3 && r.clayA === 1 && r.sizeA === 3 && r.sizeB === 1 && r.count === 4 && r.countClay === 1 && r.all === 5, 'photos: an album from before keeps every photo in its own album ' + JSON.stringify(r));
-  ok(r.after === 60 && r.newest && r.clayKept === 1 && r.bKept === 1, 'photos: the newest 60 stay and other albums are untouched ' + JSON.stringify(r));
+  ok(r.kitchenA === 59 && r.clayA === 1 && r.sizeA === 59 && r.sizeB === 1 && r.count === 60 && r.countClay === 1 && r.all === 61, 'photos: an album from before keeps every photo in its own album ' + JSON.stringify(r));
+  ok(r.after === 60 && r.cakes === 3 && r.oldestGone && r.clayKept === 1 && r.bKept === 1, 'photos: the newest 60 stay and other albums are untouched ' + JSON.stringify(r));
   ok(r.clayGone === 0 && r.kitchenStays === 60, 'photos: clearing one game leaves the other ' + JSON.stringify(r));
   ok(!p2.errs.length, 'photos: no errors ' + p2.errs.join(' | '));
   await p2.context().close();

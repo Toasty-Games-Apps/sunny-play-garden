@@ -186,6 +186,10 @@ Things the simulators showed about themselves (not about the app):
 - `simctl io screenshot` cannot capture the iPhone Duo simulator (two built-in displays; "Timeout waiting for screen surfaces"),
   and earlier runs had passed without saving any iPhone Duo picture. Now the app sends a picture of its own window when the Mac
   cannot take one, and a store screenshot only counts once its picture is saved.
+- On the big iPad simulator, writing one kitchen photo took 8 to 40 seconds (making the picture took 0.1 to 0.35 s), and one
+  `simctl` screenshot hung for 4 minutes (run 25). The game never waits on a save. The tests wait for a save by the clock, and a
+  screenshot that has not come in 90 s is taken by the app itself instead. On a real iPad, check that a kitchen photo shows up
+  in the album straight away.
 
 Bugs the simulator runs found in the game, fixed for every platform:
 

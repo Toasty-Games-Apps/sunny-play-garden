@@ -76,7 +76,9 @@ simulator jobs green; the later runs added the iPhone Duo screenshots and fixed 
 - **IndexedDB on WebKit is slow with Blobs.** `getAll()` of records that hold pictures took seconds on the iPad simulator. Its
   transactions also queue, so a save waited behind earlier reads (run 24: photos kept 20+ s late). Add an index, and count, tidy
   and delete by key (`count`, `getAllKeys`, `openKeyCursor`). Read pictures only to show them (`js/photos.js`, version 2, with an
-  upgrade that keeps old data).
+  upgrade that keeps old data). Even then, the iPad Pro 13" simulator on GitHub's Macs took 8 to 40 s to write one photo, while
+  making the picture took 0.1 to 0.35 s (run 25). So the game must never wait on a save (the camera is free again after 20 s at
+  most), and tests must wait for a save by the clock (up to a minute), not for a fixed short time.
 - **`localStorage` and IndexedDB survive closing the app** (the app's container). Test it anyway. `after.mjs keep` closes and
   reopens the app and checks that the player, painting and recording are still there. Also test a restore on a wiped app.
 - **Photos: ask for add-only access** (`PHPhotoLibrary` `.addOnly`, the small `SproutPhotos` plugin in the view controller). The
@@ -141,6 +143,11 @@ simulator jobs green; the later runs added the iPhone Duo screenshots and fixed 
 - **WebKit's `error.stack` has no message in it.** Always report `name: message` plus the stack (`T.err` in `selftest.js`).
 - **Reading a file that is not there makes Capacitor's Filesystem log an error.** Check with `readdir` first, or the logs fill
   with fake errors.
+- **In Chromium every `newPage` is a fresh browser; in the app it is the same app.** A play-test that assumes nothing is saved
+  yet (an empty photo album, no players) must clear that state itself. The shim's `newPage` resets the settings and the player.
+  A test that rebuilds a database deletes it first; `js/photos.js` closes its connection when asked (`onversionchange`). Run 25's
+  album check failed on the iPad for this reason.
+- **Reject with an `Error`, never the IDB event.** A rejected `Event` shows only as "THREW: [object Event]" in the Mac's log.
 
 ## 8. GitHub's Mac runners and their simulators
 
@@ -163,6 +170,8 @@ simulator jobs green; the later runs added the iPhone Duo screenshots and fixed 
 - **The iPhone Duo simulator has no fold control and shows only the outer display.** The inner display's size was tested as a
   resized iPad window. Test the real fold on a real device.
 - **The big iPad is the slowest simulator.** Its checks and its play-tests run as two separate jobs.
+- **`simctl io screenshot` can hang** (on the big iPad, for the whole 4-minute limit in run 25). Give it 90 s, delete a
+  half-written file, and let the page take its own picture instead (`run-sim.mjs` `screenshot`, `selftest.js` `T.shot`).
 
 ## 9. Working in the loop without wasting runs
 

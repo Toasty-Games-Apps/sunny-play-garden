@@ -63,7 +63,10 @@ let code = '';   // the family code ios made (for after:restore)
 let shotFails = 0, shotOk = 0;
 async function screenshot(file, want) {
   if (shotFails >= 2 && !shotOk) return false;
-  try { x('io', udid, 'screenshot', '--type=png', file); } catch (e) { if (!shotFails) console.log(`  (simctl screenshot: ${why(e)})`); }
+  // a screenshot that has not come in 90 s will not come (the big iPad once hung for the whole 4 minutes): the page then takes its own
+  // picture in time (selftest.js T.shot). A half-written file from a stopped call is thrown away.
+  try { execFileSync('xcrun', ['simctl', 'io', udid, 'screenshot', '--type=png', file], { stdio: ['ignore', 'pipe', 'pipe'], timeout: 90000 }); }
+  catch (e) { rmSync(file, { force: true }); if (!shotFails) console.log(`  (simctl screenshot: ${why(e)})`); }
   if (!existsSync(file)) { shotFails++; return false; }
   shotOk++;
   // simulator screenshots come in the screen's own orientation; turn a landscape screen the right way round
