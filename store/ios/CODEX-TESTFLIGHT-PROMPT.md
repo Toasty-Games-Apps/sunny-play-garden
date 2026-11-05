@@ -1,5 +1,8 @@
 # Prompt for Codex: signing key, TestFlight upload and the App Store page
 
+**Update, 5 November 2026:** steps 1 to 4 are done. The key and secrets are set, build 1.0.0 (28) was signed, uploaded and processed,
+and it is in the TestFlight group Family. Give Codex only steps 5 and 6 (the App Store page, without submitting, and the report).
+
 Give Codex this file and the repository, or at least `store/ios/APP-STORE-HANDOFF.md`. Codex will need you to sign in to App Store
 Connect and GitHub yourself, including the two-factor codes. Paste everything below the line.
 

@@ -125,7 +125,8 @@ simulator jobs green; the later runs added the iPhone Duo screenshots and fixed 
   (cloud-managed Apple Distribution certificate, App Store profile). Put `teamID` in ExportOptions.plist: an unsigned archive carries
   no team. This works only while the app has no entitlements of its own; with capabilities (App Groups, push...), sign the archive
   ad hoc with them before the export. The workflow checks the .ipa afterwards (valid signature, no `get-task-allow`, a profile with
-  no device list).
+  no device list). Confirmed: the next run's export signed with "Apple Distribution" and an "iOS Team Store Provisioning Profile",
+  the upload succeeded and Apple marked the build `VALID` about 3 minutes later.
 - **The TestFlight group can be filled by the workflow** (`ios-app/testflight-group.mjs`): the same API key, an ES256 token made
   with Node's crypto (no packages), wait for the build's `processingState` to be `VALID`, then add it to the beta group. Run it on a
   Linux runner: it is mostly waiting.

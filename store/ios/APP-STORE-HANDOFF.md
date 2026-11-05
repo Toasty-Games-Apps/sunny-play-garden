@@ -21,6 +21,13 @@ complete, before a paid app can go on sale. TestFlight works without it.
 
 ## Getting a build into TestFlight
 
+**Status (5 November 2026):** build **1.0.0 (28)** is in TestFlight. Run 28 of **Build iOS app** (commit `427ab4f`) archived it
+unsigned and the export signed it "Apple Distribution: Nicholas Olsen (6437343CNQ)" with the profile "iOS Team Store Provisioning
+Profile: com.toastygames.littlesproutpark" (App Store, no device list, valid until 5 November 2027). The upload succeeded, Apple
+processed it in about 3 minutes (`VALID`, export compliance answered by the Info.plist), and the `testflight` job added it to the
+internal group **Family**, where it is `IN_BETA_TESTING`. Nothing was submitted for review; version 1.0.0 is still in Prepare for
+Submission with manual release. Steps 1 and 2 below are done; repeat 3 to 5 for each new build.
+
 1. **The owner makes an App Store Connect API key.** Go to Users and Access > Integrations > App Store Connect API > Team Keys, and
    use the **Admin** role, so Xcode can create the distribution certificate and profile. Download the `.p8` file. It can be
    downloaded only once.
