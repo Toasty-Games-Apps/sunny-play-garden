@@ -258,7 +258,7 @@
     /* ------------------------------------------------------------ menu and recipe flow */
     enterMenu() {
       this.hush();
-      this.freeGallery(); if (SPG.photos && store.active) SPG.photos.list(store.active.id).then(l => { this.photoCount = l.length; });
+      this.freeGallery(); if (SPG.photos && store.active) SPG.photos.size(store.active.id).then(n => { this.photoCount = n; });
       this.screen = 'menu'; this.R = null; this.st = null; this.tray = []; this.flies = []; this.motions = []; this.mix = null; this.pieces = []; this.arrow = null; this.piece = null; this.paint = null;
         this.layoutMenu(); this.say('cook-pick', 6);
     }
@@ -1315,7 +1315,7 @@
       if (this.t < (this.camUntil || 0)) { sfx.oops(); this.camShake = 1; return; }   // the camera is recharging: no photo spam
       this.camUntil = this.t + CAM_COOL; this.snapping = true; this.flash = 1; sfx.snap(); setTimeout(() => sfx.chime(), 140);
       // a save that never finishes (a stuck photo store) must not leave the camera dead for the rest of the recipe
-      const my = this.snapN = (this.snapN || 0) + 1; setTimeout(() => { if (this.snapN === my) this.snapping = false; }, this.snapWait || 20000);   // (snapWait: tests)
+      const my = this.snapN = (this.snapN || 0) + 1, T = this.snapTimes = { at: performance.now() }; setTimeout(() => { if (this.snapN === my) this.snapping = false; }, this.snapWait || 20000);   // (snapWait: tests)
       let out = null;
       try {
         // The food is drawn straight into the photo at its final size. (It used to be drawn on a full-screen copy at 1.5x first: about
@@ -1335,7 +1335,8 @@
       if (!out) { this.snapping = false; this.camUntil = 0; return; }   // no photo was made: the camera is ready again at once
       this.snapAnim = { t: 0, img: out };
       const pid = store.active ? store.active.id : 'nobody', name = this.R.name, id = this.R.id, end = ok => { if (this.snapN === my) this.snapping = false; if (!ok) this.camUntil = 0; };
-      out.toBlob(blob => { if (!blob || !SPG.photos) { end(false); return; } SPG.photos.add(pid, blob, { recipe: id, name }).then(r => { if (r != null) this.photoCount = (this.photoCount || 0) + 1; end(r != null); }, () => end(false)); }, 'image/jpeg', .9);
+      // (snapTimes: how long the picture and the save took, in ms, for the tests)
+      out.toBlob(blob => { T.blob = Math.round(performance.now() - T.at); if (!blob || !SPG.photos) { end(false); return; } SPG.photos.add(pid, blob, { recipe: id, name }).then(r => { T.kept = Math.round(performance.now() - T.at); if (r != null) this.photoCount = (this.photoCount || 0) + 1; end(r != null); }, () => end(false)); }, 'image/jpeg', .9);
     },
     drawSnap(c, dt) {
       const A = this.snapAnim; if (A) {

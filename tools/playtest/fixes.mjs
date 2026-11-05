@@ -118,6 +118,32 @@ await openGame(page, 'Sprout Kitchen'); await page.waitForTimeout(800);
 }
 await home();
 
+// Photo albums (js/photos.js version 2): an album from before (kitchen photos had no game) keeps every photo in its own album,
+// the newest 60 stay, and clearing one game's pictures leaves the other's
+{
+  const p2 = await newPage(b, 390, 844);
+  const r = await p2.evaluate(async () => {
+    const blob = new Blob(['x'], { type: 'image/jpeg' }), out = {}, P = SPG.photos;
+    await new Promise((res, rej) => { const rq = indexedDB.open('spg-photos', 1); rq.onupgradeneeded = () => { const st = rq.result.createObjectStore('photos', { keyPath: 'id', autoIncrement: true }); st.createIndex('pid', 'pid'); };
+      rq.onsuccess = () => { const db = rq.result, t = db.transaction('photos', 'readwrite'), st = t.objectStore('photos');
+        for (let i = 0; i < 3; i++) st.add({ pid: 'a', t: 1000 + i, blob, recipe: 'sugar', name: 'Sugar cookies' });
+        st.add({ pid: 'a', t: 2000, blob, game: 'clay', recipe: 'clay', name: 'Clay' }); st.add({ pid: 'b', t: 3000, blob, recipe: 'pizza', name: 'Pizza' });
+        t.oncomplete = () => { db.close(); res(); }; t.onerror = rej; }; rq.onerror = rej; });
+    out.kitchenA = (await P.list('a')).length; out.clayA = (await P.list('a', 'clay')).length; out.sizeA = await P.size('a'); out.sizeB = await P.size('b');
+    out.count = await P.count('kitchen'); out.countClay = await P.count('clay'); out.all = await P.count();
+    for (let i = 0; i < 62; i++) await P.add('a', blob, { recipe: 'cake', name: 'Birthday cake' });
+    await new Promise(r => setTimeout(r, 800));
+    const l = await P.list('a'); out.after = l.length; out.newest = l.every(p => p.recipe === 'cake' && p.game === 'kitchen'); out.clayKept = await P.size('a', 'clay'); out.bKept = await P.size('b');
+    await P.clear('clay'); out.clayGone = await P.size('a', 'clay'); out.kitchenStays = await P.size('a');
+    return out;
+  });
+  ok(r.kitchenA === 3 && r.clayA === 1 && r.sizeA === 3 && r.sizeB === 1 && r.count === 4 && r.countClay === 1 && r.all === 5, 'photos: an album from before keeps every photo in its own album ' + JSON.stringify(r));
+  ok(r.after === 60 && r.newest && r.clayKept === 1 && r.bKept === 1, 'photos: the newest 60 stay and other albums are untouched ' + JSON.stringify(r));
+  ok(r.clayGone === 0 && r.kitchenStays === 60, 'photos: clearing one game leaves the other ' + JSON.stringify(r));
+  ok(!p2.errs.length, 'photos: no errors ' + p2.errs.join(' | '));
+  await p2.context().close();
+}
+
 // Fish Tank: coins kept between visits and moved with the screen
 await openGame(page, 'Fish Tank'); await page.waitForTimeout(800);
 {

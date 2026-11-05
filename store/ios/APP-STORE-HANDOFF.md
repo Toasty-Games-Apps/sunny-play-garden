@@ -214,6 +214,12 @@ Bugs the simulator runs found in the game, fixed for every platform:
   rest of the recipe. The food is now drawn straight into the photo at its final size (the same picture), a failed photo leaves
   the camera ready at once, a save that never finishes frees it after 20 s, and the photo count only goes up for a photo really
   kept. `fixes.mjs` checks all three (they fail on the old code); the kitchen test now says what the game saw when a photo is missing.
+- Run 24 then showed what was really slow on that iPad: the touch reached the camera and the photo was made, but it was only
+  kept after more than 20 s. Saving a photo read every photo already in the album (the pictures themselves) to tidy it, and so
+  did each return to the kitchen menu, so the next save waited behind them; it got slower as the album filled and hit the
+  shortest recipes. The photo store (`js/photos.js`, version 2) now has an index by player and game: a photo counts as kept as soon
+  as it is written, the tidying afterwards and every count read the index alone, and older albums are moved over once with
+  nothing lost (`fixes.mjs` builds an old album and checks it).
 
 ## Simulator results (latest full run)
 
