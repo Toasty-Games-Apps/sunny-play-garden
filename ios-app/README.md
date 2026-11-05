@@ -30,7 +30,10 @@ the **Admin** role, made in App Store Connect > Users and Access > Integrations 
 - `ASC_KEY_P8_BASE64`: the `.p8` file, base64 encoded: `base64 -i AuthKey_XXXXXXXXXX.p8 | pbcopy`.
 
 Xcode uses this key to make the distribution certificate and the App Store profile itself. No certificate or profile is kept in the
-repo. Never commit a `.p8`, `.p12` or `.mobileprovision`: `.gitignore` refuses them.
+repo. The archive is built unsigned and only the export signs it, for the App Store: with automatic signing an archive is signed
+for development, and a development profile needs a registered device, which this team does not have (run 27). After an upload, the
+`testflight` job waits for Apple to process the build and adds it to the TestFlight group "Family" (`testflight-group.mjs`, the same
+key; nothing is submitted for review). Never commit a `.p8`, `.p12` or `.mobileprovision`: `.gitignore` refuses them.
 
 The optional repository **variable** `SPG_API_BASE` is the https address of the cloud backup. It is the same one the Android build
 uses. The worker must also allow the iOS app's origin `capacitor://localhost`. That change is in `worker/index.js`, waiting for

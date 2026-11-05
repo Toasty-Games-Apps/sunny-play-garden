@@ -29,13 +29,17 @@ complete, before a paid app can go on sale. TestFlight works without it.
    - `ASC_KEY_ID`
    - `ASC_ISSUER_ID`
    - `ASC_KEY_P8_BASE64`, made with `base64 -i AuthKey_XXXX.p8`
-3. **Start the build.** Go to Actions > **Build iOS app** > Run workflow, set version `1.0.0`, and tick **upload**. The `archive` job
-   signs the app, exports `SproutPark-ipa` and sends it to App Store Connect. Each upload needs a higher build number: by default it
-   is the run number, or set `build_number`.
-4. **Wait for Apple to process the build** (usually 10 to 30 minutes). Then answer the export question if it is asked. It should
-   not be: `ITSAppUsesNonExemptEncryption` is `false`. The app uses only standard encryption built into iOS: HTTPS, and Web Crypto
-   AES-GCM to protect the family's own backup.
-5. **Add internal testers** in TestFlight. Test on a real iPhone, iPad and iPhone Duo. See "Not tested yet" below.
+3. **Start the build** with version `1.0.0` and **upload** ticked (`tests: none` is enough when the simulator tests already passed
+   on the same game code). The workflow is only on this branch, not on `main`, so GitHub's website shows no "Run workflow" button for
+   it: start it with `gh workflow run ios.yml --ref ccr-812ba91c-62t8en -f version=1.0.0 -f upload=true -f tests=none` or through
+   the API. The `archive` job builds the archive **unsigned** and the export signs it for the App Store with the cloud-managed
+   Apple Distribution certificate. (Automatic signing would sign the archive for development, and that needs a registered device:
+   run 27 failed that way.) It checks the signature, keeps `SproutPark-ipa` and sends it to App Store Connect. Each upload needs a
+   higher build number: by default it is the run number, or set `build_number`.
+4. **Apple processes the build** (usually 10 to 30 minutes). The `testflight` job waits for that and adds the build to the internal
+   group **Family** (`ios-app/testflight-group.mjs`). The export question should not be asked: `ITSAppUsesNonExemptEncryption` is
+   `false`. The app uses only standard encryption built into iOS: HTTPS, and Web Crypto AES-GCM to protect the family's own backup.
+5. **Test it** from the TestFlight app on a real iPhone, iPad and iPhone Duo. See "Not tested yet" below.
 
 ## Cloud backup: deploy the worker before release
 

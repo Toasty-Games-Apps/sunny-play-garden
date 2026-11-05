@@ -5,10 +5,13 @@
 #   2. sim-test    that build on fresh simulators: a big iPhone, a small iPhone, iPad Pro 13", iPad mini and iPhone Duo. The tests run
 #                  inside the real app (WebKit, the real plugins) and the Mac takes real simulator screenshots. Results, logs and
 #                  screenshots (also App Store screenshots) are attached to the run as "sim-<device>".
-#   3. archive     the Release build for the App Store. It is checked first (ios-app/test/check-release-ios.mjs). Without signing secrets
-#                  it is an unsigned archive (proof that it builds for devices). With them it is a signed .ipa ("SproutPark-ipa"), and
-#                  when the run is started by hand with "upload" ticked it is also sent to App Store Connect (TestFlight). Releasing
-#                  to the App Store stays a manual step in App Store Connect.
+#   3. archive     the Release build for the App Store. It is checked first (ios-app/test/check-release-ios.mjs). The archive itself is
+#                  always unsigned (automatic signing would sign it for development, which needs a registered device). Without signing
+#                  secrets that unsigned archive is the result (proof that it builds for devices). With them the export signs it for the
+#                  App Store (a signed .ipa, "SproutPark-ipa"), and when the run is started by hand with "upload" ticked it is also sent
+#                  to App Store Connect (TestFlight).
+#   4. testflight  only after an upload: waits for Apple to process the build and adds it to the TestFlight group "Family"
+#                  (ios-app/testflight-group.mjs). Releasing to the App Store stays a manual step in App Store Connect.
 #
 # Signing secrets (Settings > Secrets and variables > Actions), from App Store Connect > Users and Access > Integrations > Keys,
 # a Team key with the Admin role (so Xcode can make the distribution certificate and the App Store profile itself):
@@ -44,6 +47,8 @@ concurrency:
   cancel-in-progress: true
 env:
   BUNDLE: com.toastygames.littlesproutpark
+  ASC_APP_ID: '6830382328'
+  TESTFLIGHT_GROUP: Family
   WRANGLER_SEND_METRICS: 'false'
 jobs:
   sim-build:
@@ -158,6 +163,8 @@ jobs:
   archive:
     runs-on: xcode-27
     timeout-minutes: 60
+    outputs:
+      uploaded: ${{ steps.upload.outputs.uploaded }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -179,20 +186,22 @@ jobs:
           if [ -n "$P8" ] && [ -n "$KID" ] && [ -n "$ISS" ]; then
             echo "$P8" | base64 -d > "$RUNNER_TEMP/AuthKey.p8"; chmod 600 "$RUNNER_TEMP/AuthKey.p8"; echo "SIGNED=1" >> "$GITHUB_ENV"; echo "signing with the App Store Connect key"
           else echo "no signing secrets: the archive is built unsigned (it cannot go to TestFlight)"; fi
-      - name: Archive (Release)
+      - name: Archive (Release, unsigned; the export signs it)
         working-directory: ios-app/ios/App
-        env: { KID: '${{ secrets.ASC_KEY_ID }}', ISS: '${{ secrets.ASC_ISSUER_ID }}' }
         run: |
           set -o pipefail
           VN='${{ github.event.inputs.version }}'; VN=${VN:-1.0.0}
           BN='${{ github.event.inputs.build_number }}'; BN=${BN:-$GITHUB_RUN_NUMBER}
           echo "version $VN, build $BN"
-          COMMON=(-project App.xcodeproj -scheme App -configuration Release -destination 'generic/platform=iOS' -archivePath "$RUNNER_TEMP/SproutPark.xcarchive" MARKETING_VERSION="$VN" CURRENT_PROJECT_VERSION="$BN")
-          if [ "$SIGNED" = "1" ]; then
-            xcodebuild "${COMMON[@]}" -allowProvisioningUpdates -authenticationKeyPath "$RUNNER_TEMP/AuthKey.p8" -authenticationKeyID "$KID" -authenticationKeyIssuerID "$ISS" archive 2>&1 | grep -E "error|BUILD|ARCHIVE|Signing|\*\*" | tail -60
-          else
-            xcodebuild "${COMMON[@]}" CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" archive 2>&1 | grep -E "error|BUILD|ARCHIVE|\*\*" | tail -60
+          # Always unsigned. With automatic signing an archive is signed for development, and a development profile needs a
+          # registered device (run 27: "Your team has no devices from which to generate a provisioning profile"). The export
+          # below signs it for the App Store instead: the cloud-managed Apple Distribution certificate and an App Store profile
+          # that Xcode makes with the API key. Signing only at export loses the archive's own entitlements, and this app has none.
+          if grep -q CODE_SIGN_ENTITLEMENTS App.xcodeproj/project.pbxproj; then
+            echo "the app now has an entitlements file: an unsigned archive would lose it. Sign the archive ad hoc with those entitlements before the export."; exit 1
           fi
+          xcodebuild -project App.xcodeproj -scheme App -configuration Release -destination 'generic/platform=iOS' -archivePath "$RUNNER_TEMP/SproutPark.xcarchive" \
+            MARKETING_VERSION="$VN" CURRENT_PROJECT_VERSION="$BN" CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" archive 2>&1 | grep -E "error|BUILD|ARCHIVE|\*\*" | tail -60
       - name: Check the built app
         run: |
           A="$RUNNER_TEMP/SproutPark.xcarchive/Products/Applications/App.app"
@@ -210,7 +219,19 @@ jobs:
           xcodebuild -exportArchive -archivePath "$RUNNER_TEMP/SproutPark.xcarchive" -exportOptionsPlist ios-app/ExportOptions.plist -exportPath "$RUNNER_TEMP/export" \
             -allowProvisioningUpdates -authenticationKeyPath "$RUNNER_TEMP/AuthKey.p8" -authenticationKeyID "$KID" -authenticationKeyIssuerID "$ISS"
           ls -la "$RUNNER_TEMP/export"
+      - name: Check the signature of the .ipa
+        if: env.SIGNED == '1'
+        run: |
+          D="$RUNNER_TEMP/ipa"; rm -rf "$D"; mkdir -p "$D"; unzip -q "$RUNNER_TEMP"/export/*.ipa -d "$D"; A="$D/Payload/App.app"
+          codesign --verify --deep --strict "$A"; echo "signature: valid"
+          codesign -dvv "$A" 2>&1 | grep -E "^(Identifier|Authority|TeamIdentifier)=" || true
+          codesign -d --entitlements - --xml "$A" 2>/dev/null | tr -d ' \t\n' | grep -q '<key>get-task-allow</key><true/>' && { echo "get-task-allow is on: a development signature"; exit 1; } || echo "entitlements: no get-task-allow (distribution)"
+          security cms -D -i "$A/embedded.mobileprovision" > "$D/profile.plist"
+          echo "profile: $(/usr/libexec/PlistBuddy -c 'Print :Name' "$D/profile.plist"), expires $(/usr/libexec/PlistBuddy -c 'Print :ExpirationDate' "$D/profile.plist")"
+          if /usr/libexec/PlistBuddy -c 'Print :ProvisionedDevices' "$D/profile.plist" > /dev/null 2>&1; then echo "the profile lists devices: it is not an App Store profile"; exit 1; fi
+          echo "profile: App Store (no device list)"
       - name: Send to App Store Connect (TestFlight), only when asked
+        id: upload
         if: env.SIGNED == '1' && github.event.inputs.upload == 'true'
         env: { KID: '${{ secrets.ASC_KEY_ID }}', ISS: '${{ secrets.ASC_ISSUER_ID }}' }
         run: |
@@ -218,6 +239,7 @@ jobs:
           xcodebuild -exportArchive -archivePath "$RUNNER_TEMP/SproutPark.xcarchive" -exportOptionsPlist "$RUNNER_TEMP/upload.plist" -exportPath "$RUNNER_TEMP/upload" \
             -allowProvisioningUpdates -authenticationKeyPath "$RUNNER_TEMP/AuthKey.p8" -authenticationKeyID "$KID" -authenticationKeyIssuerID "$ISS"
           echo "Uploaded. The build appears in App Store Connect > TestFlight after Apple processes it. Releasing to the App Store stays manual."
+          echo "uploaded=1" >> "$GITHUB_OUTPUT"
       - name: Remove the signing key
         if: always()
         run: rm -f "$RUNNER_TEMP/AuthKey.p8"
@@ -230,3 +252,25 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: env.SIGNED != '1'
         with: { name: SproutPark-unsigned-archive, path: SproutPark-unsigned-xcarchive.zip, retention-days: 14 }
+  # After an upload: wait for Apple to process the build, then add it to the TestFlight group "Family" (internal testing). On Linux,
+  # because it is mostly waiting. Nothing is submitted for review or released.
+  testflight:
+    needs: archive
+    if: needs.archive.outputs.uploaded == '1'
+    runs-on: ubuntu-latest
+    timeout-minutes: 80
+    steps:
+      - uses: actions/checkout@v4
+        with: { sparse-checkout: ios-app/testflight-group.mjs, sparse-checkout-cone-mode: false }
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - name: Wait for Apple to process the build, then add it to the TestFlight group
+        env: { P8: '${{ secrets.ASC_KEY_P8_BASE64 }}', ASC_KEY_ID: '${{ secrets.ASC_KEY_ID }}', ASC_ISSUER_ID: '${{ secrets.ASC_ISSUER_ID }}' }
+        run: |
+          echo "$P8" | base64 -d > "$RUNNER_TEMP/AuthKey.p8"; chmod 600 "$RUNNER_TEMP/AuthKey.p8"
+          VN='${{ github.event.inputs.version }}'; VN=${VN:-1.0.0}
+          BN='${{ github.event.inputs.build_number }}'; BN=${BN:-$GITHUB_RUN_NUMBER}
+          ASC_KEY_PATH="$RUNNER_TEMP/AuthKey.p8" node ios-app/testflight-group.mjs --app "$ASC_APP_ID" --version "$VN" --build "$BN" --group "$TESTFLIGHT_GROUP"
+      - name: Remove the signing key
+        if: always()
+        run: rm -f "$RUNNER_TEMP/AuthKey.p8"

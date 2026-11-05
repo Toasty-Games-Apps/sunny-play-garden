@@ -117,6 +117,18 @@ simulator jobs green; the later runs added the iPhone Duo screenshots and fixed 
   (`ASC_KEY_ID`, `ASC_ISSUER_ID`, `ASC_KEY_P8_BASE64`). The workflow writes it to the runner's temp folder and deletes it at the
   end. `.gitignore` refuses `*.p8`, `*.p12` and `*.mobileprovision`.
 - **Without secrets, build an unsigned archive** (`CODE_SIGNING_ALLOWED=NO`). It proves the device build compiles.
+- **With secrets, still archive unsigned and sign only at export.** With automatic signing, `xcodebuild archive` signs for
+  development (the project's `CODE_SIGN_IDENTITY = "iPhone Developer"`), and a development profile needs at least one registered
+  device. A team that only ships through TestFlight has none, so the first signed run failed with "Your team has no devices from
+  which to generate a provisioning profile" and "No profiles ... iOS App Development". Registering a device is not the fix. Archive
+  with `CODE_SIGNING_ALLOWED=NO`, then `xcodebuild -exportArchive -allowProvisioningUpdates` with the API key signs for the App Store
+  (cloud-managed Apple Distribution certificate, App Store profile). Put `teamID` in ExportOptions.plist: an unsigned archive carries
+  no team. This works only while the app has no entitlements of its own; with capabilities (App Groups, push...), sign the archive
+  ad hoc with them before the export. The workflow checks the .ipa afterwards (valid signature, no `get-task-allow`, a profile with
+  no device list).
+- **The TestFlight group can be filled by the workflow** (`ios-app/testflight-group.mjs`): the same API key, an ES256 token made
+  with Node's crypto (no packages), wait for the build's `processingState` to be `VALID`, then add it to the beta group. Run it on a
+  Linux runner: it is mostly waiting.
 - **The build number must go up with every upload.** The workflow uses the run number unless you give one.
 - **The release check runs before every archive**, and the workflow checks the built app again: no self-test, no Debug test
   plugin, no network exception.
